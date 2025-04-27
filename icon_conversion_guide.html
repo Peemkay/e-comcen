@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASDS Icon Conversion Guide</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #00205B;
+        }
+        .step {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-left: 4px solid #00205B;
+            background-color: #f9f9f9;
+        }
+        .note {
+            background-color: #fffde7;
+            padding: 10px;
+            border-left: 4px solid #ffd700;
+            margin: 15px 0;
+        }
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .button {
+            display: inline-block;
+            background-color: #00205B;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>NASDS Icon Conversion Guide</h1>
+    
+    <p>This guide will help you convert the SVG icon to an ICO file for your Windows application.</p>
+    
+    <div class="step">
+        <h2>Step 1: Locate the SVG File</h2>
+        <p>The SVG file is located at:</p>
+        <code>windows\runner\resources\nasds_icon_simple.svg</code>
+    </div>
+    
+    <div class="step">
+        <h2>Step 2: Convert SVG to ICO</h2>
+        <p>Use one of these online converter websites:</p>
+        <ul>
+            <li><a href="https://convertio.co/svg-ico/" target="_blank">Convertio</a></li>
+            <li><a href="https://cloudconvert.com/svg-to-ico" target="_blank">CloudConvert</a></li>
+        </ul>
+        
+        <div class="note">
+            <strong>Important:</strong> When converting, make sure to include these sizes in your ICO file:
+            <ul>
+                <li>16x16</li>
+                <li>32x32</li>
+                <li>48x48</li>
+                <li>64x64</li>
+                <li>128x128</li>
+                <li>256x256</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="step">
+        <h2>Step 3: Save the ICO File</h2>
+        <p>Save the downloaded ICO file as:</p>
+        <code>windows\runner\resources\app_icon.ico</code>
+        <p>If this file already exists, replace it with your new file.</p>
+    </div>
+    
+    <div class="step">
+        <h2>Step 4: Rebuild Your Application</h2>
+        <p>After replacing the icon file, rebuild your Flutter application to apply the changes:</p>
+        <code>flutter clean</code><br>
+        <code>flutter build windows</code>
+    </div>
+    
+    <div class="note">
+        <h3>Troubleshooting</h3>
+        <p>If the icon doesn't appear to change:</p>
+        <ol>
+            <li>Make sure you've saved the ICO file with the correct name and in the correct location</li>
+            <li>Try clearing your Flutter build cache with <code>flutter clean</code> before rebuilding</li>
+            <li>Check that your ICO file includes all the required sizes</li>
+            <li>Restart your development environment</li>
+        </ol>
+    </div>
+    
+    <a href="https://convertio.co/svg-ico/" class="button" target="_blank">Open Convertio</a>
+    <a href="https://cloudconvert.com/svg-to-ico" class="button" target="_blank">Open CloudConvert</a>
+</body>
+</html>
