@@ -16,10 +16,107 @@ class DispatchService {
   final List<ExternalDispatch> _externalDispatches = [];
   final List<DispatchLog> _comcenLogs = [];
 
-  // Initialize with sample data
+  // Storage for trash dispatches
+  final List<Dispatch> _trashDispatches = [];
+
+  // Initialize the service
   void initialize() {
-    if (_incomingDispatches.isEmpty) {
-      _generateSampleData();
+    // In a production app, this would load dispatches from a database
+    // For now, we'll just initialize the collections
+
+    // Add sample outgoing dispatches for testing
+    _addSampleOutgoingDispatches();
+  }
+
+  // Add sample outgoing dispatches for testing
+  void _addSampleOutgoingDispatches() {
+    // Only add sample data if there are no outgoing dispatches
+    if (_outgoingDispatches.isNotEmpty) {
+      return;
+    }
+
+    // Sample recipient units
+    final List<String> recipientUnits = [
+      '521SR', // Signal Regiment
+      '522SR', // Signal Regiment
+      '523SR', // Signal Regiment
+      'HQ', // Headquarters
+      'FOB Alpha', // Forward Operating Base
+      'FOB Bravo', // Forward Operating Base
+    ];
+
+    // Sample recipients
+    final List<String> recipients = [
+      'Capt. Johnson',
+      'Lt. Smith',
+      'Maj. Williams',
+      'Col. Davis',
+      'Sgt. Brown',
+      'Cpl. Wilson',
+    ];
+
+    // Sample senders
+    final List<String> senders = [
+      'Capt. Anderson',
+      'Lt. Thompson',
+      'Maj. Martinez',
+      'Col. Jackson',
+      'Sgt. White',
+      'Cpl. Harris',
+    ];
+
+    // Generate 20 sample outgoing dispatches
+    for (int i = 0; i < 20; i++) {
+      final recipientUnitIndex = i % recipientUnits.length;
+      final recipientIndex = i % recipients.length;
+      final senderIndex = i % senders.length;
+
+      final referenceNumber = 'OUT/${DateTime.now().year}/${1000 + i}';
+      final subject = 'Sample Outgoing Dispatch ${i + 1}';
+      final content =
+          'This is a sample outgoing dispatch for testing purposes.';
+      final dateTime =
+          DateTime.now().subtract(Duration(days: i % 14)); // Last 2 weeks
+
+      final dispatch = OutgoingDispatch(
+        id: _generateId(),
+        referenceNumber: referenceNumber,
+        subject: subject,
+        content: content,
+        dateTime: dateTime,
+        priority: i % 3 == 0 ? 'Urgent' : (i % 3 == 1 ? 'Normal' : 'Flash'),
+        securityClassification: i % 4 == 0
+            ? 'Confidential'
+            : (i % 4 == 1 ? 'Secret' : 'Unclassified'),
+        status: 'Delivered',
+        handledBy: 'System',
+        recipient: recipients[recipientIndex],
+        recipientUnit: recipientUnits[recipientUnitIndex],
+        sentBy: senders[senderIndex],
+        sentDate: dateTime,
+        deliveryMethod: i % 2 == 0 ? 'Physical' : 'Electronic',
+        attachments: [],
+        logs: [
+          DispatchLog(
+            id: _generateId(),
+            timestamp: dateTime,
+            action: 'Created',
+            performedBy: 'System',
+            notes: 'Outgoing dispatch created',
+          ),
+          DispatchLog(
+            id: _generateId(),
+            timestamp: dateTime.add(const Duration(hours: 1)),
+            action: 'Delivered',
+            performedBy: senders[senderIndex],
+            notes:
+                'Dispatch sent to ${recipients[recipientIndex]} at ${recipientUnits[recipientUnitIndex]}',
+          ),
+        ],
+        trackingStatus: DispatchStatus.delivered,
+      );
+
+      _outgoingDispatches.add(dispatch);
     }
   }
 
@@ -448,6 +545,10 @@ class DispatchService {
   void deleteIncomingDispatch(String id) {
     final dispatch = _incomingDispatches.firstWhere((d) => d.id == id);
     _incomingDispatches.removeWhere((d) => d.id == id);
+
+    // Add to trash
+    _trashDispatches.add(dispatch);
+
     _addLog(DispatchLog(
       id: _generateId(),
       timestamp: DateTime.now(),
@@ -462,6 +563,10 @@ class DispatchService {
   void deleteOutgoingDispatch(String id) {
     final dispatch = _outgoingDispatches.firstWhere((d) => d.id == id);
     _outgoingDispatches.removeWhere((d) => d.id == id);
+
+    // Add to trash
+    _trashDispatches.add(dispatch);
+
     _addLog(DispatchLog(
       id: _generateId(),
       timestamp: DateTime.now(),
@@ -476,6 +581,10 @@ class DispatchService {
   void deleteLocalDispatch(String id) {
     final dispatch = _localDispatches.firstWhere((d) => d.id == id);
     _localDispatches.removeWhere((d) => d.id == id);
+
+    // Add to trash
+    _trashDispatches.add(dispatch);
+
     _addLog(DispatchLog(
       id: _generateId(),
       timestamp: DateTime.now(),
@@ -490,6 +599,10 @@ class DispatchService {
   void deleteExternalDispatch(String id) {
     final dispatch = _externalDispatches.firstWhere((d) => d.id == id);
     _externalDispatches.removeWhere((d) => d.id == id);
+
+    // Add to trash
+    _trashDispatches.add(dispatch);
+
     _addLog(DispatchLog(
       id: _generateId(),
       timestamp: DateTime.now(),
@@ -497,6 +610,68 @@ class DispatchService {
       performedBy: 'Admin',
       notes:
           'Deleted external dispatch with reference: ${dispatch.referenceNumber}',
+    ));
+  }
+
+  // Get all trash dispatches
+  List<Dispatch> getTrashDispatches() {
+    return List.from(_trashDispatches);
+  }
+
+  // Restore a dispatch from trash
+  void restoreDispatch(String id) {
+    final dispatch = _trashDispatches.firstWhere((d) => d.id == id);
+
+    // Add back to appropriate list
+    if (dispatch is IncomingDispatch) {
+      _incomingDispatches.add(dispatch);
+    } else if (dispatch is OutgoingDispatch) {
+      _outgoingDispatches.add(dispatch);
+    } else if (dispatch is LocalDispatch) {
+      _localDispatches.add(dispatch);
+    } else if (dispatch is ExternalDispatch) {
+      _externalDispatches.add(dispatch);
+    }
+
+    // Remove from trash
+    _trashDispatches.removeWhere((d) => d.id == id);
+
+    // Add log
+    _addLog(DispatchLog(
+      id: _generateId(),
+      timestamp: DateTime.now(),
+      action: 'Restored Dispatch',
+      performedBy: 'Admin',
+      notes: 'Restored dispatch with reference: ${dispatch.referenceNumber}',
+    ));
+  }
+
+  // Permanently delete a dispatch from trash
+  void permanentlyDeleteDispatch(String id) {
+    final dispatch = _trashDispatches.firstWhere((d) => d.id == id);
+    _trashDispatches.removeWhere((d) => d.id == id);
+
+    _addLog(DispatchLog(
+      id: _generateId(),
+      timestamp: DateTime.now(),
+      action: 'Permanently Deleted Dispatch',
+      performedBy: 'Admin',
+      notes:
+          'Permanently deleted dispatch with reference: ${dispatch.referenceNumber}',
+    ));
+  }
+
+  // Empty trash (delete all dispatches in trash)
+  void emptyTrash() {
+    final count = _trashDispatches.length;
+    _trashDispatches.clear();
+
+    _addLog(DispatchLog(
+      id: _generateId(),
+      timestamp: DateTime.now(),
+      action: 'Emptied Trash',
+      performedBy: 'Admin',
+      notes: 'Permanently deleted $count dispatches from trash',
     ));
   }
 
@@ -523,22 +698,90 @@ class DispatchService {
     _comcenLogs.removeWhere((log) => log.id == id);
   }
 
-  // Generate a communication state report for rear link
-  Future<Map<String, dynamic>> generateCommunicationStateReport() async {
+  // Generate a communication state report for rear link with filtering options
+  Future<Map<String, dynamic>> generateCommunicationStateReport({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? serviceType,
+    String? performedBy,
+    String? sortBy,
+    bool sortAscending = false,
+  }) async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // Get relevant logs for communication state
-    final commLogs = _comcenLogs
+    // Start with all logs
+    List<DispatchLog> filteredLogs = List.from(_comcenLogs);
+
+    // Apply date range filter if provided
+    if (startDate != null) {
+      filteredLogs = filteredLogs
+          .where((log) =>
+              log.timestamp.isAfter(startDate) ||
+              log.timestamp.isAtSameMomentAs(startDate))
+          .toList();
+    }
+
+    if (endDate != null) {
+      // Add one day to include the end date fully
+      final adjustedEndDate = endDate.add(const Duration(days: 1));
+      filteredLogs = filteredLogs
+          .where((log) => log.timestamp.isBefore(adjustedEndDate))
+          .toList();
+    }
+
+    // Apply service type filter if provided
+    if (serviceType != null && serviceType.isNotEmpty && serviceType != 'All') {
+      filteredLogs = filteredLogs
+          .where((log) =>
+              log.action.toLowerCase().contains(serviceType.toLowerCase()) ||
+              log.notes.toLowerCase().contains(serviceType.toLowerCase()))
+          .toList();
+    }
+
+    // Apply performed by filter if provided
+    if (performedBy != null && performedBy.isNotEmpty) {
+      filteredLogs = filteredLogs
+          .where((log) =>
+              log.performedBy.toLowerCase().contains(performedBy.toLowerCase()))
+          .toList();
+    }
+
+    // Apply sorting
+    if (sortBy != null) {
+      switch (sortBy) {
+        case 'date':
+          filteredLogs.sort((a, b) => sortAscending
+              ? a.timestamp.compareTo(b.timestamp)
+              : b.timestamp.compareTo(a.timestamp));
+          break;
+        case 'action':
+          filteredLogs.sort((a, b) => sortAscending
+              ? a.action.compareTo(b.action)
+              : b.action.compareTo(a.action));
+          break;
+        case 'performedBy':
+          filteredLogs.sort((a, b) => sortAscending
+              ? a.performedBy.compareTo(b.performedBy)
+              : b.performedBy.compareTo(a.performedBy));
+          break;
+        default:
+          // Default sort by date (newest first)
+          filteredLogs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      }
+    } else {
+      // Default sort by date (newest first)
+      filteredLogs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    }
+
+    // Get communication-specific logs for status determination
+    final commLogs = filteredLogs
         .where((log) =>
             log.action.toLowerCase().contains('communication') ||
             log.action.toLowerCase().contains('rear link') ||
             log.notes.toLowerCase().contains('communication') ||
             log.notes.toLowerCase().contains('rear link'))
         .toList();
-
-    // Sort by timestamp (newest first)
-    commLogs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
     // Get the latest status
     String currentStatus = 'Unknown';
@@ -578,15 +821,53 @@ class DispatchService {
     double uptimePercentage =
         totalChecks > 0 ? (upChecks / totalChecks) * 100 : 0;
 
-    // Return the report data
+    // Count services by type
+    Map<String, int> servicesByType = {};
+    for (var log in filteredLogs) {
+      String serviceType = _determineServiceType(log);
+      servicesByType[serviceType] = (servicesByType[serviceType] ?? 0) + 1;
+    }
+
+    // Return the enhanced report data
     return {
       'currentStatus': currentStatus,
       'lastChecked': lastChecked,
       'lastCheckedBy': lastCheckedBy,
       'uptimePercentage': uptimePercentage,
       'totalChecks': totalChecks,
-      'logs': commLogs,
+      'logs': filteredLogs,
+      'servicesByType': servicesByType,
+      'totalServices': filteredLogs.length,
+      'startDate': startDate,
+      'endDate': endDate,
+      'serviceType': serviceType,
+      'performedBy': performedBy,
     };
+  }
+
+  // Helper method to determine service type from a log
+  String _determineServiceType(DispatchLog log) {
+    final action = log.action.toLowerCase();
+
+    if (action.contains('communication') || action.contains('rear link')) {
+      return 'Communication';
+    } else if (action.contains('add') || action.contains('creat')) {
+      return 'Creation';
+    } else if (action.contains('updat') || action.contains('edit')) {
+      return 'Update';
+    } else if (action.contains('delet')) {
+      return 'Deletion';
+    } else if (action.contains('receiv')) {
+      return 'Receipt';
+    } else if (action.contains('sent') || action.contains('send')) {
+      return 'Transmission';
+    } else if (action.contains('system') || action.contains('maintenance')) {
+      return 'System';
+    } else if (action.contains('security') || action.contains('audit')) {
+      return 'Security';
+    } else {
+      return 'Other';
+    }
   }
 
   // Generate a unique ID
@@ -635,623 +916,5 @@ class DispatchService {
 
     // If no dispatch found, return null
     return null;
-  }
-
-  // Generate sample data for testing
-  void _generateSampleData() {
-    // Sample incoming dispatches
-    _incomingDispatches.addAll([
-      IncomingDispatch(
-        id: '1',
-        referenceNumber: 'IN-2023-001',
-        subject: 'Weekly Situation Report',
-        content: 'Weekly situation report from 3 Division Headquarters.',
-        dateTime: DateTime.now().subtract(const Duration(days: 5)),
-        priority: 'Normal',
-        securityClassification: 'Restricted',
-        status: 'Received',
-        handledBy: 'Capt. Johnson',
-        sender: 'Col. Ahmed',
-        senderUnit: '3 Division HQ',
-        receivedBy: 'Lt. Okafor',
-        receivedDate: DateTime.now().subtract(const Duration(days: 5)),
-        logs: [
-          DispatchLog(
-            id: '101',
-            timestamp: DateTime.now().subtract(const Duration(days: 5)),
-            action: 'Received',
-            performedBy: 'Lt. Okafor',
-            notes: 'Received from dispatch rider.',
-          ),
-          DispatchLog(
-            id: '102',
-            timestamp: DateTime.now().subtract(const Duration(days: 4)),
-            action: 'Processed',
-            performedBy: 'Capt. Johnson',
-            notes: 'Forwarded to commanding officer.',
-          ),
-        ],
-        // Enhanced tracking properties
-        trackingStatus: DispatchStatus.completed,
-        enhancedLogs: [
-          EnhancedDispatchLog(
-            id: '201',
-            timestamp: DateTime.now().subtract(const Duration(days: 5)),
-            action: 'Created',
-            performedBy: DispatchHandler(
-              id: '101',
-              name: 'Okafor',
-              rank: 'Lt.',
-              role: 'Dispatch Officer',
-              department: 'Signals',
-            ),
-            oldStatus: null,
-            newStatus: DispatchStatus.created,
-            notes: 'Dispatch created in the system',
-          ),
-          EnhancedDispatchLog(
-            id: '202',
-            timestamp:
-                DateTime.now().subtract(const Duration(days: 5, hours: 2)),
-            action: 'Received',
-            performedBy: DispatchHandler(
-              id: '101',
-              name: 'Okafor',
-              rank: 'Lt.',
-              role: 'Dispatch Officer',
-              department: 'Signals',
-            ),
-            oldStatus: DispatchStatus.created,
-            newStatus: DispatchStatus.received,
-            notes: 'Received from dispatch rider',
-            location: '3 Division HQ Reception',
-          ),
-          EnhancedDispatchLog(
-            id: '203',
-            timestamp: DateTime.now().subtract(const Duration(days: 4)),
-            action: 'Processed',
-            performedBy: DispatchHandler(
-              id: '102',
-              name: 'Johnson',
-              rank: 'Capt.',
-              role: 'Staff Officer',
-              department: 'Signals',
-            ),
-            oldStatus: DispatchStatus.received,
-            newStatus: DispatchStatus.inProgress,
-            notes: 'Forwarded to commanding officer',
-          ),
-          EnhancedDispatchLog(
-            id: '204',
-            timestamp: DateTime.now().subtract(const Duration(days: 3)),
-            action: 'Acknowledged',
-            performedBy: DispatchHandler(
-              id: '103',
-              name: 'Musa',
-              rank: 'Col.',
-              role: 'Commanding Officer',
-              department: 'Headquarters',
-            ),
-            oldStatus: DispatchStatus.inProgress,
-            newStatus: DispatchStatus.acknowledged,
-            notes: 'Acknowledged by commanding officer',
-          ),
-          EnhancedDispatchLog(
-            id: '205',
-            timestamp: DateTime.now().subtract(const Duration(days: 2)),
-            action: 'Completed',
-            performedBy: DispatchHandler(
-              id: '102',
-              name: 'Johnson',
-              rank: 'Capt.',
-              role: 'Staff Officer',
-              department: 'Signals',
-            ),
-            oldStatus: DispatchStatus.acknowledged,
-            newStatus: DispatchStatus.completed,
-            notes: 'All actions completed',
-          ),
-        ],
-        currentHandler: DispatchHandler(
-          id: '102',
-          name: 'Johnson',
-          rank: 'Capt.',
-          role: 'Staff Officer',
-          department: 'Signals',
-          contactInfo: 'johnson@army.mil.ng',
-        ),
-      ),
-      IncomingDispatch(
-        id: '2',
-        referenceNumber: 'IN-2023-002',
-        subject: 'Operational Order',
-        content: 'Operational order for upcoming joint exercise.',
-        dateTime: DateTime.now().subtract(const Duration(days: 3)),
-        priority: 'Urgent',
-        securityClassification: 'Confidential',
-        status: 'In Progress',
-        handledBy: 'Maj. Ibrahim',
-        sender: 'Brig. Gen. Musa',
-        senderUnit: 'Army Headquarters',
-        receivedBy: 'Capt. Adeyemi',
-        receivedDate: DateTime.now().subtract(const Duration(days: 3)),
-        logs: [
-          DispatchLog(
-            id: '103',
-            timestamp: DateTime.now().subtract(const Duration(days: 3)),
-            action: 'Received',
-            performedBy: 'Capt. Adeyemi',
-            notes: 'Received via secure courier.',
-          ),
-        ],
-      ),
-    ]);
-
-    // Sample outgoing dispatches
-    _outgoingDispatches.addAll([
-      OutgoingDispatch(
-        id: '3',
-        referenceNumber: 'OUT-2023-001',
-        subject: 'Equipment Requisition',
-        content: 'Requisition for communication equipment.',
-        dateTime: DateTime.now().subtract(const Duration(days: 7)),
-        priority: 'Normal',
-        securityClassification: 'Unclassified',
-        status: 'Delivered',
-        handledBy: 'Lt. Col. Nnamdi',
-        recipient: 'Col. Obasanjo',
-        recipientUnit: 'Army Signals School',
-        sentBy: 'Maj. Danjuma',
-        sentDate: DateTime.now().subtract(const Duration(days: 7)),
-        deliveryMethod: 'Physical',
-        logs: [
-          DispatchLog(
-            id: '104',
-            timestamp: DateTime.now().subtract(const Duration(days: 7)),
-            action: 'Prepared',
-            performedBy: 'Maj. Danjuma',
-            notes: 'Prepared for delivery.',
-          ),
-          DispatchLog(
-            id: '105',
-            timestamp: DateTime.now().subtract(const Duration(days: 6)),
-            action: 'Sent',
-            performedBy: 'Sgt. Aliyu',
-            notes: 'Sent via dispatch rider.',
-          ),
-          DispatchLog(
-            id: '106',
-            timestamp: DateTime.now().subtract(const Duration(days: 5)),
-            action: 'Delivered',
-            performedBy: 'Cpl. Emeka',
-            notes: 'Confirmed delivery.',
-          ),
-        ],
-        // Enhanced tracking properties
-        trackingStatus: DispatchStatus.inTransit,
-        enhancedLogs: [
-          EnhancedDispatchLog(
-            id: '301',
-            timestamp: DateTime.now().subtract(const Duration(days: 7)),
-            action: 'Created',
-            performedBy: DispatchHandler(
-              id: '201',
-              name: 'Danjuma',
-              rank: 'Maj.',
-              role: 'Logistics Officer',
-              department: 'Signals',
-            ),
-            oldStatus: null,
-            newStatus: DispatchStatus.created,
-            notes: 'Dispatch created in the system',
-          ),
-          EnhancedDispatchLog(
-            id: '302',
-            timestamp:
-                DateTime.now().subtract(const Duration(days: 7, hours: 2)),
-            action: 'Prepared',
-            performedBy: DispatchHandler(
-              id: '201',
-              name: 'Danjuma',
-              rank: 'Maj.',
-              role: 'Logistics Officer',
-              department: 'Signals',
-            ),
-            oldStatus: DispatchStatus.created,
-            newStatus: DispatchStatus.pending,
-            notes: 'Prepared for delivery',
-          ),
-          EnhancedDispatchLog(
-            id: '303',
-            timestamp: DateTime.now().subtract(const Duration(days: 6)),
-            action: 'Dispatched',
-            performedBy: DispatchHandler(
-              id: '202',
-              name: 'Aliyu',
-              rank: 'Sgt.',
-              role: 'Dispatch Rider',
-              department: 'Signals',
-            ),
-            oldStatus: DispatchStatus.pending,
-            newStatus: DispatchStatus.dispatched,
-            notes: 'Sent via dispatch rider',
-            location: 'HQ Dispatch Office',
-          ),
-          EnhancedDispatchLog(
-            id: '304',
-            timestamp:
-                DateTime.now().subtract(const Duration(days: 5, hours: 12)),
-            action: 'In Transit',
-            performedBy: DispatchHandler(
-              id: '202',
-              name: 'Aliyu',
-              rank: 'Sgt.',
-              role: 'Dispatch Rider',
-              department: 'Signals',
-            ),
-            oldStatus: DispatchStatus.dispatched,
-            newStatus: DispatchStatus.inTransit,
-            notes: 'En route to Army Signals School',
-            location: 'Checkpoint Alpha',
-          ),
-        ],
-        currentHandler: DispatchHandler(
-          id: '202',
-          name: 'Aliyu',
-          rank: 'Sgt.',
-          role: 'Dispatch Rider',
-          department: 'Signals',
-          contactInfo: 'aliyu@army.mil.ng',
-        ),
-        currentLocation: 'En route to Army Signals School',
-        estimatedDeliveryDate: DateTime.now().add(const Duration(days: 1)),
-        route: DispatchRoute(
-          id: '101',
-          name: 'HQ to Army Signals School',
-          waypoints: [
-            'HQ Dispatch Office',
-            'Checkpoint Alpha',
-            'Checkpoint Bravo',
-            'Army Signals School'
-          ],
-          estimatedDeliveryTime: DateTime.now().add(const Duration(days: 1)),
-          assignedCourier: DispatchHandler(
-            id: '202',
-            name: 'Aliyu',
-            rank: 'Sgt.',
-            role: 'Dispatch Rider',
-            department: 'Signals',
-          ),
-          transportMethod: 'Vehicle',
-          status: 'In Progress',
-        ),
-      ),
-      OutgoingDispatch(
-        id: '4',
-        referenceNumber: 'OUT-2023-002',
-        subject: 'Training Schedule',
-        content: 'Updated training schedule for Q3 2023.',
-        dateTime: DateTime.now().subtract(const Duration(days: 2)),
-        priority: 'Normal',
-        securityClassification: 'Restricted',
-        status: 'Sent',
-        handledBy: 'Capt. Yusuf',
-        recipient: 'Lt. Col. Abubakar',
-        recipientUnit: '1 Division HQ',
-        sentBy: 'Lt. Chukwu',
-        sentDate: DateTime.now().subtract(const Duration(days: 2)),
-        deliveryMethod: 'Electronic',
-        logs: [
-          DispatchLog(
-            id: '107',
-            timestamp: DateTime.now().subtract(const Duration(days: 2)),
-            action: 'Prepared',
-            performedBy: 'Lt. Chukwu',
-            notes: 'Prepared for electronic delivery.',
-          ),
-          DispatchLog(
-            id: '108',
-            timestamp: DateTime.now().subtract(const Duration(days: 2)),
-            action: 'Sent',
-            performedBy: 'Lt. Chukwu',
-            notes: 'Sent via secure email.',
-          ),
-        ],
-      ),
-    ]);
-
-    // Sample local dispatches
-    _localDispatches.addAll([
-      LocalDispatch(
-        id: '5',
-        referenceNumber: 'LOC-2023-001',
-        subject: 'Staff Meeting Minutes',
-        content: 'Minutes from weekly staff meeting.',
-        dateTime: DateTime.now().subtract(const Duration(days: 1)),
-        priority: 'Normal',
-        securityClassification: 'Unclassified',
-        status: 'Completed',
-        handledBy: 'Capt. Okonkwo',
-        sender: 'Maj. Bello',
-        senderDepartment: 'Operations',
-        recipient: 'All Department Heads',
-        recipientDepartment: 'All Departments',
-        internalReference: 'MEET-2023-12',
-        logs: [
-          DispatchLog(
-            id: '109',
-            timestamp: DateTime.now().subtract(const Duration(days: 1)),
-            action: 'Created',
-            performedBy: 'Capt. Okonkwo',
-            notes: 'Created and distributed.',
-          ),
-          DispatchLog(
-            id: '110',
-            timestamp: DateTime.now().subtract(const Duration(hours: 20)),
-            action: 'Received',
-            performedBy: 'Various Recipients',
-            notes: 'Acknowledged by all department heads.',
-          ),
-        ],
-      ),
-      LocalDispatch(
-        id: '6',
-        referenceNumber: 'LOC-2023-002',
-        subject: 'Equipment Maintenance Schedule',
-        content: 'Updated maintenance schedule for communication equipment.',
-        dateTime: DateTime.now().subtract(const Duration(hours: 12)),
-        priority: 'Normal',
-        securityClassification: 'Unclassified',
-        status: 'In Progress',
-        handledBy: 'WO Garba',
-        sender: 'Lt. Adamu',
-        senderDepartment: 'Technical',
-        recipient: 'Sgt. Eze',
-        recipientDepartment: 'Maintenance',
-        internalReference: 'MAINT-2023-05',
-        logs: [
-          DispatchLog(
-            id: '111',
-            timestamp: DateTime.now().subtract(const Duration(hours: 12)),
-            action: 'Created',
-            performedBy: 'Lt. Adamu',
-            notes: 'Created maintenance schedule.',
-          ),
-        ],
-      ),
-    ]);
-
-    // Sample external dispatches
-    _externalDispatches.addAll([
-      ExternalDispatch(
-        id: '7',
-        referenceNumber: 'EXT-2023-001',
-        subject: 'Civilian Contractor Access',
-        content:
-            'Authorization for civilian contractors to access base facilities.',
-        dateTime: DateTime.now().subtract(const Duration(days: 4)),
-        priority: 'Normal',
-        securityClassification: 'Restricted',
-        status: 'Completed',
-        handledBy: 'Maj. Usman',
-        organization: 'TechBuild Nigeria Ltd',
-        contactPerson: 'Mr. Olawale Johnson',
-        contactDetails: 'olawale.johnson@techbuild.ng, 08012345678',
-        isIncoming: false,
-        externalReference: 'TB-AUTH-2023-42',
-        logs: [
-          DispatchLog(
-            id: '112',
-            timestamp: DateTime.now().subtract(const Duration(days: 4)),
-            action: 'Created',
-            performedBy: 'Maj. Usman',
-            notes: 'Created authorization letter.',
-          ),
-          DispatchLog(
-            id: '113',
-            timestamp: DateTime.now().subtract(const Duration(days: 3)),
-            action: 'Sent',
-            performedBy: 'Cpl. Musa',
-            notes: 'Sent to TechBuild Nigeria Ltd.',
-          ),
-          DispatchLog(
-            id: '114',
-            timestamp: DateTime.now().subtract(const Duration(days: 2)),
-            action: 'Acknowledged',
-            performedBy: 'Mr. Olawale Johnson',
-            notes: 'Receipt acknowledged by contractor.',
-          ),
-        ],
-      ),
-      ExternalDispatch(
-        id: '8',
-        referenceNumber: 'EXT-2023-002',
-        subject: 'Equipment Delivery Notification',
-        content:
-            'Notification of upcoming delivery of communication equipment.',
-        dateTime: DateTime.now().subtract(const Duration(days: 1)),
-        priority: 'Urgent',
-        securityClassification: 'Unclassified',
-        status: 'Pending',
-        handledBy: 'Capt. Abdullahi',
-        organization: 'Global Communications Ltd',
-        contactPerson: 'Ms. Amina Ibrahim',
-        contactDetails: 'amina.ibrahim@globalcomms.com, 08087654321',
-        isIncoming: true,
-        externalReference: 'GCL-DEL-2023-18',
-        logs: [
-          DispatchLog(
-            id: '115',
-            timestamp: DateTime.now().subtract(const Duration(days: 1)),
-            action: 'Received',
-            performedBy: 'Capt. Abdullahi',
-            notes: 'Received notification from vendor.',
-          ),
-        ],
-      ),
-      ExternalDispatch(
-        id: '9',
-        referenceNumber: 'EXT-2023-003',
-        subject: 'Urgent Equipment Transfer Request',
-        content:
-            'Request for urgent transfer of communication equipment to forward operating base.',
-        dateTime: DateTime.now().subtract(const Duration(days: 3)),
-        priority: 'Urgent',
-        securityClassification: 'Restricted',
-        status: 'Failed',
-        handledBy: 'Maj. Oladele',
-        organization: 'Forward Operating Base Delta',
-        contactPerson: 'Lt. Col. Adebayo',
-        contactDetails: 'adebayo@army.mil.ng, 08023456789',
-        isIncoming: false,
-        externalReference: 'FOB-EQ-2023-11',
-        logs: [
-          DispatchLog(
-            id: '120',
-            timestamp: DateTime.now().subtract(const Duration(days: 3)),
-            action: 'Created',
-            performedBy: 'Maj. Oladele',
-            notes: 'Urgent request prepared for immediate dispatch.',
-          ),
-          DispatchLog(
-            id: '121',
-            timestamp:
-                DateTime.now().subtract(const Duration(days: 3, hours: 4)),
-            action: 'Sent',
-            performedBy: 'Capt. Adekunle',
-            notes: 'Dispatched via military transport.',
-          ),
-          DispatchLog(
-            id: '122',
-            timestamp: DateTime.now().subtract(const Duration(days: 2)),
-            action: 'Failed',
-            performedBy: 'Lt. Garba',
-            notes: 'Delivery failed due to security situation in transit area.',
-          ),
-        ],
-        // Enhanced tracking properties
-        trackingStatus: DispatchStatus.failed,
-        enhancedLogs: [
-          EnhancedDispatchLog(
-            id: '401',
-            timestamp: DateTime.now().subtract(const Duration(days: 3)),
-            action: 'Created',
-            performedBy: DispatchHandler(
-              id: '301',
-              name: 'Oladele',
-              rank: 'Maj.',
-              role: 'Operations Officer',
-              department: 'Signals Corps',
-            ),
-            oldStatus: null,
-            newStatus: DispatchStatus.created,
-            notes: 'Urgent request prepared for immediate dispatch',
-          ),
-          EnhancedDispatchLog(
-            id: '402',
-            timestamp:
-                DateTime.now().subtract(const Duration(days: 3, hours: 2)),
-            action: 'Approved',
-            performedBy: DispatchHandler(
-              id: '302',
-              name: 'Musa',
-              rank: 'Col.',
-              role: 'Commanding Officer',
-              department: 'Signals Corps',
-            ),
-            oldStatus: DispatchStatus.created,
-            newStatus: DispatchStatus.pending,
-            notes: 'Request approved for immediate dispatch',
-          ),
-          EnhancedDispatchLog(
-            id: '403',
-            timestamp:
-                DateTime.now().subtract(const Duration(days: 3, hours: 4)),
-            action: 'Dispatched',
-            performedBy: DispatchHandler(
-              id: '303',
-              name: 'Adekunle',
-              rank: 'Capt.',
-              role: 'Logistics Officer',
-              department: 'Signals Corps',
-            ),
-            oldStatus: DispatchStatus.pending,
-            newStatus: DispatchStatus.dispatched,
-            notes: 'Dispatched via military transport',
-            location: 'HQ Logistics Center',
-          ),
-          EnhancedDispatchLog(
-            id: '404',
-            timestamp:
-                DateTime.now().subtract(const Duration(days: 2, hours: 6)),
-            action: 'Delayed',
-            performedBy: DispatchHandler(
-              id: '304',
-              name: 'Garba',
-              rank: 'Lt.',
-              role: 'Transport Officer',
-              department: 'Signals Corps',
-            ),
-            oldStatus: DispatchStatus.dispatched,
-            newStatus: DispatchStatus.delayed,
-            notes: 'Transport delayed due to security concerns in transit area',
-            location: 'Checkpoint Charlie',
-          ),
-          EnhancedDispatchLog(
-            id: '405',
-            timestamp: DateTime.now().subtract(const Duration(days: 2)),
-            action: 'Failed',
-            performedBy: DispatchHandler(
-              id: '304',
-              name: 'Garba',
-              rank: 'Lt.',
-              role: 'Transport Officer',
-              department: 'Signals Corps',
-            ),
-            oldStatus: DispatchStatus.delayed,
-            newStatus: DispatchStatus.failed,
-            notes: 'Delivery failed due to security situation in transit area',
-            location: 'Checkpoint Charlie',
-          ),
-        ],
-        currentHandler: DispatchHandler(
-          id: '304',
-          name: 'Garba',
-          rank: 'Lt.',
-          role: 'Transport Officer',
-          department: 'Signals Corps',
-          contactInfo: 'garba@army.mil.ng',
-        ),
-        currentLocation: 'Checkpoint Charlie',
-        isReturned: true,
-        returnReason:
-            'Unable to proceed due to active insurgent activity in the transit corridor. Equipment being returned to HQ for rerouting.',
-      ),
-    ]);
-
-    // Generate additional COMCEN logs
-    _comcenLogs.addAll([
-      DispatchLog(
-        id: '201',
-        timestamp: DateTime.now().subtract(const Duration(days: 10)),
-        action: 'System Maintenance',
-        performedBy: 'System Admin',
-        notes: 'Routine system maintenance performed.',
-      ),
-      DispatchLog(
-        id: '202',
-        timestamp: DateTime.now().subtract(const Duration(days: 8)),
-        action: 'User Training',
-        performedBy: 'Training Officer',
-        notes: 'Conducted user training for new dispatch operators.',
-      ),
-      DispatchLog(
-        id: '203',
-        timestamp: DateTime.now().subtract(const Duration(days: 6)),
-        action: 'Security Audit',
-        performedBy: 'Security Officer',
-        notes: 'Conducted quarterly security audit of dispatch procedures.',
-      ),
-    ]);
   }
 }
