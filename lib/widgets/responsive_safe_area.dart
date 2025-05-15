@@ -26,14 +26,14 @@ class ResponsiveSafeArea extends StatelessWidget {
 
   /// Creates a responsive safe area.
   const ResponsiveSafeArea({
-    Key? key,
+    super.key,
     required this.child,
     this.minimumPadding,
     this.paddingFactor = 1.0,
     this.maintainBottomPadding = true,
     this.scrollable = true,
     this.backgroundColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -104,13 +104,13 @@ class ResponsivePadding extends StatelessWidget {
 
   /// Creates a responsive padding.
   const ResponsivePadding({
-    Key? key,
+    super.key,
     required this.child,
     this.factor = 1.0,
     this.minimumPadding,
     this.horizontal,
     this.vertical,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

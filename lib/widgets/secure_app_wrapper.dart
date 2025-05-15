@@ -10,49 +10,50 @@ import '../screens/lock_screen.dart';
 class SecureAppWrapper extends StatefulWidget {
   final Widget child;
   final bool enforceScreenCapturePrevention;
-  
+
   const SecureAppWrapper({
-    Key? key,
+    super.key,
     required this.child,
     this.enforceScreenCapturePrevention = true,
-  }) : super(key: key);
+  });
 
   @override
   State<SecureAppWrapper> createState() => _SecureAppWrapperState();
 }
 
-class _SecureAppWrapperState extends State<SecureAppWrapper> with WidgetsBindingObserver {
+class _SecureAppWrapperState extends State<SecureAppWrapper>
+    with WidgetsBindingObserver {
   late SecurityProvider _securityProvider;
   Timer? _inactivityTimer;
   DateTime? _lastActivityTime;
   bool _isLocked = false;
-  
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    
+
     // Prevent screen capture if enabled
-    if (widget.enforceScreenCapturePrevention && 
+    if (widget.enforceScreenCapturePrevention &&
         SecurityConstants.preventScreenCapture) {
       _preventScreenCapture();
     }
-    
+
     // Start inactivity timer
     _resetInactivityTimer();
   }
-  
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _securityProvider = Provider.of<SecurityProvider>(context, listen: false);
-    
+
     // Initialize security provider
     if (!_securityProvider.isInitialized) {
       _initializeSecurityProvider();
     }
   }
-  
+
   Future<void> _initializeSecurityProvider() async {
     try {
       await _securityProvider.initialize();
@@ -60,21 +61,22 @@ class _SecureAppWrapperState extends State<SecureAppWrapper> with WidgetsBinding
       debugPrint('Error initializing security provider: $e');
     }
   }
-  
+
   void _preventScreenCapture() {
     SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.manual,
       overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
     );
-    
+
     // Prevent screenshots and screen recording
-    SystemChannels.platform.invokeMethod('SystemChrome.setPreventScreenCapture', true);
+    SystemChannels.platform
+        .invokeMethod('SystemChrome.setPreventScreenCapture', true);
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    
+
     switch (state) {
       case AppLifecycleState.resumed:
         // App came to foreground
@@ -94,59 +96,69 @@ class _SecureAppWrapperState extends State<SecureAppWrapper> with WidgetsBinding
         break;
     }
   }
-  
+
   void _checkSecurityStatus() {
     if (_securityProvider.isInitialized) {
       // Check if session is still active
-      if (!_securityProvider.isSessionActive && _securityProvider.isAuthenticated) {
+      if (!_securityProvider.isSessionActive &&
+          _securityProvider.isAuthenticated) {
         setState(() {
           _isLocked = true;
         });
       }
-      
+
       // Check network security
       _securityProvider.checkNetworkSecurity();
     }
   }
-  
+
   void _resetInactivityTimer() {
     _cancelInactivityTimer();
-    
+
     _lastActivityTime = DateTime.now();
     _inactivityTimer = Timer.periodic(
       const Duration(seconds: 30),
       (_) => _checkInactivity(),
     );
   }
-  
+
   void _cancelInactivityTimer() {
     _inactivityTimer?.cancel();
     _inactivityTimer = null;
   }
-  
+
   void _checkInactivity() {
     if (_lastActivityTime == null) return;
-    
+
     final now = DateTime.now();
     final difference = now.difference(_lastActivityTime!);
-    
+
     if (difference.inMinutes >= SecurityConstants.sessionTimeoutMinutes) {
+      debugPrint(
+          'Session timeout detected: ${difference.inMinutes} minutes of inactivity');
+
+      // Update the security provider first
+      if (_securityProvider.isInitialized) {
+        // This will trigger the session timeout event
+        _securityProvider.sessionTimeout();
+      }
+
       setState(() {
         _isLocked = true;
       });
       _cancelInactivityTimer();
     }
   }
-  
+
   void _onUserInteraction() {
     if (_isLocked) return;
-    
+
     _lastActivityTime = DateTime.now();
     if (_securityProvider.isInitialized) {
       _securityProvider.updateActivity();
     }
   }
-  
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -159,11 +171,28 @@ class _SecureAppWrapperState extends State<SecureAppWrapper> with WidgetsBinding
     if (_isLocked) {
       return const LockScreen();
     }
-    
+
     return Listener(
       onPointerDown: (_) => _onUserInteraction(),
       onPointerMove: (_) => _onUserInteraction(),
-      child: widget.child,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Get the screen size
+          final screenWidth = constraints.maxWidth;
+          final screenHeight = constraints.maxHeight;
+
+          // Log screen dimensions for debugging
+          debugPrint('Screen dimensions: $screenWidth x $screenHeight');
+
+          // Return the child widget wrapped in a container that fills the available space
+          return Container(
+            width: screenWidth,
+            height: screenHeight,
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: widget.child,
+          );
+        },
+      ),
     );
   }
 }

@@ -3,7 +3,10 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
+import '../../models/file_attachment.dart';
 import '../../services/dispatch_service.dart';
+import '../../services/attachment_service.dart';
+import '../../widgets/attachment_list.dart';
 import 'incoming_dispatch_form.dart';
 import 'outgoing_dispatch_form.dart';
 import 'local_dispatch_form.dart';
@@ -26,9 +29,11 @@ class DispatchDetailScreen extends StatefulWidget {
 
 class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
   final DispatchService _dispatchService = DispatchService();
+  final AttachmentService _attachmentService = AttachmentService();
   late Dispatch _dispatch;
   bool _isLoading = true;
   bool _isDeleting = false;
+  List<FileAttachment> _fileAttachments = [];
 
   @override
   void initState() {
@@ -67,9 +72,34 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
         throw Exception('Unknown dispatch type: ${widget.dispatchType}');
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    // Load file attachments
+    _loadFileAttachments();
+  }
+
+  Future<void> _loadFileAttachments() async {
+    // If dispatch already has file attachments, use them
+    if (_dispatch.fileAttachments != null &&
+        _dispatch.fileAttachments!.isNotEmpty) {
+      setState(() {
+        _fileAttachments = List.from(_dispatch.fileAttachments!);
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Otherwise, load attachments from paths
+    if (_dispatch.attachments.isNotEmpty) {
+      final attachments = await _attachmentService
+          .getAttachmentsFromPaths(_dispatch.attachments);
+      setState(() {
+        _fileAttachments = attachments;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _editDispatch() {
@@ -168,6 +198,37 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
         ),
       );
       Navigator.pop(context);
+    }
+  }
+
+  Future<void> _viewAttachment(FileAttachment attachment) async {
+    try {
+      final file = await _attachmentService.getAttachment(attachment.path);
+      if (file != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Opening ${attachment.name}'),
+            backgroundColor: AppTheme.primaryColor,
+          ),
+        );
+        // In a real app, you would open the file with a viewer
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open file'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -415,7 +476,7 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          if (_dispatch.attachments.isEmpty)
+                          if (_fileAttachments.isEmpty)
                             const Text(
                               'No attachments',
                               style: TextStyle(
@@ -424,26 +485,9 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
                               ),
                             )
                           else
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _dispatch.attachments.length,
-                              itemBuilder: (context, index) {
-                                final attachment = _dispatch.attachments[index];
-                                return ListTile(
-                                  leading:
-                                      const Icon(FontAwesomeIcons.paperclip),
-                                  title: Text(attachment),
-                                  onTap: () {
-                                    // In a real app, this would open the attachment
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Opening attachment...'),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
+                            AttachmentList(
+                              attachments: _fileAttachments,
+                              onTap: _viewAttachment,
                             ),
                         ],
                       ),

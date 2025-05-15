@@ -3,16 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'constants/app_constants.dart';
 import 'constants/app_theme.dart';
-import 'constants/security_constants.dart';
 import 'providers/translation_provider.dart';
 import 'providers/security_provider.dart';
 import 'providers/dispatcher_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/local_storage_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/loading_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/home_screen_new.dart' as home;
 import 'screens/login_screen.dart';
 import 'screens/lock_screen.dart';
 import 'screens/registration_screen.dart';
@@ -25,21 +26,27 @@ import 'screens/admin/system_settings_screen.dart';
 import 'screens/admin/security_settings_screen.dart';
 import 'screens/notification_settings_screen.dart';
 import 'screens/notification_center_screen.dart';
+import 'screens/profile/user_profile_screen.dart';
+import 'screens/help/help_menu_screen.dart';
+import 'screens/reports/report_library_screen.dart';
 import 'widgets/secure_app_wrapper.dart';
 import 'widgets/security_classification_banner.dart';
 import 'widgets/notifications/notification_manager.dart';
+import 'widgets/responsive_container.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Check if running on Windows platform
-  if (!isWindows()) {
-    // Show error dialog and exit if not running on Windows
-    runApp(const UnsupportedPlatformApp());
-    return;
+  // Initialize sqflite_common_ffi for Windows
+  if (Platform.isWindows) {
+    // Initialize FFI
+    sqfliteFfiInit();
+    // Change the default factory for Windows
+    databaseFactory = databaseFactoryFfi;
+    debugPrint('Initialized sqflite_ffi for Windows');
   }
 
-  // Allow all orientations for better responsiveness on Windows
+  // Allow all orientations for better responsiveness
   // This enables the app to adapt to both portrait and landscape modes
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -48,7 +55,7 @@ void main() {
     DeviceOrientation.landscapeRight,
   ]);
 
-  // Set system UI overlay style for Windows
+  // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -58,69 +65,15 @@ void main() {
     ),
   );
 
-  runApp(const MyApp());
-}
+  // Set production mode
+  const bool isProduction = true;
 
-// Check if the app is running on Windows
-bool isWindows() {
-  return Platform.isWindows;
-}
-
-/// App to show when running on an unsupported platform
-class UnsupportedPlatformApp extends StatelessWidget {
-  const UnsupportedPlatformApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Platform Not Supported',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A5D1A),
-          brightness: Brightness.light,
-        ),
-      ),
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Platform Not Supported'),
-          backgroundColor: const Color(0xFF1A5D1A),
-          foregroundColor: Colors.white,
-        ),
-        body: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 80,
-                  color: Color(0xFF1A5D1A),
-                ),
-                SizedBox(height: 24),
-                Text(
-                  'E-COMCEN is only supported on Windows',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'This application is designed to run exclusively on Windows platforms. '
-                  'Please launch the application on a Windows device.',
-                  style: TextStyle(fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  // Disable debug banner and print statements in production
+  if (isProduction) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
   }
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -134,9 +87,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SecurityProvider()),
         ChangeNotifierProvider(create: (_) => DispatcherProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => LocalStorageProvider()),
       ],
-      child: Consumer2<TranslationProvider, SecurityProvider>(
-        builder: (context, translationProvider, securityProvider, _) {
+      child: Consumer3<TranslationProvider, SecurityProvider,
+          LocalStorageProvider>(
+        builder: (context, translationProvider, securityProvider,
+            localStorageProvider, _) {
           // Initialize the translation provider if not already initialized
           if (!translationProvider.isLoading) {
             Future.microtask(() => translationProvider.initialize());
@@ -147,9 +103,18 @@ class MyApp extends StatelessWidget {
             Future.microtask(() => securityProvider.initialize());
           }
 
+          // Initialize the local storage provider if not already initialized
+          if (!localStorageProvider.isInitialized &&
+              !localStorageProvider.isInitializing) {
+            Future.microtask(() => localStorageProvider.initialize());
+          }
+
+          // Set production mode
+          const bool isProduction = true;
+
           return MaterialApp(
             title: AppConstants.appName,
-            debugShowCheckedModeBanner: false,
+            debugShowCheckedModeBanner: !isProduction,
             theme: AppTheme.lightTheme,
             initialRoute: AppConstants.splashRoute,
 
@@ -160,7 +125,7 @@ class MyApp extends StatelessWidget {
               AppConstants.loginRoute: (context) => const LoginScreen(),
               AppConstants.registrationRoute: (context) =>
                   const RegistrationScreen(),
-              AppConstants.homeRoute: (context) => const HomeScreen(),
+              AppConstants.homeRoute: (context) => const home.HomeScreen(),
               AppConstants.lockRoute: (context) => const LockScreen(),
               AppConstants.settingsRoute: (context) => const SettingsScreen(),
               AppConstants.userManagementRoute: (context) =>
@@ -177,6 +142,12 @@ class MyApp extends StatelessWidget {
               '/notifications': (context) => const NotificationCenterScreen(),
               '/notification_settings': (context) =>
                   const NotificationSettingsScreen(),
+              '/profile': (context) => const UserProfileScreen(),
+              '/help': (context) => const HelpMenuScreen(),
+              '/about': (context) => const HelpMenuScreen(),
+              '/terms': (context) => const HelpMenuScreen(),
+              '/privacy': (context) => const HelpMenuScreen(),
+              '/report_library': (context) => const ReportLibraryScreen(),
             },
 
             // Add localization support
@@ -201,19 +172,66 @@ class MyApp extends StatelessWidget {
               // Get the media query data
               final mediaQuery = MediaQuery.of(context);
 
-              // Create a fixed text scaler to prevent text overflow
-              // Use TextScaler.linear instead of the deprecated textScaleFactor
-              final textScaler = TextScaler.linear(1.0);
+              // Calculate responsive text scale based on screen width
+              // This ensures text is readable on all devices while preventing overflow
+              double textScaleFactor = 1.0;
+              final width = mediaQuery.size.width;
+              final height = mediaQuery.size.height;
+
+              // Log screen dimensions for debugging
+              debugPrint('Screen dimensions: $width x $height');
+
+              // Adjust text scale based on screen width
+              if (width < 360) {
+                textScaleFactor = 0.8; // Small phones
+              } else if (width < 650) {
+                textScaleFactor = 0.95; // Normal phones
+              } else if (width < 1100) {
+                textScaleFactor = 1.0; // Tablets
+              } else {
+                textScaleFactor = 1.05; // Desktops
+              }
+
+              // Create a responsive text scaler
+              final textScaler = TextScaler.linear(textScaleFactor);
+
+              // Calculate padding based on screen size
+              // This helps with responsive layout on different devices
+              final horizontalPadding = width < 600 ? 0.0 : 16.0;
+              final verticalPadding = height < 500 ? 0.0 : 8.0;
 
               // Return a new MediaQuery with the adjusted text scaler
               return MediaQuery(
                 data: mediaQuery.copyWith(
                   textScaler: textScaler,
+                  padding: mediaQuery.padding.copyWith(
+                    left: mediaQuery.padding.left + horizontalPadding,
+                    right: mediaQuery.padding.right + horizontalPadding,
+                    top: mediaQuery.padding.top + verticalPadding,
+                    bottom: mediaQuery.padding.bottom + verticalPadding,
+                  ),
                 ),
                 child: SecureAppWrapper(
                   child: SecurityClassificationWrapper(
                     child: NotificationManager(
-                      child: child!,
+                      // Apply responsive container to limit width on large screens
+                      // This prevents UI elements from stretching too much on wide screens
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Container(
+                            width: constraints.maxWidth,
+                            height: constraints.maxHeight,
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                            child: ResponsiveContainer(
+                              // Use different max widths based on screen size
+                              maxWidth: width > 1200 ? 1200 : null,
+                              // Center content on larger screens
+                              centerContent: width > 900,
+                              child: child!,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

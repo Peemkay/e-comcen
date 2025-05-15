@@ -5,6 +5,7 @@ import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
 import '../../models/dispatch_tracking.dart';
 import '../../services/dispatch_service.dart';
+import '../../widgets/basic_transit_slip_dialog.dart';
 import 'dispatch_detail_screen.dart';
 import 'outgoing_dispatch_form.dart';
 
@@ -87,7 +88,7 @@ class _OutgoingDispatchScreenState extends State<OutgoingDispatchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Outgoing Dispatches'),
+        title: const Text('Transit Forms'),
         backgroundColor: AppTheme.primaryColor,
         actions: [
           IconButton(
@@ -103,6 +104,11 @@ class _OutgoingDispatchScreenState extends State<OutgoingDispatchScreen> {
               // Show sort dialog
             },
             tooltip: 'Sort',
+          ),
+          IconButton(
+            icon: const Icon(FontAwesomeIcons.fileExport),
+            onPressed: _showTransitSlipDialog,
+            tooltip: 'Generate Transit Slip',
           ),
         ],
       ),
@@ -149,7 +155,7 @@ class _OutgoingDispatchScreenState extends State<OutgoingDispatchScreen> {
             child: _dispatches.isEmpty
                 ? const Center(
                     child: Text(
-                      'No outgoing dispatches found',
+                      'No transit forms found',
                       style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
                   )
@@ -186,7 +192,7 @@ class _OutgoingDispatchScreenState extends State<OutgoingDispatchScreen> {
           });
         },
         backgroundColor: Colors.grey[200],
-        selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+        selectedColor: AppTheme.primaryColor.withAlpha(51), // 0.2 opacity
         checkmarkColor: AppTheme.primaryColor,
         labelStyle: TextStyle(
           color: isSelected ? AppTheme.primaryColor : Colors.black87,
@@ -203,7 +209,7 @@ class _OutgoingDispatchScreenState extends State<OutgoingDispatchScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: dispatch.getPriorityColor().withOpacity(0.5),
+          color: dispatch.getPriorityColor().withAlpha(128), // 0.5 opacity
           width: 1,
         ),
       ),
@@ -315,7 +321,9 @@ class _OutgoingDispatchScreenState extends State<OutgoingDispatchScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: dispatch.getPriorityColor().withOpacity(0.2),
+                          color: dispatch
+                              .getPriorityColor()
+                              .withAlpha(51), // 0.2 opacity
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -377,5 +385,12 @@ class _OutgoingDispatchScreenState extends State<OutgoingDispatchScreen> {
         builder: (context) => const OutgoingDispatchForm(),
       ),
     ).then((_) => _loadDispatches());
+  }
+
+  void _showTransitSlipDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => const BasicTransitSlipDialog(),
+    );
   }
 }

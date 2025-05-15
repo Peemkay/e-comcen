@@ -5,6 +5,7 @@ import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
 import '../../models/dispatch_tracking.dart';
 import '../../services/dispatch_service.dart';
+import '../../widgets/incoming_report_dialog.dart';
 import 'dispatch_detail_screen.dart';
 import 'incoming_dispatch_form.dart';
 
@@ -21,6 +22,12 @@ class _IncomingDispatchScreenState extends State<IncomingDispatchScreen> {
   String _searchQuery = '';
   String _filterStatus = 'All';
   String _sortBy = 'Date (Newest)';
+
+  // New filter variables
+  String _filterSenderUnit = 'All';
+  String _filterAddrTo = 'All';
+  String _filterCategory = 'All';
+  bool _isFilterActive = false;
 
   @override
   void initState() {
@@ -61,6 +68,47 @@ class _IncomingDispatchScreenState extends State<IncomingDispatchScreen> {
       }).toList();
     }
 
+    // Apply sender unit filter
+    if (_filterSenderUnit != 'All') {
+      _dispatches = _dispatches.where((dispatch) {
+        return dispatch.senderUnit
+            .toLowerCase()
+            .contains(_filterSenderUnit.toLowerCase());
+      }).toList();
+    }
+
+    // Apply address to filter
+    if (_filterAddrTo != 'All') {
+      _dispatches = _dispatches.where((dispatch) {
+        // Check if addrTo property contains the filter value
+        try {
+          return dispatch.addrTo
+              .toLowerCase()
+              .contains(_filterAddrTo.toLowerCase());
+        } catch (e) {
+          // If addrTo property doesn't exist or is null, filter it out
+          return false;
+        }
+      }).toList();
+    }
+
+    // Apply category filter
+    if (_filterCategory != 'All') {
+      _dispatches = _dispatches.where((dispatch) {
+        // For category filtering, we'll use the priority as a simple example
+        // In a real app, you might have a dedicated category field
+        if (_filterCategory == 'Urgent') {
+          return dispatch.priority.toLowerCase() == 'urgent' ||
+              dispatch.priority.toLowerCase() == 'flash';
+        } else if (_filterCategory == 'Normal') {
+          return dispatch.priority.toLowerCase() == 'normal';
+        } else if (_filterCategory == 'With Attachments') {
+          return dispatch.attachments.isNotEmpty;
+        }
+        return true;
+      }).toList();
+    }
+
     // Apply sorting
     switch (_sortBy) {
       case 'Date (Newest)':
@@ -81,6 +129,12 @@ class _IncomingDispatchScreenState extends State<IncomingDispatchScreen> {
             .sort((a, b) => a.referenceNumber.compareTo(b.referenceNumber));
         break;
     }
+
+    // Update filter active status
+    _isFilterActive = _filterStatus != 'All' ||
+        _filterSenderUnit != 'All' ||
+        _filterAddrTo != 'All' ||
+        _filterCategory != 'All';
   }
 
   @override
@@ -99,6 +153,11 @@ class _IncomingDispatchScreenState extends State<IncomingDispatchScreen> {
             icon: const Icon(FontAwesomeIcons.arrowDownWideShort),
             onPressed: _showSortDialog,
             tooltip: 'Sort',
+          ),
+          IconButton(
+            icon: const Icon(FontAwesomeIcons.fileExport),
+            onPressed: _showReportDialog,
+            tooltip: 'Generate Report',
           ),
         ],
       ),
@@ -125,19 +184,104 @@ class _IncomingDispatchScreenState extends State<IncomingDispatchScreen> {
             ),
           ),
 
-          // Filter Chips
+          // Filter and Sort Buttons
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                // Filter button
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showFilterDialog,
+                    icon: Icon(
+                      FontAwesomeIcons.filter,
+                      size: 16,
+                      color: _isFilterActive
+                          ? AppTheme.accentColor
+                          : Colors.grey[700],
+                    ),
+                    label: Text(
+                      _isFilterActive ? 'Filters Active' : 'Filter',
+                      style: TextStyle(
+                        color: _isFilterActive
+                            ? AppTheme.accentColor
+                            : Colors.grey[700],
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: _isFilterActive
+                            ? AppTheme.accentColor
+                            : Colors.grey[300]!,
+                      ),
+                      backgroundColor: _isFilterActive
+                          ? AppTheme.accentColor.withAlpha(20)
+                          : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Sort button
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showSortDialog,
+                    icon: const Icon(
+                      FontAwesomeIcons.arrowDownWideShort,
+                      size: 16,
+                    ),
+                    label: Text('Sort: $_sortBy'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Status Filter Chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                _buildFilterChip('All'),
+                _buildStatusFilterChip('All'),
                 ...DispatchStatus.values
-                    .map((status) => _buildFilterChip(status.label))
-                    .toList(),
+                    .map((status) => _buildStatusFilterChip(status.label)),
               ],
             ),
           ),
+
+          // Active Filters Display
+          if (_isFilterActive)
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Wrap(
+                spacing: 8.0,
+                runSpacing: 8.0,
+                children: [
+                  if (_filterSenderUnit != 'All')
+                    _buildActiveFilterChip('From: $_filterSenderUnit', () {
+                      setState(() {
+                        _filterSenderUnit = 'All';
+                        _loadDispatches();
+                      });
+                    }),
+                  if (_filterAddrTo != 'All')
+                    _buildActiveFilterChip('To: $_filterAddrTo', () {
+                      setState(() {
+                        _filterAddrTo = 'All';
+                        _loadDispatches();
+                      });
+                    }),
+                  if (_filterCategory != 'All')
+                    _buildActiveFilterChip('Category: $_filterCategory', () {
+                      setState(() {
+                        _filterCategory = 'All';
+                        _loadDispatches();
+                      });
+                    }),
+                ],
+              ),
+            ),
 
           const SizedBox(height: 8),
 
@@ -169,7 +313,7 @@ class _IncomingDispatchScreenState extends State<IncomingDispatchScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label) {
+  Widget _buildStatusFilterChip(String label) {
     final isSelected = _filterStatus == label;
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
@@ -358,44 +502,267 @@ class _IncomingDispatchScreenState extends State<IncomingDispatchScreen> {
   }
 
   void _showFilterDialog() {
+    // Create temporary variables to hold filter values
+    String tempFilterStatus = _filterStatus;
+    String tempFilterSenderUnit = _filterSenderUnit;
+    String tempFilterAddrTo = _filterAddrTo;
+    String tempFilterCategory = _filterCategory;
+
+    // Get unique sender units for filter options
+    final List<String> senderUnits = ['All'];
+    final List<String> addrToUnits = ['All'];
+
+    // Extract unique sender units and addrTo values from dispatches
+    for (var dispatch in _dispatchService.getIncomingDispatches()) {
+      if (!senderUnits.contains(dispatch.senderUnit)) {
+        senderUnits.add(dispatch.senderUnit);
+      }
+
+      try {
+        if (dispatch.addrTo.isNotEmpty &&
+            !addrToUnits.contains(dispatch.addrTo)) {
+          addrToUnits.add(dispatch.addrTo);
+        }
+      } catch (e) {
+        // Skip if addrTo doesn't exist
+      }
+    }
+
+    // Define categories
+    final List<String> categories = [
+      'All',
+      'Urgent',
+      'Normal',
+      'With Attachments',
+    ];
+
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Filter by Status'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            title: Row(
               children: [
-                _buildFilterOption('All'),
-                ...DispatchStatus.values
-                    .map((status) => _buildFilterOption(status.label)),
+                const Icon(FontAwesomeIcons.filter, size: 20),
+                const SizedBox(width: 8),
+                const Text('Advanced Filters'),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      tempFilterStatus = 'All';
+                      tempFilterSenderUnit = 'All';
+                      tempFilterAddrTo = 'All';
+                      tempFilterCategory = 'All';
+                    });
+                  },
+                  child: const Text('Reset'),
+                ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Status filter section
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        'Status',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    Wrap(
+                      spacing: 8.0,
+                      children: [
+                        _buildFilterChip(
+                          'All',
+                          tempFilterStatus == 'All',
+                          (selected) {
+                            setState(() {
+                              tempFilterStatus =
+                                  selected ? 'All' : tempFilterStatus;
+                            });
+                          },
+                        ),
+                        ...DispatchStatus.values
+                            .map((status) => _buildFilterChip(
+                                  status.label,
+                                  tempFilterStatus == status.label,
+                                  (selected) {
+                                    setState(() {
+                                      tempFilterStatus = selected
+                                          ? status.label
+                                          : tempFilterStatus;
+                                    });
+                                  },
+                                )),
+                      ],
+                    ),
+                    const Divider(height: 24),
+
+                    // Sender Unit filter section
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        'Sender Unit (ADDR FROM)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    DropdownButtonFormField<String>(
+                      value: tempFilterSenderUnit,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: senderUnits.map((unit) {
+                        return DropdownMenuItem<String>(
+                          value: unit,
+                          child: Text(unit),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          tempFilterSenderUnit = value!;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Address To filter section
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        'Address To (ADDR TO)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    DropdownButtonFormField<String>(
+                      value: tempFilterAddrTo,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: addrToUnits.map((unit) {
+                        return DropdownMenuItem<String>(
+                          value: unit,
+                          child: Text(unit),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          tempFilterAddrTo = value!;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Category filter section
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        'Category',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    Wrap(
+                      spacing: 8.0,
+                      children: categories
+                          .map((category) => _buildFilterChip(
+                                category,
+                                tempFilterCategory == category,
+                                (selected) {
+                                  setState(() {
+                                    tempFilterCategory = selected
+                                        ? category
+                                        : tempFilterCategory;
+                                  });
+                                },
+                              ))
+                          .toList(),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        );
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  // Apply filters
+                  this.setState(() {
+                    _filterStatus = tempFilterStatus;
+                    _filterSenderUnit = tempFilterSenderUnit;
+                    _filterAddrTo = tempFilterAddrTo;
+                    _filterCategory = tempFilterCategory;
+                    _loadDispatches();
+                  });
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                ),
+                child: const Text('Apply Filters'),
+              ),
+            ],
+          );
+        });
       },
     );
   }
 
-  Widget _buildFilterOption(String status) {
-    return RadioListTile<String>(
-      title: Text(status),
-      value: status,
-      groupValue: _filterStatus,
-      onChanged: (value) {
-        setState(() {
-          _filterStatus = value!;
-          _loadDispatches();
-        });
-        Navigator.pop(context);
-      },
+  Widget _buildFilterChip(
+      String label, bool isSelected, Function(bool) onSelected) {
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: onSelected,
+      backgroundColor: Colors.grey[200],
+      selectedColor: AppTheme.primaryColor.withAlpha(51), // 0.2 opacity
+      checkmarkColor: AppTheme.primaryColor,
+      labelStyle: TextStyle(
+        color: isSelected ? AppTheme.primaryColor : Colors.black87,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+    );
+  }
+
+  Widget _buildActiveFilterChip(String label, VoidCallback onRemove) {
+    return Chip(
+      label: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          color: AppTheme.primaryColor,
+        ),
+      ),
+      backgroundColor: AppTheme.primaryColor.withAlpha(25),
+      deleteIcon: const Icon(
+        Icons.close,
+        size: 16,
+        color: AppTheme.primaryColor,
+      ),
+      onDeleted: onRemove,
     );
   }
 
@@ -459,5 +826,12 @@ class _IncomingDispatchScreenState extends State<IncomingDispatchScreen> {
         builder: (context) => const IncomingDispatchForm(),
       ),
     ).then((_) => _loadDispatches());
+  }
+
+  void _showReportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => const IncomingReportDialog(),
+    );
   }
 }

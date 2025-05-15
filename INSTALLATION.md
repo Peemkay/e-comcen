@@ -82,17 +82,13 @@ The installers will be created in the `installer\Output` directory.
 ### Running E-COMCEN (Main Application)
 
 1. Double-click the `ecomcen.exe` file in the installation directory or use the desktop shortcut.
-2. Log in with the default admin credentials:
-   - Username: `admin`
-   - Password: `admin123`
-3. Change the default password after the first login.
+2. On first run, you'll need to create an administrator account.
+3. Follow the on-screen instructions to set up your credentials.
 
 ### Running E-COMCEN-DSM (Dispatcher Application)
 
 1. Double-click the `ecomcen_dsm.exe` file in the installation directory or use the desktop shortcut.
-2. Log in with dispatcher credentials:
-   - Username: `dispatcher`
-   - Password: `password123`
+2. Log in with the dispatcher credentials that were created in the main application.
 
 ## Troubleshooting
 
@@ -116,12 +112,13 @@ If you encounter any issues not covered in this guide, please contact the suppor
 
 ## Security Considerations
 
-Remember that E-COMCEN is classified as SECRET. Ensure that:
+Ensure that:
 
 1. The computers running the applications are secured according to security protocols.
 2. Access to the applications is restricted to authorized personnel only.
 3. Regular security audits are performed.
 4. All data is backed up securely.
+5. Strong passwords are used for all accounts.
 
 ## Updates
 

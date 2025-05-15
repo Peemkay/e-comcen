@@ -38,7 +38,6 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
   List<String> _attachments = [];
 
   // Lists for dropdowns
-  final List<String> _priorities = ['Normal', 'Urgent', 'Flash'];
   final List<String> _securityClassifications = [
     'Unclassified',
     'Restricted',
@@ -49,7 +48,6 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
   // Get all status labels from the DispatchStatus enum
   final List<String> _statuses =
       DispatchStatus.values.map((status) => status.label).toList();
-  final List<String> _deliveryMethods = ['Physical', 'Electronic', 'Both'];
 
   bool _isEditing = false;
   bool _isLoading = false;
@@ -119,21 +117,6 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
     }
   }
 
-  Future<void> _selectSentDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _sentDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
-    );
-
-    if (picked != null && picked != _sentDate) {
-      setState(() {
-        _sentDate = picked;
-      });
-    }
-  }
-
   void _saveDispatch() {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -168,8 +151,8 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
                   action: _isEditing ? 'Updated' : 'Created',
                   performedBy: 'Admin',
                   notes: _isEditing
-                      ? 'Updated outgoing dispatch'
-                      : 'Created new outgoing dispatch',
+                      ? 'Updated transit form'
+                      : 'Created new transit form',
                 ),
               ]
             : [
@@ -178,7 +161,7 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
                   timestamp: DateTime.now(),
                   action: 'Created',
                   performedBy: 'Admin',
-                  notes: 'Created new outgoing dispatch',
+                  notes: 'Created new transit form',
                 ),
               ],
         trackingStatus:
@@ -200,8 +183,8 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_isEditing
-              ? 'Dispatch updated successfully'
-              : 'Dispatch added successfully'),
+              ? 'Transit Form updated successfully'
+              : 'Transit Form added successfully'),
           backgroundColor: Colors.green,
         ),
       );
@@ -214,297 +197,440 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-            _isEditing ? 'Edit Outgoing Dispatch' : 'New Outgoing Dispatch'),
+        title: Text(_isEditing ? 'Edit Transit Form' : 'New Transit Form'),
         backgroundColor: AppTheme.primaryColor,
+        elevation: 0,
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Reference Number
-              TextFormField(
-                controller: _referenceController,
-                decoration: const InputDecoration(
-                  labelText: 'Reference Number',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(FontAwesomeIcons.hashtag, size: 16),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a reference number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Subject
-              TextFormField(
-                controller: _subjectController,
-                decoration: const InputDecoration(
-                  labelText: 'Subject',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(FontAwesomeIcons.envelope, size: 16),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a subject';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Content
-              TextFormField(
-                controller: _contentController,
-                decoration: const InputDecoration(
-                  labelText: 'Content',
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                  prefixIcon: Icon(FontAwesomeIcons.fileLines, size: 16),
-                ),
-                maxLines: 5,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter content';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Dispatch Date
-              InkWell(
-                onTap: () => _selectDispatchDate(context),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Dispatch Date',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(FontAwesomeIcons.calendar, size: 16),
-                  ),
-                  child: Text(
-                    DateFormat('dd MMM yyyy').format(_dispatchDate),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Priority
-              DropdownButtonFormField<String>(
-                value: _priority,
-                decoration: const InputDecoration(
-                  labelText: 'Priority',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(FontAwesomeIcons.flag, size: 16),
-                ),
-                items: _priorities.map((String priority) {
-                  return DropdownMenuItem<String>(
-                    value: priority,
-                    child: Text(priority),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _priority = newValue!;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Security Classification
-              DropdownButtonFormField<String>(
-                value: _securityClassification,
-                decoration: const InputDecoration(
-                  labelText: 'Security Classification',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(FontAwesomeIcons.lock, size: 16),
-                ),
-                items: _securityClassifications.map((String classification) {
-                  return DropdownMenuItem<String>(
-                    value: classification,
-                    child: Text(classification),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _securityClassification = newValue!;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Status
-              DropdownButtonFormField<String>(
-                value: _status,
-                decoration: const InputDecoration(
-                  labelText: 'Status',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(FontAwesomeIcons.circleInfo, size: 16),
-                ),
-                items: _statuses.map((String status) {
-                  return DropdownMenuItem<String>(
-                    value: status,
-                    child: Text(status),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _status = newValue!;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Recipient
-              TextFormField(
-                controller: _recipientController,
-                decoration: const InputDecoration(
-                  labelText: 'Recipient',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(FontAwesomeIcons.user, size: 16),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter recipient name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Recipient Unit
-              TextFormField(
-                controller: _recipientUnitController,
-                decoration: const InputDecoration(
-                  labelText: 'Recipient Unit',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(FontAwesomeIcons.buildingUser, size: 16),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter recipient unit';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Sent By
-              TextFormField(
-                controller: _sentByController,
-                decoration: const InputDecoration(
-                  labelText: 'Sent By',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(FontAwesomeIcons.userCheck, size: 16),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter sender name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Sent Date
-              InkWell(
-                onTap: () => _selectSentDate(context),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Sent Date',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(FontAwesomeIcons.calendarCheck, size: 16),
-                  ),
-                  child: Text(
-                    DateFormat('dd MMM yyyy').format(_sentDate),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Delivery Method
-              DropdownButtonFormField<String>(
-                value: _deliveryMethod,
-                decoration: const InputDecoration(
-                  labelText: 'Delivery Method',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(FontAwesomeIcons.truck, size: 16),
-                ),
-                items: _deliveryMethods.map((String method) {
-                  return DropdownMenuItem<String>(
-                    value: method,
-                    child: Text(method),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _deliveryMethod = newValue!;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Handled By
-              TextFormField(
-                controller: _handledByController,
-                decoration: const InputDecoration(
-                  labelText: 'Handled By',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(FontAwesomeIcons.userGear, size: 16),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter handler name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Attachments (simplified for this example)
-              const Text(
-                'Attachments',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () {
-                  // In a real app, this would open a file picker
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          'File attachment functionality would be implemented here'),
-                    ),
-                  );
-                },
-                icon: const Icon(FontAwesomeIcons.paperclip),
-                label: const Text('Add Attachment'),
-              ),
-              const SizedBox(height: 24),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveDispatch,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(_isEditing ? 'Update Dispatch' : 'Save Dispatch'),
-                ),
-              ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppTheme.primaryColor.withAlpha(13),
+              Colors.white,
             ],
+          ),
+        ),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Form Header
+                Container(
+                  margin: const EdgeInsets.only(bottom: 24),
+                  child: Text(
+                    _isEditing ? 'Edit Transit Details' : 'New Transit Form',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ),
+
+                // Main Form Card
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Section Title
+                        const Text(
+                          'Basic Information',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                        const Divider(height: 24),
+
+                        // 1. Reference Number
+                        TextFormField(
+                          controller: _referenceController,
+                          decoration: InputDecoration(
+                            labelText: 'Reference Number',
+                            hintText: 'Enter reference number',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon:
+                                const Icon(FontAwesomeIcons.hashtag, size: 16),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a reference number';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // 2. Subject (Optional)
+                        TextFormField(
+                          controller: _subjectController,
+                          decoration: InputDecoration(
+                            labelText: 'Subject (Optional)',
+                            hintText: 'Enter subject',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon:
+                                const Icon(FontAwesomeIcons.envelope, size: 16),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          // No validator since it's optional
+                        ),
+                        const SizedBox(height: 20),
+
+                        // 3. Date and Time
+                        Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => _selectDispatchDate(context),
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    labelText: 'Date and Time',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    prefixIcon: const Icon(
+                                        FontAwesomeIcons.calendar,
+                                        size: 16),
+                                    filled: true,
+                                    fillColor: Colors.grey.shade50,
+                                  ),
+                                  child: Text(
+                                    DateFormat('dd MMM yyyy HH:mm')
+                                        .format(_dispatchDate),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // 4. Security Classification
+                        DropdownButtonFormField<String>(
+                          value: _securityClassification,
+                          decoration: InputDecoration(
+                            labelText: 'Security Classification',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon:
+                                const Icon(FontAwesomeIcons.lock, size: 16),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          items: _securityClassifications
+                              .map((String classification) {
+                            return DropdownMenuItem<String>(
+                              value: classification,
+                              child: Text(classification),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _securityClassification = newValue!;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // 5. Status
+                        DropdownButtonFormField<String>(
+                          value: _status,
+                          decoration: InputDecoration(
+                            labelText: 'Status',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon: const Icon(FontAwesomeIcons.circleInfo,
+                                size: 16),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          items: _statuses.map((String status) {
+                            return DropdownMenuItem<String>(
+                              value: status,
+                              child: Text(status),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _status = newValue!;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Sender and Recipient Card
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Section Title
+                        const Text(
+                          'Sender and Recipient',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                        const Divider(height: 24),
+
+                        // 6. From (Sender Unit)
+                        TextFormField(
+                          controller: _sentByController,
+                          decoration: InputDecoration(
+                            labelText: 'From',
+                            hintText: 'Enter sender unit',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon: const Icon(
+                                FontAwesomeIcons.buildingUser,
+                                size: 16),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter sender unit';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // 7. To (Recipient Unit)
+                        TextFormField(
+                          controller: _recipientUnitController,
+                          decoration: InputDecoration(
+                            labelText: 'To',
+                            hintText: 'Enter recipient unit',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon: const Icon(
+                                FontAwesomeIcons.buildingFlag,
+                                size: 16),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter recipient unit';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Delivery Details Card
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Section Title
+                        const Text(
+                          'Delivery Details',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                        const Divider(height: 24),
+
+                        // 8. Delivered By
+                        TextFormField(
+                          controller: _sentByController,
+                          decoration: InputDecoration(
+                            labelText: 'Delivered By',
+                            hintText: 'Enter deliverer name',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon: const Icon(FontAwesomeIcons.userCheck,
+                                size: 16),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter deliverer name';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // 9. Received By
+                        TextFormField(
+                          controller: _recipientController,
+                          decoration: InputDecoration(
+                            labelText: 'Received By',
+                            hintText: 'Enter receiver name',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon:
+                                const Icon(FontAwesomeIcons.user, size: 16),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter receiver name';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // 10. Handled By (Optional)
+                        TextFormField(
+                          controller: _handledByController,
+                          decoration: InputDecoration(
+                            labelText: 'Handled By (Optional)',
+                            hintText: 'Enter handler name',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            prefixIcon:
+                                const Icon(FontAwesomeIcons.userGear, size: 16),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          // No validator since it's optional
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Attachments Card
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Section Title
+                        const Text(
+                          'Attachments',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                        const Divider(height: 24),
+
+                        // Attachment Button
+                        Center(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              // In a real app, this would open a file picker
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'File attachment functionality would be implemented here'),
+                                ),
+                              );
+                            },
+                            icon: const Icon(FontAwesomeIcons.paperclip),
+                            label: const Text('Add Attachment'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _saveDispatch,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            _isEditing
+                                ? 'Update Transit Form'
+                                : 'Save Transit Form',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),

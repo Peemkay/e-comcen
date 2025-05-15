@@ -13,14 +13,14 @@ class NotificationBadge extends StatelessWidget {
   final bool showZero;
   
   const NotificationBadge({
-    Key? key,
+    super.key,
     required this.child,
     this.size = 18.0,
     this.badgeColor,
     this.textColor,
     this.onTap,
     this.showZero = false,
-  }) : super(key: key);
+  });
   
   @override
   Widget build(BuildContext context) {

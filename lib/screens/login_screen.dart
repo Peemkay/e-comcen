@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
 import '../constants/app_constants.dart';
 import '../constants/security_constants.dart';
-import '../extensions/string_extensions.dart';
-import '../providers/security_provider.dart';
 import '../services/security_service.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
+import '../widgets/placeholder_logo.dart';
 import 'registration_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -29,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _supportsBiometrics = false;
+  final bool _supportsBiometrics = false;
   int _loginAttempts = 0;
   bool _isLocked = false;
   DateTime? _lockoutEndTime;
@@ -37,8 +33,27 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _checkSecurityStatus();
-    _authService.initialize();
+    _initializeServices();
+  }
+
+  Future<void> _initializeServices() async {
+    try {
+      // Initialize auth service first
+      await _authService.initialize();
+
+      // Then check security status
+      await _checkSecurityStatus();
+    } catch (e) {
+      debugPrint('Error initializing services: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error initializing application: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -352,10 +367,10 @@ class _LoginScreenState extends State<LoginScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppTheme.primaryColor.withOpacity(0.1),
+              AppTheme.primaryColor.withAlpha(25),
               Colors.white,
               Colors.white,
-              AppTheme.secondaryColor.withOpacity(0.1),
+              AppTheme.secondaryColor.withAlpha(25),
             ],
           ),
         ),
@@ -388,17 +403,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppTheme.primaryColor
-                                          .withOpacity(0.3),
+                                      color:
+                                          AppTheme.primaryColor.withAlpha(75),
                                       blurRadius: 15,
                                       spreadRadius: 5,
                                     ),
                                   ],
                                 ),
-                                child: SvgPicture.asset(
-                                  'assets/images/nasds_logo.svg',
-                                  height: logoSize,
-                                  width: logoSize,
+                                child: PlaceholderLogo(
+                                  size: logoSize,
                                 ),
                               ),
                               SizedBox(height: verticalSpacing),
@@ -451,39 +464,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         SizedBox(height: verticalSpacing * 1.5),
 
-                        // Security Classification Banner
-                        Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.red[700],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                FontAwesomeIcons.shieldHalved,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'SECRET',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: verticalSpacing),
+                        // Removed security classification banner
+                        SizedBox(height: verticalSpacing * 0.5),
 
                         // Login Form
                         Card(
                           elevation: 10,
-                          shadowColor: AppTheme.primaryColor.withOpacity(0.3),
+                          shadowColor: AppTheme.primaryColor.withAlpha(75),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15),
                           ),
@@ -504,7 +491,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
-                                  SizedBox(height: verticalSpacing * 0.8),
+                                  SizedBox(height: verticalSpacing * 0.4),
 
                                   // Username Field
                                   TextFormField(
@@ -628,7 +615,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         foregroundColor: Colors.white,
                                         elevation: 5,
                                         shadowColor: AppTheme.primaryColor
-                                            .withOpacity(0.5),
+                                            .withAlpha(128),
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(10),
@@ -691,6 +678,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ),
                                     ),
                                   ),
+
+                                  // Removed admin credentials hint
                                 ],
                               ),
                             ),

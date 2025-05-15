@@ -55,28 +55,15 @@ bool isOfficerRank(String rank) {
   return officerRanks.contains(rank);
 }
 
-/// Generate a sample army number based on rank
-String generateSampleArmyNumber(String rank) {
-  if (isOfficerRank(rank)) {
-    return 'N/12345'; // Sample officer number
-  } else {
-    return '20NA/23/123456'; // Sample soldier number
-  }
-}
-
 /// Validate army number format
 bool isValidArmyNumber(String armyNumber) {
-  // This is a very flexible validation that allows for various formats
-  // Officers: Usually starts with N/ or NA/ followed by numbers (e.g., NA/12345)
-  // Soldiers: Usually has format like 20NA/23/123456
+  // Accept any non-empty army number format
+  // This is an extremely permissive validation to accommodate all possible formats
+  // including N/12345, NA/12345, 20NA/23/123456, or any other format
 
-  // We're using a non-strict approach - just check for basic validity
-  // Allow any alphanumeric with forward slashes, no special characters
-  final RegExp armyNumberRegex = RegExp(r'^[A-Za-z0-9\/\-]+$');
+  // Only check that it's not empty and contains at least one alphanumeric character
+  final bool isNotEmpty = armyNumber.trim().isNotEmpty;
+  final bool hasAlphanumeric = RegExp(r'[A-Za-z0-9]').hasMatch(armyNumber);
 
-  // Basic check - must contain at least one letter and one number
-  final bool hasLetter = RegExp(r'[A-Za-z]').hasMatch(armyNumber);
-  final bool hasNumber = RegExp(r'[0-9]').hasMatch(armyNumber);
-
-  return armyNumberRegex.hasMatch(armyNumber) && hasLetter && hasNumber;
+  return isNotEmpty && hasAlphanumeric;
 }

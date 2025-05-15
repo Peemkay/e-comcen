@@ -7,7 +7,7 @@ import '../constants/app_theme.dart';
 
 /// Screen that displays all notifications
 class NotificationCenterScreen extends StatefulWidget {
-  const NotificationCenterScreen({Key? key}) : super(key: key);
+  const NotificationCenterScreen({super.key});
 
   @override
   State<NotificationCenterScreen> createState() => _NotificationCenterScreenState();

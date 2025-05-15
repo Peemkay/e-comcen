@@ -5,7 +5,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'constants/app_constants.dart';
 import 'constants/app_theme.dart';
-import 'constants/security_constants.dart';
 import 'providers/translation_provider.dart';
 import 'providers/security_provider.dart';
 import 'providers/dispatcher_provider.dart';

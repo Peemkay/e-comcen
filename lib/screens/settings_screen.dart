@@ -154,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           const Text('Unit:'),
                           Text(
-                            currentUser.unit,
+                            currentUser.unitId,
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -240,6 +240,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _showTestNotificationDialog(context);
                       },
                     ),
+
+                    // Device Management
+                    ListTile(
+                      leading: const Icon(Icons.devices),
+                      title: const Text('Device Management'),
+                      subtitle: const Text('Manage connected devices'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          AppConstants.deviceManagementRoute,
+                        );
+                      },
+                    ),
+
+                    // Dispatcher Settings (only for admin and superadmin)
+                    if (currentUser != null &&
+                        (currentUser.role == UserRole.superadmin ||
+                            currentUser.role == UserRole.admin))
+                      ListTile(
+                        leading: const Icon(Icons.assignment_ind),
+                        title: const Text('Dispatcher Settings'),
+                        subtitle:
+                            const Text('Configure dispatcher assignments'),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () {
+                          Navigator.pushNamed(context, '/dispatcher_settings');
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -323,6 +352,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     const SecuritySettingsScreen(),
                               ),
                             );
+                          },
+                        ),
+
+                      // User Connections (only for superadmin or admin)
+                      if (currentUser.role == UserRole.superadmin ||
+                          currentUser.role == UserRole.admin)
+                        ListTile(
+                          leading: const Icon(Icons.device_hub),
+                          title: const Text('User Connections'),
+                          subtitle: const Text('Monitor connected users'),
+                          trailing:
+                              const Icon(Icons.arrow_forward_ios, size: 16),
+                          onTap: () {
+                            Navigator.pushNamed(context, '/user_connections');
                           },
                         ),
                     ],

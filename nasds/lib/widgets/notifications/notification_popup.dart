@@ -10,12 +10,12 @@ class NotificationPopup extends StatefulWidget {
   final Duration displayDuration;
   
   const NotificationPopup({
-    Key? key,
+    super.key,
     required this.notification,
     this.onTap,
     this.onDismiss,
     this.displayDuration = const Duration(seconds: 5),
-  }) : super(key: key);
+  });
   
   @override
   State<NotificationPopup> createState() => _NotificationPopupState();

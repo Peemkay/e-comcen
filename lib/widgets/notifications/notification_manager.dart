@@ -12,9 +12,9 @@ class NotificationManager extends StatefulWidget {
   final Widget child;
   
   const NotificationManager({
-    Key? key,
+    super.key,
     required this.child,
-  }) : super(key: key);
+  });
   
   @override
   State<NotificationManager> createState() => _NotificationManagerState();
@@ -25,7 +25,7 @@ class _NotificationManagerState extends State<NotificationManager> {
   final SettingsService _settingsService = SettingsService();
   
   StreamSubscription<AppNotification>? _notificationSubscription;
-  List<AppNotification> _activeNotifications = [];
+  final List<AppNotification> _activeNotifications = [];
   
   @override
   void initState() {
@@ -108,7 +108,7 @@ class _NotificationManagerState extends State<NotificationManager> {
             onDismiss: () => _removeNotification(notification.id),
             displayDuration: _getDisplayDuration(notification.priority),
           );
-        }).toList(),
+        }),
       ],
     );
   }

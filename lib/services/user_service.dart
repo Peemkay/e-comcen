@@ -1,5 +1,7 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import '../models/user.dart';
+import 'local_storage_service.dart';
 
 /// Service for managing user data
 class UserService {
@@ -8,172 +10,372 @@ class UserService {
   factory UserService() => _instance;
   UserService._internal();
 
-  // In-memory storage for users (in a real app, this would use a database)
-  final List<User> _users = [];
+  // Local storage service
+  final LocalStorageService _localStorageService = LocalStorageService();
 
-  // Initialize with sample data
-  void initialize() {
-    if (_users.isEmpty) {
-      _generateSampleData();
+  // In-memory cache for users
+  List<User> _usersCache = [];
+  bool _isInitialized = false;
+
+  // Initialize the service
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+
+    try {
+      // Initialize local storage
+      await _localStorageService.initialize();
+
+      // Load users from local storage
+      _usersCache = await _localStorageService.getAllUsers();
+
+      // Create default super admin if no users exist or if we can't find the default admin users
+      bool hasSuperAdmin = false;
+      bool hasAdmin = false;
+
+      for (final user in _usersCache) {
+        if (user.username == 'superadmin') hasSuperAdmin = true;
+        if (user.username == 'admin') hasAdmin = true;
+      }
+
+      if (_usersCache.isEmpty || !hasSuperAdmin || !hasAdmin) {
+        debugPrint('Creating default users because some are missing');
+        await _createDefaultSuperAdmin();
+        // Reload users after creating default admin
+        _usersCache = await _localStorageService.getAllUsers();
+      }
+
+      // Debug output to verify users
+      for (final user in _usersCache) {
+        debugPrint(
+            'User in cache: ${user.username}, role: ${user.role.name}, active: ${user.isActive}, approved: ${user.isApproved}');
+      }
+
+      _isInitialized = true;
+      debugPrint('UserService initialized with ${_usersCache.length} users');
+    } catch (e) {
+      debugPrint('Error initializing UserService: $e');
+      // Create default super admin in memory if initialization fails
+      _createDefaultSuperAdminInMemory();
+
+      // Debug output for in-memory users
+      for (final user in _usersCache) {
+        debugPrint(
+            'In-memory user: ${user.username}, role: ${user.role.name}, active: ${user.isActive}, approved: ${user.isApproved}');
+      }
     }
   }
 
   // Get all users
   Future<List<User>> getUsers() async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    return List.from(_users);
+    if (!_isInitialized) {
+      await initialize();
+    }
+
+    try {
+      // Get users from local storage
+      _usersCache = await _localStorageService.getAllUsers();
+      return List.from(_usersCache);
+    } catch (e) {
+      debugPrint('Error getting users: $e');
+      return List.from(
+          _usersCache); // Return cached users if local storage fails
+    }
   }
 
   // Get all users (synchronous version for internal use)
   List<User> getAllUsers() {
-    return List.from(_users);
+    return List.from(_usersCache);
   }
 
   // Get user by ID
   Future<User?> getUserById(String id) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 300));
+    if (!_isInitialized) {
+      await initialize();
+    }
+
     try {
-      return _users.firstWhere((user) => user.id == id);
+      // Try to get from local storage first
+      final user = await _localStorageService.getUserById(id);
+      if (user != null) {
+        return user;
+      }
+
+      // Fall back to cache if not found in local storage
+      return _usersCache.firstWhere((user) => user.id == id);
     } catch (e) {
+      debugPrint('Error getting user by ID: $e');
       return null;
     }
   }
 
   // Get user by username
   Future<User?> getUserByUsername(String username) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 300));
+    if (!_isInitialized) {
+      await initialize();
+    }
+
     try {
-      return _users.firstWhere(
-          (user) => user.username.toLowerCase() == username.toLowerCase());
+      // Search in cache first for performance
+      for (final user in _usersCache) {
+        if (user.username.toLowerCase() == username.toLowerCase()) {
+          return user;
+        }
+      }
+
+      // If not found in cache, refresh cache from local storage
+      _usersCache = await _localStorageService.getAllUsers();
+
+      // Try again with refreshed cache
+      for (final user in _usersCache) {
+        if (user.username.toLowerCase() == username.toLowerCase()) {
+          return user;
+        }
+      }
+
+      return null;
     } catch (e) {
+      debugPrint('Error getting user by username: $e');
       return null;
     }
   }
 
   // Add a new user
   Future<void> addUser(User user) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    // Check if username already exists
-    final existingUser = await getUserByUsername(user.username);
-    if (existingUser != null) {
-      throw Exception('Username already exists');
+    if (!_isInitialized) {
+      await initialize();
     }
 
-    // Generate a new ID if not provided
-    final newUser = user.id.isEmpty
-        ? User(
-            id: _generateId(),
-            name: user.name,
-            username: user.username,
-            password: user.password,
-            rank: user.rank,
-            corps: user.corps,
-            dateOfBirth: user.dateOfBirth,
-            yearOfEnlistment: user.yearOfEnlistment,
-            armyNumber: user.armyNumber,
-            unit: user.unit,
-            role: user.role,
-          )
-        : user;
+    try {
+      // Check if username already exists
+      final existingUser = await getUserByUsername(user.username);
+      if (existingUser != null) {
+        throw Exception('Username already exists');
+      }
 
-    _users.add(newUser);
+      // Generate a new ID if not provided
+      final newUser = user.id.isEmpty
+          ? User(
+              id: _generateId(),
+              name: user.name,
+              username: user.username,
+              password: user.password,
+              rank: user.rank,
+              corps: user.corps,
+              dateOfBirth: user.dateOfBirth,
+              yearOfEnlistment: user.yearOfEnlistment,
+              armyNumber: user.armyNumber,
+              unit: user.unit,
+              unitId: user.unitId,
+              role: user.role,
+              isActive: user.isActive,
+              isApproved: user.isApproved,
+              registrationDate: user.registrationDate,
+              approvalDate: user.approvalDate,
+              approvedBy: user.approvedBy,
+            )
+          : user;
+
+      // Add to local storage
+      final registeredUser = await _localStorageService.registerUser(newUser);
+      if (registeredUser == null) {
+        throw Exception('Failed to register user in local storage');
+      }
+
+      // Update cache
+      _usersCache.add(registeredUser);
+    } catch (e) {
+      debugPrint('Error adding user: $e');
+      throw Exception('Failed to add user: $e');
+    }
   }
 
   // Update an existing user
   Future<void> updateUser(User updatedUser) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    // Check if username already exists (but not for the same user)
-    final existingUser = await getUserByUsername(updatedUser.username);
-    if (existingUser != null && existingUser.id != updatedUser.id) {
-      throw Exception('Username already exists');
+    if (!_isInitialized) {
+      await initialize();
     }
 
-    final index = _users.indexWhere((user) => user.id == updatedUser.id);
-    if (index != -1) {
-      _users[index] = updatedUser;
-    } else {
-      throw Exception('User not found');
+    try {
+      // Check if username already exists (but not for the same user)
+      final existingUser = await getUserByUsername(updatedUser.username);
+      if (existingUser != null && existingUser.id != updatedUser.id) {
+        throw Exception('Username already exists');
+      }
+
+      // Update in local storage
+      final success = await _localStorageService.updateUser(updatedUser);
+      if (!success) {
+        throw Exception('Failed to update user in local storage');
+      }
+
+      // Update cache
+      final index = _usersCache.indexWhere((user) => user.id == updatedUser.id);
+      if (index != -1) {
+        _usersCache[index] = updatedUser;
+      } else {
+        _usersCache.add(updatedUser);
+      }
+    } catch (e) {
+      debugPrint('Error updating user: $e');
+      throw Exception('Failed to update user: $e');
     }
   }
 
   // Delete a user
   Future<void> deleteUser(String id) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 800));
+    if (!_isInitialized) {
+      await initialize();
+    }
 
-    _users.removeWhere((user) => user.id == id);
+    try {
+      // Delete from local storage
+      final success = await _localStorageService.deleteUser(id);
+      if (!success) {
+        throw Exception('Failed to delete user from local storage');
+      }
+
+      // Update cache
+      _usersCache.removeWhere((user) => user.id == id);
+    } catch (e) {
+      debugPrint('Error deleting user: $e');
+      throw Exception('Failed to delete user: $e');
+    }
   }
 
   // Authenticate a user
   Future<User?> authenticateUser(String username, String password) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 1000));
+    if (!_isInitialized) {
+      await initialize();
+    }
 
     try {
-      final user = _users.firstWhere(
-        (user) =>
-            user.username.toLowerCase() == username.toLowerCase() &&
-            user.password == password,
-      );
+      debugPrint('Attempting to authenticate user: $username');
 
-      // Check if user is active and approved (except for superadmin who is always approved)
-      if (user.role == UserRole.superadmin ||
-          (user.isActive && user.isApproved)) {
-        return user;
+      // No default credentials - all users must be properly registered
+
+      // Try to authenticate with local storage
+      final user = await _localStorageService.signInWithUsernameAndPassword(
+          username, password);
+
+      if (user != null) {
+        debugPrint(
+            'User found in local storage: ${user.username}, role: ${user.role.name}, active: ${user.isActive}, approved: ${user.isApproved}');
+
+        // Check if user is active and approved (except for superadmin who is always approved)
+        if (user.role == UserRole.superadmin ||
+            (user.isActive && user.isApproved)) {
+          // Update cache if needed
+          final index = _usersCache.indexWhere((u) => u.id == user.id);
+          if (index != -1) {
+            _usersCache[index] = user;
+          } else {
+            _usersCache.add(user);
+          }
+
+          return user;
+        } else {
+          debugPrint(
+              'User not active or approved: ${user.username}, active: ${user.isActive}, approved: ${user.isApproved}');
+        }
       } else {
-        // Return null if user is not active or not approved
-        return null;
+        debugPrint('User not found in local storage');
       }
+
+      // If local storage authentication fails, try cache as fallback
+      for (final cachedUser in _usersCache) {
+        if (cachedUser.username.toLowerCase() == username.toLowerCase() &&
+            cachedUser.password == password) {
+          debugPrint(
+              'User found in cache: ${cachedUser.username}, role: ${cachedUser.role.name}, active: ${cachedUser.isActive}, approved: ${cachedUser.isApproved}');
+
+          if (cachedUser.role == UserRole.superadmin ||
+              (cachedUser.isActive && cachedUser.isApproved)) {
+            return cachedUser;
+          } else {
+            debugPrint(
+                'Cached user not active or approved: ${cachedUser.username}, active: ${cachedUser.isActive}, approved: ${cachedUser.isApproved}');
+          }
+        }
+      }
+
+      debugPrint('Authentication failed for user: $username');
+      return null;
     } catch (e) {
+      debugPrint('Error authenticating user: $e');
       return null;
     }
   }
 
   // Approve a user
   Future<void> approveUser(String userId, String approvedBy) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 800));
+    if (!_isInitialized) {
+      await initialize();
+    }
 
-    final index = _users.indexWhere((user) => user.id == userId);
-    if (index != -1) {
-      _users[index] = _users[index].copyWith(
+    try {
+      // Get the user
+      final user = await getUserById(userId);
+      if (user == null) {
+        throw Exception('User not found');
+      }
+
+      // Update user with approval info
+      final updatedUser = user.copyWith(
         isApproved: true,
         approvalDate: DateTime.now(),
         approvedBy: approvedBy,
       );
-    } else {
-      throw Exception('User not found');
+
+      // Update in local storage
+      await updateUser(updatedUser);
+    } catch (e) {
+      debugPrint('Error approving user: $e');
+      throw Exception('Failed to approve user: $e');
     }
   }
 
   // Toggle user active status
   Future<void> toggleUserActiveStatus(String userId, bool isActive) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 800));
+    if (!_isInitialized) {
+      await initialize();
+    }
 
-    final index = _users.indexWhere((user) => user.id == userId);
-    if (index != -1) {
-      _users[index] = _users[index].copyWith(
+    try {
+      // Get the user
+      final user = await getUserById(userId);
+      if (user == null) {
+        throw Exception('User not found');
+      }
+
+      // Update user with active status
+      final updatedUser = user.copyWith(
         isActive: isActive,
       );
-    } else {
-      throw Exception('User not found');
+
+      // Update in local storage
+      await updateUser(updatedUser);
+    } catch (e) {
+      debugPrint('Error toggling user active status: $e');
+      throw Exception('Failed to toggle user active status: $e');
     }
   }
 
   // Get pending approval users
   Future<List<User>> getPendingApprovalUsers() async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
+    if (!_isInitialized) {
+      await initialize();
+    }
 
-    return _users.where((user) => !user.isApproved).toList();
+    try {
+      // Get all users
+      final allUsers = await getUsers();
+
+      // Filter for pending approval
+      return allUsers.where((user) => !user.isApproved).toList();
+    } catch (e) {
+      debugPrint('Error getting pending approval users: $e');
+      return [];
+    }
   }
 
   // Generate a unique ID
@@ -182,188 +384,83 @@ class UserService {
         Random().nextInt(10000).toString();
   }
 
-  // Generate sample data for testing
-  void _generateSampleData() {
+  // Create default super admin account
+  Future<void> _createDefaultSuperAdmin() async {
     final now = DateTime.now();
-    final oneWeekAgo = now.subtract(const Duration(days: 7));
-    final twoWeeksAgo = now.subtract(const Duration(days: 14));
 
-    _users.addAll([
-      // Super Admin user (always approved and active)
-      User(
-        id: '1',
-        name: 'Super Admin',
-        username: 'super',
-        password: 'super123',
-        rank: 'Brigadier General',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1970, 3, 10),
-        yearOfEnlistment: 1990,
-        armyNumber: 'NA/10001',
-        unit: 'Nigerian Army School of Signals',
-        role: UserRole.superadmin,
-        isActive: true,
-        isApproved: true,
-        registrationDate: twoWeeksAgo,
-        approvalDate: twoWeeksAgo,
-        approvedBy: 'System',
-      ),
+    // Create a super admin user with default credentials
+    final superAdmin = User(
+      id: 'superadmin_001',
+      name: 'System Administrator',
+      username: 'superadmin', // Default superadmin username
+      password: 'superadmin123', // Default superadmin password
+      rank: 'Administrator',
+      corps: 'Signals',
+      dateOfBirth: DateTime(1970, 1, 1),
+      yearOfEnlistment: 2000,
+      armyNumber: 'ADMIN',
+      unit: 'Nigerian Army School of Signals',
+      unitId: 'unit_001', // Default unit ID
+      role: UserRole
+          .superadmin, // Has all permissions including managing user privileges
+      isActive: true,
+      isApproved: true,
+      registrationDate: now,
+      approvalDate: now,
+      approvedBy: 'System',
+    );
 
-      // Admin users (approved and active)
-      User(
-        id: '2',
-        name: 'Admin User',
-        username: 'admin',
-        password: 'admin123',
-        rank: 'Colonel',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1975, 5, 15),
-        yearOfEnlistment: 1995,
-        armyNumber: 'NA/12345',
-        unit: 'Nigerian Army School of Signals',
-        role: UserRole.admin,
-        isActive: true,
-        isApproved: true,
-        registrationDate: twoWeeksAgo,
-        approvalDate: twoWeeksAgo,
-        approvedBy: 'Super Admin',
-      ),
-      User(
-        id: '3',
-        name: 'John Doe',
-        username: 'johndoe',
-        password: 'password123',
-        rank: 'Captain',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1985, 8, 22),
-        yearOfEnlistment: 2005,
-        armyNumber: 'NA/23456',
-        unit: 'Nigerian Army School of Signals',
-        role: UserRole.admin,
-        isActive: true,
-        isApproved: true,
-        registrationDate: twoWeeksAgo,
-        approvalDate: twoWeeksAgo,
-        approvedBy: 'Super Admin',
-      ),
+    try {
+      // Register in local storage
+      final registeredUser =
+          await _localStorageService.registerUser(superAdmin);
+      if (registeredUser == null) {
+        throw Exception('Failed to register super admin in local storage');
+      }
 
-      // Admin user (inactive but approved)
-      User(
-        id: '4',
-        name: 'Jane Smith',
-        username: 'janesmith',
-        password: 'password123',
-        rank: 'Lieutenant',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1990, 3, 10),
-        yearOfEnlistment: 2012,
-        armyNumber: 'NA/34567',
-        unit: 'Nigerian Army School of Signals',
-        role: UserRole.admin,
-        isActive: false,
-        isApproved: true,
-        registrationDate: twoWeeksAgo,
-        approvalDate: twoWeeksAgo,
-        approvedBy: 'Super Admin',
-      ),
+      // Add to in-memory cache as well
+      _usersCache.add(superAdmin);
 
-      // Dispatcher users (approved and active)
-      User(
-        id: '5',
-        name: 'Ibrahim Mohammed',
-        username: 'ibrahim',
-        password: 'dispatcher123',
-        rank: 'Sergeant',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1988, 11, 5),
-        yearOfEnlistment: 2008,
-        armyNumber: '08NA/44/5678',
-        unit: 'Nigerian Army School of Signals',
-        role: UserRole.dispatcher,
-        isActive: true,
-        isApproved: true,
-        registrationDate: oneWeekAgo,
-        approvalDate: oneWeekAgo,
-        approvedBy: 'Admin User',
-      ),
-      User(
-        id: '6',
-        name: 'Chukwu Emeka',
-        username: 'emeka',
-        password: 'dispatcher123',
-        rank: 'Corporal',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1992, 7, 18),
-        yearOfEnlistment: 2012,
-        armyNumber: '12NA/44/7890',
-        unit: 'Nigerian Army School of Signals',
-        role: UserRole.dispatcher,
-        isActive: true,
-        isApproved: true,
-        registrationDate: oneWeekAgo,
-        approvalDate: oneWeekAgo,
-        approvedBy: 'Admin User',
-      ),
+      debugPrint(
+          'Created default super admin account with username: superadmin');
+    } catch (e) {
+      debugPrint('Error creating default super admin: $e');
+      _createDefaultSuperAdminInMemory();
+    }
 
-      // Dispatcher (pending approval)
-      User(
-        id: '7',
-        name: 'Aisha Bello',
-        username: 'aisha',
-        password: 'dispatcher123',
-        rank: 'Sergeant',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1990, 4, 12),
-        yearOfEnlistment: 2010,
-        armyNumber: '10NA/44/6543',
-        unit: 'Nigerian Army School of Signals',
-        role: UserRole.dispatcher,
-        isActive: true,
-        isApproved: false,
-        registrationDate: now,
-        approvalDate: null,
-        approvedBy: null,
-      ),
+    // No additional default users are created
+    // Users will need to be created through the registration process
+  }
 
-      // Test dispatcher (approved and active)
-      User(
-        id: '8',
-        name: 'Test Dispatcher',
-        username: 'dispatcher',
-        password: 'dispatcher',
-        rank: 'Corporal',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1995, 6, 15),
-        yearOfEnlistment: 2015,
-        armyNumber: '15NA/44/8765',
-        unit: 'Nigerian Army School of Signals',
-        role: UserRole.dispatcher,
-        isActive: true,
-        isApproved: true,
-        registrationDate: oneWeekAgo,
-        approvalDate: oneWeekAgo,
-        approvedBy: 'Super Admin',
-      ),
+  // Create placeholder admin user in memory (fallback if local storage fails)
+  void _createDefaultSuperAdminInMemory() {
+    final now = DateTime.now();
 
-      // New user (pending approval)
-      User(
-        id: '9',
-        name: 'New User',
-        username: 'newuser',
-        password: 'password123',
-        rank: 'Lieutenant',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1993, 9, 25),
-        yearOfEnlistment: 2018,
-        armyNumber: 'NA/45678',
-        unit: 'Nigerian Army School of Signals',
-        role: UserRole.admin,
-        isActive: true,
-        isApproved: false,
-        registrationDate: now,
-        approvalDate: null,
-        approvedBy: null,
-      ),
-    ]);
+    // Create a super admin user with default credentials
+    final superAdmin = User(
+      id: 'superadmin_001',
+      name: 'System Administrator',
+      username: 'superadmin', // Default superadmin username
+      password: 'superadmin123', // Default superadmin password
+      rank: 'Administrator',
+      corps: 'Signals',
+      dateOfBirth: DateTime(1970, 1, 1),
+      yearOfEnlistment: 2000,
+      armyNumber: 'ADMIN',
+      unit: 'Nigerian Army School of Signals',
+      unitId: 'unit_001', // Default unit ID
+      role: UserRole
+          .superadmin, // Has all permissions including managing user privileges
+      isActive: true,
+      isApproved: true,
+      registrationDate: now,
+      approvalDate: now,
+      approvedBy: 'System',
+    );
+
+    // Add to in-memory cache
+    _usersCache.add(superAdmin);
+    debugPrint(
+        'Created default superadmin account in memory with username: superadmin');
   }
 }

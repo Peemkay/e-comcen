@@ -47,7 +47,7 @@ class ResponsiveCard extends StatelessWidget {
 
   /// Creates a responsive card.
   const ResponsiveCard({
-    Key? key,
+    super.key,
     this.title,
     required this.content,
     this.icon,
@@ -61,7 +61,7 @@ class ResponsiveCard extends StatelessWidget {
     this.height,
     this.backgroundColor,
     this.border,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -164,14 +164,14 @@ class ResponsiveSummaryCard extends StatelessWidget {
 
   /// Creates a responsive summary card.
   const ResponsiveSummaryCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.value,
     this.icon,
     this.color,
     this.onTap,
     this.subtitle,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

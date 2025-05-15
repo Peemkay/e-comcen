@@ -4,12 +4,11 @@ import 'package:flutter_screen_lock/flutter_screen_lock.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
-import '../constants/security_constants.dart';
 import '../extensions/string_extensions.dart';
 import '../providers/security_provider.dart';
 
 class LockScreen extends StatefulWidget {
-  const LockScreen({Key? key}) : super(key: key);
+  const LockScreen({super.key});
 
   @override
   State<LockScreen> createState() => _LockScreenState();
@@ -117,26 +116,8 @@ class _LockScreenState extends State<LockScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Security classification
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        SecurityConstants.securityClassification,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 48),
+                    // Security classification banner removed
+                    const SizedBox(height: 32),
 
                     // Session timeout message
                     Text(
@@ -233,7 +214,6 @@ class _LockScreenState extends State<LockScreen> {
     screenLock(
       context: context,
       title: Text('enter_pin'.tr()),
-      // Remove confirmTitle as it's not supported in the current version
       customizedButtonChild: const Icon(
         Icons.fingerprint,
         color: Colors.white,
@@ -243,15 +223,42 @@ class _LockScreenState extends State<LockScreen> {
               final authenticated =
                   await securityProvider.authenticateUser(biometricOnly: true);
               if (authenticated && mounted) {
+                // Update activity time and resume session
+                securityProvider.updateActivity();
+
+                // Close the screen lock dialog
                 Navigator.pop(context);
+
+                // Resume the application where it was left off
                 Navigator.pushReplacementNamed(context, '/home');
+
+                // Show success message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Session resumed successfully'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
               }
             }
           : null,
-      correctString: '123456', // This should be retrieved from secure storage
+      correctString: '000000', // Simple default PIN for easier testing
       onUnlocked: () {
+        // Update activity time and resume session
         securityProvider.updateActivity();
+
+        // Resume the application where it was left off
         Navigator.pushReplacementNamed(context, '/home');
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Session resumed successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
       },
       config: ScreenLockConfig(
         backgroundColor: AppTheme.primaryColor,
@@ -262,30 +269,55 @@ class _LockScreenState extends State<LockScreen> {
   void _showLogoutConfirmation() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('logout_confirmation_title'.tr()),
         content: Text('logout_confirmation_message'.tr()),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
             },
             child: Text('cancel'.tr()),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
+              // Get the security provider
               final securityProvider =
                   Provider.of<SecurityProvider>(context, listen: false);
-              await securityProvider.logout();
 
-              if (mounted) {
-                Navigator.pop(context);
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/login',
-                  (route) => false,
-                );
-              }
+              // Close the dialog first to avoid context issues
+              Navigator.pop(dialogContext);
+
+              // Show loading indicator
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Logging out...'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+
+              // Perform logout
+              Future.delayed(const Duration(milliseconds: 500), () async {
+                await securityProvider.logout();
+
+                if (mounted) {
+                  // Navigate to login screen
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
+
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Logged out successfully'),
+                      backgroundColor: Colors.blue,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              });
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

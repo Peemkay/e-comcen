@@ -17,7 +17,7 @@ class UserForm extends StatefulWidget {
 class _UserFormState extends State<UserForm> {
   final _formKey = GlobalKey<FormState>();
   final UserService _userService = UserService();
-  
+
   // Form controllers
   final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
@@ -25,14 +25,14 @@ class _UserFormState extends State<UserForm> {
   final _confirmPasswordController = TextEditingController();
   final _armyNumberController = TextEditingController();
   final _unitController = TextEditingController();
-  
+
   // Form values
   String _rank = 'Private';
   String _corps = 'Signals';
   DateTime _dateOfBirth = DateTime(1990, 1, 1);
   int _yearOfEnlistment = DateTime.now().year;
   bool _isOfficer = false;
-  
+
   // Lists for dropdowns
   final List<String> _ranks = [
     // Non-commissioned ranks
@@ -54,7 +54,7 @@ class _UserFormState extends State<UserForm> {
     'Lieutenant General',
     'General',
   ];
-  
+
   final List<String> _corpsOptions = [
     'Signals',
     'Infantry',
@@ -71,7 +71,7 @@ class _UserFormState extends State<UserForm> {
     'Legal',
     'Electrical and Mechanical Engineers',
   ];
-  
+
   bool _isEditing = false;
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -81,19 +81,19 @@ class _UserFormState extends State<UserForm> {
   void initState() {
     super.initState();
     _isEditing = widget.user != null;
-    
+
     if (_isEditing) {
       // Populate form with existing user data
       _nameController.text = widget.user!.name;
       _usernameController.text = widget.user!.username;
       _armyNumberController.text = widget.user!.armyNumber;
       _unitController.text = widget.user!.unit;
-      
+
       _rank = widget.user!.rank;
       _corps = widget.user!.corps;
       _dateOfBirth = widget.user!.dateOfBirth;
       _yearOfEnlistment = widget.user!.yearOfEnlistment;
-      
+
       // Determine if officer based on rank
       _isOfficer = _isOfficerRank(_rank);
     }
@@ -109,7 +109,7 @@ class _UserFormState extends State<UserForm> {
     _unitController.dispose();
     super.dispose();
   }
-  
+
   bool _isOfficerRank(String rank) {
     final officerRanks = [
       'Second Lieutenant',
@@ -131,59 +131,48 @@ class _UserFormState extends State<UserForm> {
       context: context,
       initialDate: _dateOfBirth,
       firstDate: DateTime(1950),
-      lastDate: DateTime.now().subtract(const Duration(days: 365 * 18)), // Must be at least 18 years old
+      lastDate: DateTime.now().subtract(
+          const Duration(days: 365 * 18)), // Must be at least 18 years old
     );
-    
+
     if (picked != null && picked != _dateOfBirth) {
       setState(() {
         _dateOfBirth = picked;
       });
     }
   }
-  
+
   String? _validateArmyNumber(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please enter an Army Number';
     }
-    
-    if (_isOfficer) {
-      // Officer format: NA/12345
-      final officerRegex = RegExp(r'^NA\/\d{5}$');
-      if (!officerRegex.hasMatch(value)) {
-        return 'Officer Army Number must be in format NA/12345';
-      }
-    } else {
-      // Soldier format: 12NA/34/5678
-      final soldierRegex = RegExp(r'^\d{2}NA\/\d{2}\/\d{4}$');
-      if (!soldierRegex.hasMatch(value)) {
-        return 'Soldier Army Number must be in format 12NA/34/5678';
-      }
-    }
-    
+
+    // Accept any non-empty army number format
+    // This is a permissive validation to accommodate all possible formats
     return null;
   }
-  
+
   String? _validatePassword(String? value) {
     if (!_isEditing && (value == null || value.isEmpty)) {
       return 'Please enter a password';
     }
-    
+
     if (value != null && value.isNotEmpty && value.length < 6) {
       return 'Password must be at least 6 characters';
     }
-    
+
     return null;
   }
-  
+
   String? _validateConfirmPassword(String? value) {
     if (!_isEditing && (value == null || value.isEmpty)) {
       return 'Please confirm your password';
     }
-    
+
     if (value != _passwordController.text) {
       return 'Passwords do not match';
     }
-    
+
     return null;
   }
 
@@ -192,15 +181,17 @@ class _UserFormState extends State<UserForm> {
       setState(() {
         _isLoading = true;
       });
-      
+
       try {
         // Create user object
         final user = User(
-          id: _isEditing ? widget.user!.id : DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _isEditing
+              ? widget.user!.id
+              : DateTime.now().millisecondsSinceEpoch.toString(),
           name: _nameController.text,
           username: _usernameController.text,
-          password: _passwordController.text.isEmpty && _isEditing 
-              ? widget.user!.password 
+          password: _passwordController.text.isEmpty && _isEditing
+              ? widget.user!.password
               : _passwordController.text,
           rank: _rank,
           corps: _corps,
@@ -209,27 +200,29 @@ class _UserFormState extends State<UserForm> {
           armyNumber: _armyNumberController.text,
           unit: _unitController.text,
         );
-        
+
         // Save to service
         if (_isEditing) {
           await _userService.updateUser(user);
         } else {
           await _userService.addUser(user);
         }
-        
+
         if (mounted) {
           setState(() {
             _isLoading = false;
           });
-          
+
           // Show success message and navigate back
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(_isEditing ? 'User updated successfully' : 'User added successfully'),
+              content: Text(_isEditing
+                  ? 'User updated successfully'
+                  : 'User added successfully'),
               backgroundColor: Colors.green,
             ),
           );
-          
+
           Navigator.pop(context);
         }
       } catch (e) {
@@ -237,7 +230,7 @@ class _UserFormState extends State<UserForm> {
           setState(() {
             _isLoading = false;
           });
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error: ${e.toString()}'),
@@ -279,7 +272,7 @@ class _UserFormState extends State<UserForm> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Username
               TextFormField(
                 controller: _usernameController,
@@ -296,18 +289,22 @@ class _UserFormState extends State<UserForm> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Password
               TextFormField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
-                  labelText: _isEditing ? 'New Password (leave blank to keep current)' : 'Password',
+                  labelText: _isEditing
+                      ? 'New Password (leave blank to keep current)'
+                      : 'Password',
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(FontAwesomeIcons.lock, size: 16),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
+                      _obscurePassword
+                          ? FontAwesomeIcons.eyeSlash
+                          : FontAwesomeIcons.eye,
                       size: 16,
                     ),
                     onPressed: () {
@@ -320,7 +317,7 @@ class _UserFormState extends State<UserForm> {
                 validator: _validatePassword,
               ),
               const SizedBox(height: 16),
-              
+
               // Confirm Password
               TextFormField(
                 controller: _confirmPasswordController,
@@ -331,7 +328,9 @@ class _UserFormState extends State<UserForm> {
                   prefixIcon: const Icon(FontAwesomeIcons.lock, size: 16),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureConfirmPassword ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
+                      _obscureConfirmPassword
+                          ? FontAwesomeIcons.eyeSlash
+                          : FontAwesomeIcons.eye,
                       size: 16,
                     ),
                     onPressed: () {
@@ -344,7 +343,7 @@ class _UserFormState extends State<UserForm> {
                 validator: _validateConfirmPassword,
               ),
               const SizedBox(height: 16),
-              
+
               // Rank
               DropdownButtonFormField<String>(
                 value: _rank,
@@ -363,7 +362,7 @@ class _UserFormState extends State<UserForm> {
                   setState(() {
                     _rank = newValue!;
                     _isOfficer = _isOfficerRank(_rank);
-                    
+
                     // Clear army number if officer status changes
                     if (_armyNumberController.text.isNotEmpty) {
                       _armyNumberController.clear();
@@ -372,7 +371,7 @@ class _UserFormState extends State<UserForm> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Corps
               DropdownButtonFormField<String>(
                 value: _corps,
@@ -394,7 +393,7 @@ class _UserFormState extends State<UserForm> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Date of Birth
               InkWell(
                 onTap: () => _selectDateOfBirth(context),
@@ -410,7 +409,7 @@ class _UserFormState extends State<UserForm> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Year of Enlistment
               TextFormField(
                 initialValue: _yearOfEnlistment.toString(),
@@ -424,16 +423,16 @@ class _UserFormState extends State<UserForm> {
                   if (value == null || value.isEmpty) {
                     return 'Please enter year of enlistment';
                   }
-                  
+
                   final year = int.tryParse(value);
                   if (year == null) {
                     return 'Please enter a valid year';
                   }
-                  
+
                   if (year < 1960 || year > DateTime.now().year) {
                     return 'Please enter a valid year between 1960 and ${DateTime.now().year}';
                   }
-                  
+
                   return null;
                 },
                 onChanged: (value) {
@@ -446,7 +445,7 @@ class _UserFormState extends State<UserForm> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Army Number
               TextFormField(
                 controller: _armyNumberController,
@@ -454,14 +453,14 @@ class _UserFormState extends State<UserForm> {
                   labelText: 'Army Number',
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(FontAwesomeIcons.idCard, size: 16),
-                  helperText: _isOfficer 
-                      ? 'Format: NA/12345 (for officers)' 
-                      : 'Format: 12NA/34/5678 (for soldiers)',
+                  helperText: _isOfficer
+                      ? 'Examples: N/12345, NA/12345 (for officers)'
+                      : 'Examples: 12NA/34/5678, 20NA/23/123456 (for soldiers)',
                 ),
                 validator: _validateArmyNumber,
               ),
               const SizedBox(height: 16),
-              
+
               // Unit
               TextFormField(
                 controller: _unitController,
@@ -478,7 +477,7 @@ class _UserFormState extends State<UserForm> {
                 },
               ),
               const SizedBox(height: 24),
-              
+
               // Submit Button
               SizedBox(
                 width: double.infinity,

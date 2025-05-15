@@ -40,9 +40,17 @@ class DispatchService {
       '521SR', // Signal Regiment
       '522SR', // Signal Regiment
       '523SR', // Signal Regiment
+      '524SR', // Signal Regiment
       'HQ', // Headquarters
       'FOB Alpha', // Forward Operating Base
       'FOB Bravo', // Forward Operating Base
+      '521 Signal Regiment',
+      '522 Signal Regiment',
+      '523 Signal Regiment',
+      '524 Signal Regiment',
+      '54 Signal Brigade',
+      'Nigerian Army Signal School',
+      'Nigerian Army Signal Corps HQ',
     ];
 
     // Sample recipients
@@ -53,6 +61,12 @@ class DispatchService {
       'Col. Davis',
       'Sgt. Brown',
       'Cpl. Wilson',
+      'Lt. Col. Nnamdi',
+      'Col. Obasanjo',
+      'Maj. Danjuma',
+      'Capt. Adebayo',
+      'Lt. Okonkwo',
+      'Sgt. Maj. Ibrahim',
     ];
 
     // Sample senders
@@ -63,10 +77,24 @@ class DispatchService {
       'Col. Jackson',
       'Sgt. White',
       'Cpl. Harris',
+      'Lt. Col. Nnamdi',
+      'Col. Obasanjo',
+      'Maj. Danjuma',
+      'Capt. Adebayo',
+      'Lt. Okonkwo',
+      'Sgt. Maj. Ibrahim',
+      '521SR',
+      '522SR',
+      '523SR',
+      '524SR',
+      '521 Signal Regiment',
+      '522 Signal Regiment',
+      '523 Signal Regiment',
+      '524 Signal Regiment',
     ];
 
-    // Generate 20 sample outgoing dispatches
-    for (int i = 0; i < 20; i++) {
+    // Generate 50 sample outgoing dispatches
+    for (int i = 0; i < 50; i++) {
       final recipientUnitIndex = i % recipientUnits.length;
       final recipientIndex = i % recipients.length;
       final senderIndex = i % senders.length;

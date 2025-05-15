@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import '../constants/app_constants.dart';
 import '../constants/app_theme.dart';
 import '../constants/security_constants.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import '../widgets/placeholder_logo.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -271,10 +271,8 @@ class _SplashScreenState extends State<SplashScreen>
                                       ),
                                     ],
                                   ),
-                                  child: SvgPicture.asset(
-                                    'assets/images/nasds_logo.svg',
-                                    width: logoSize,
-                                    height: logoSize,
+                                  child: PlaceholderLogo(
+                                    size: logoSize,
                                   ),
                                 ),
                               ),

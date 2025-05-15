@@ -8,7 +8,7 @@ import '../../services/user_service.dart';
 class UserEditScreen extends StatefulWidget {
   final User? user;
 
-  const UserEditScreen({Key? key, this.user}) : super(key: key);
+  const UserEditScreen({super.key, this.user});
 
   @override
   State<UserEditScreen> createState() => _UserEditScreenState();
@@ -114,8 +114,21 @@ class _UserEditScreenState extends State<UserEditScreen> {
     });
 
     try {
+      // Generate a unique ID for new users
+      final String userId = _isCreating
+          ? 'user_${DateTime.now().millisecondsSinceEpoch}'
+          : widget.user!.id;
+
+      // Generate a default unitId if not editing
+      final String unitId = _isCreating
+          ? 'unit_001' // Default unit ID
+          : widget.user!.unitId;
+
+      // Get current date for registration info
+      final now = DateTime.now();
+
       final user = User(
-        id: _isCreating ? '' : widget.user!.id,
+        id: userId,
         name: _nameController.text,
         username: _usernameController.text,
         password: _passwordController.text.isEmpty && !_isCreating
@@ -127,7 +140,13 @@ class _UserEditScreenState extends State<UserEditScreen> {
         yearOfEnlistment: _yearOfEnlistment,
         armyNumber: _armyNumberController.text,
         unit: _unitController.text,
+        unitId: unitId,
         role: _selectedRole,
+        isActive: _isCreating ? true : widget.user!.isActive,
+        isApproved: _isCreating ? false : widget.user!.isApproved,
+        registrationDate: _isCreating ? now : widget.user!.registrationDate,
+        approvalDate: _isCreating ? null : widget.user!.approvalDate,
+        approvedBy: _isCreating ? null : widget.user!.approvedBy,
       );
 
       if (_isCreating) {
@@ -207,6 +226,79 @@ class _UserEditScreenState extends State<UserEditScreen> {
     for (var permission in Permission.values) {
       _permissions[permission] = role.hasPermission(permission);
     }
+  }
+
+  // Helper method to get role description
+  String _getRoleDescription(UserRole role) {
+    return switch (role) {
+      UserRole.superadmin =>
+        'Full access to all system features, including user management and permissions.',
+      UserRole.admin =>
+        'Administrative access to manage dispatches and users, but cannot modify user privileges.',
+      UserRole.dispatcher =>
+        'Can create and manage dispatches, but has limited administrative access.',
+    };
+  }
+
+  // Helper methods to check permission categories
+  bool _hasAnyAdminPermission() {
+    return (_permissions[Permission.viewAdmin] ?? false) ||
+        (_permissions[Permission.manageAdmin] ?? false);
+  }
+
+  bool _hasAnyDispatchPermission() {
+    return (_permissions[Permission.viewDispatch] ?? false) ||
+        (_permissions[Permission.manageDispatch] ?? false);
+  }
+
+  bool _hasAnyUserManagementPermission() {
+    return (_permissions[Permission.manageUsers] ?? false) ||
+        (_permissions[Permission.manageUserPrivileges] ?? false);
+  }
+
+  // Build a read-only list of permissions for non-admin users
+  Widget _buildPermissionsList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Admin permissions
+        if (_hasAnyAdminPermission()) ...[
+          const Text('Admin:', style: TextStyle(fontWeight: FontWeight.bold)),
+          if (_permissions[Permission.viewAdmin] ?? false)
+            const Text('• View Admin Dashboard'),
+          if (_permissions[Permission.manageAdmin] ?? false)
+            const Text('• Manage Admin Features'),
+          const SizedBox(height: 8),
+        ],
+
+        // Dispatch permissions
+        if (_hasAnyDispatchPermission()) ...[
+          const Text('Dispatch:',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          if (_permissions[Permission.viewDispatch] ?? false)
+            const Text('• View Dispatch Dashboard'),
+          if (_permissions[Permission.manageDispatch] ?? false)
+            const Text('• Manage Dispatches'),
+          const SizedBox(height: 8),
+        ],
+
+        // User management permissions
+        if (_hasAnyUserManagementPermission()) ...[
+          const Text('User Management:',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          if (_permissions[Permission.manageUsers] ?? false)
+            const Text('• Manage Users'),
+          if (_permissions[Permission.manageUserPrivileges] ?? false)
+            const Text('• Manage User Privileges'),
+        ],
+
+        // If no permissions
+        if (!_hasAnyAdminPermission() &&
+            !_hasAnyDispatchPermission() &&
+            !_hasAnyUserManagementPermission())
+          const Text('No special permissions assigned.'),
+      ],
+    );
   }
 
   @override
@@ -474,139 +566,336 @@ class _UserEditScreenState extends State<UserEditScreen> {
                     const SizedBox(height: 24),
 
                     // Role and Permissions Section
-                    const Text(
-                      'Role and Permissions',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.admin_panel_settings,
+                                    color: AppTheme.primaryColor, size: 24),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'User Role and Permissions',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(),
+                            const SizedBox(height: 8),
+
+                            // Role Selection with description
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'User Role',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child:
+                                            DropdownButtonFormField<UserRole>(
+                                          value: _selectedRole,
+                                          decoration: const InputDecoration(
+                                            border: OutlineInputBorder(),
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                          ),
+                                          items: UserRole.values.map((role) {
+                                            return DropdownMenuItem(
+                                              value: role,
+                                              child: Text(role.displayName),
+                                            );
+                                          }).toList(),
+                                          onChanged: canEditPrivileges
+                                              ? (value) {
+                                                  if (value != null) {
+                                                    setState(() {
+                                                      _selectedRole = value;
+                                                      _updatePermissionsBasedOnRole(
+                                                          value);
+                                                    });
+                                                  }
+                                                }
+                                              : null,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Role description
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue[50],
+                                      borderRadius: BorderRadius.circular(4),
+                                      border:
+                                          Border.all(color: Colors.blue[200]!),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Role: ${_selectedRole.displayName}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                            _getRoleDescription(_selectedRole)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Permissions
+                            if (canEditPrivileges) ...[
+                              const Text(
+                                'Detailed Permissions',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Admin Permissions
+                              ExpansionTile(
+                                title: Row(
+                                  children: [
+                                    Icon(
+                                      FontAwesomeIcons.userShield,
+                                      size: 16,
+                                      color: _hasAnyAdminPermission()
+                                          ? AppTheme.primaryColor
+                                          : Colors.grey,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text('Admin Permissions'),
+                                  ],
+                                ),
+                                initiallyExpanded: _hasAnyAdminPermission(),
+                                children: [
+                                  CheckboxListTile(
+                                    title: const Text('View Admin Dashboard'),
+                                    subtitle: const Text(
+                                        'Access to admin screens and reports'),
+                                    value: _permissions[Permission.viewAdmin] ??
+                                        false,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _permissions[Permission.viewAdmin] =
+                                            value ?? false;
+                                        _updateRoleBasedOnPermissions();
+                                      });
+                                    },
+                                    dense: true,
+                                  ),
+                                  CheckboxListTile(
+                                    title: const Text('Manage Admin Features'),
+                                    subtitle: const Text(
+                                        'Configure system settings and features'),
+                                    value:
+                                        _permissions[Permission.manageAdmin] ??
+                                            false,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _permissions[Permission.manageAdmin] =
+                                            value ?? false;
+                                        _updateRoleBasedOnPermissions();
+                                      });
+                                    },
+                                    dense: true,
+                                  ),
+                                ],
+                              ),
+
+                              // Dispatch Permissions
+                              ExpansionTile(
+                                title: Row(
+                                  children: [
+                                    Icon(
+                                      FontAwesomeIcons.envelopeCircleCheck,
+                                      size: 16,
+                                      color: _hasAnyDispatchPermission()
+                                          ? AppTheme.primaryColor
+                                          : Colors.grey,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text('Dispatch Permissions'),
+                                  ],
+                                ),
+                                initiallyExpanded: _hasAnyDispatchPermission(),
+                                children: [
+                                  CheckboxListTile(
+                                    title:
+                                        const Text('View Dispatch Dashboard'),
+                                    subtitle: const Text(
+                                        'Access to dispatch tracking and logs'),
+                                    value:
+                                        _permissions[Permission.viewDispatch] ??
+                                            false,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _permissions[Permission.viewDispatch] =
+                                            value ?? false;
+                                        _updateRoleBasedOnPermissions();
+                                      });
+                                    },
+                                    dense: true,
+                                  ),
+                                  CheckboxListTile(
+                                    title: const Text('Manage Dispatches'),
+                                    subtitle: const Text(
+                                        'Create, edit, and delete dispatches'),
+                                    value: _permissions[
+                                            Permission.manageDispatch] ??
+                                        false,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _permissions[Permission
+                                            .manageDispatch] = value ?? false;
+                                        _updateRoleBasedOnPermissions();
+                                      });
+                                    },
+                                    dense: true,
+                                  ),
+                                ],
+                              ),
+
+                              // User Management Permissions
+                              ExpansionTile(
+                                title: Row(
+                                  children: [
+                                    Icon(
+                                      FontAwesomeIcons.userGear,
+                                      size: 16,
+                                      color: _hasAnyUserManagementPermission()
+                                          ? AppTheme.primaryColor
+                                          : Colors.grey,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text('User Management Permissions'),
+                                  ],
+                                ),
+                                initiallyExpanded:
+                                    _hasAnyUserManagementPermission(),
+                                children: [
+                                  CheckboxListTile(
+                                    title: const Text('Manage Users'),
+                                    subtitle: const Text(
+                                        'Create, edit, and delete users'),
+                                    value:
+                                        _permissions[Permission.manageUsers] ??
+                                            false,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _permissions[Permission.manageUsers] =
+                                            value ?? false;
+                                        _updateRoleBasedOnPermissions();
+                                      });
+                                    },
+                                    dense: true,
+                                  ),
+                                  CheckboxListTile(
+                                    title: const Text('Manage User Privileges'),
+                                    subtitle: const Text(
+                                        'Assign roles and permissions to users'),
+                                    value: _permissions[
+                                            Permission.manageUserPrivileges] ??
+                                        false,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _permissions[Permission
+                                                .manageUserPrivileges] =
+                                            value ?? false;
+                                        _updateRoleBasedOnPermissions();
+                                      });
+                                    },
+                                    dense: true,
+                                  ),
+                                ],
+                              ),
+                            ] else ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[50],
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.red[200]!),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.lock, color: Colors.red[400]),
+                                    const SizedBox(width: 8),
+                                    const Expanded(
+                                      child: Text(
+                                        'You do not have permission to edit user privileges. Only users with the Super Admin role can modify permissions.',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Show current permissions as read-only
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Current Permissions (Read-only)',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _buildPermissionsList(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-
-                    // Role Selection
-                    Row(
-                      children: [
-                        const Icon(Icons.admin_panel_settings,
-                            color: Colors.grey),
-                        const SizedBox(width: 8),
-                        const Text('User Role:'),
-                        const SizedBox(width: 16),
-                        DropdownButton<UserRole>(
-                          value: _selectedRole,
-                          items: UserRole.values.map((role) {
-                            return DropdownMenuItem(
-                              value: role,
-                              child: Text(role.displayName),
-                            );
-                          }).toList(),
-                          onChanged: canEditPrivileges
-                              ? (value) {
-                                  if (value != null) {
-                                    setState(() {
-                                      _selectedRole = value;
-                                      _updatePermissionsBasedOnRole(value);
-                                    });
-                                  }
-                                }
-                              : null,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Permissions
-                    if (canEditPrivileges) ...[
-                      const Text(
-                        'Permissions:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Admin Permissions
-                      const Text('Admin Permissions:'),
-                      CheckboxListTile(
-                        title: const Text('View Admin Dashboard'),
-                        value: _permissions[Permission.viewAdmin] ?? false,
-                        onChanged: (value) {
-                          setState(() {
-                            _permissions[Permission.viewAdmin] = value ?? false;
-                            _updateRoleBasedOnPermissions();
-                          });
-                        },
-                      ),
-                      CheckboxListTile(
-                        title: const Text('Manage Admin Features'),
-                        value: _permissions[Permission.manageAdmin] ?? false,
-                        onChanged: (value) {
-                          setState(() {
-                            _permissions[Permission.manageAdmin] =
-                                value ?? false;
-                            _updateRoleBasedOnPermissions();
-                          });
-                        },
-                      ),
-
-                      // Dispatch Permissions
-                      const Text('Dispatch Permissions:'),
-                      CheckboxListTile(
-                        title: const Text('View Dispatch Dashboard'),
-                        value: _permissions[Permission.viewDispatch] ?? false,
-                        onChanged: (value) {
-                          setState(() {
-                            _permissions[Permission.viewDispatch] =
-                                value ?? false;
-                            _updateRoleBasedOnPermissions();
-                          });
-                        },
-                      ),
-                      CheckboxListTile(
-                        title: const Text('Manage Dispatches'),
-                        value: _permissions[Permission.manageDispatch] ?? false,
-                        onChanged: (value) {
-                          setState(() {
-                            _permissions[Permission.manageDispatch] =
-                                value ?? false;
-                            _updateRoleBasedOnPermissions();
-                          });
-                        },
-                      ),
-
-                      // User Management Permissions
-                      const Text('User Management Permissions:'),
-                      CheckboxListTile(
-                        title: const Text('Manage Users'),
-                        value: _permissions[Permission.manageUsers] ?? false,
-                        onChanged: (value) {
-                          setState(() {
-                            _permissions[Permission.manageUsers] =
-                                value ?? false;
-                            _updateRoleBasedOnPermissions();
-                          });
-                        },
-                      ),
-                      CheckboxListTile(
-                        title: const Text('Manage User Privileges'),
-                        value: _permissions[Permission.manageUserPrivileges] ??
-                            false,
-                        onChanged: (value) {
-                          setState(() {
-                            _permissions[Permission.manageUserPrivileges] =
-                                value ?? false;
-                            _updateRoleBasedOnPermissions();
-                          });
-                        },
-                      ),
-                    ] else ...[
-                      const Text(
-                        'You do not have permission to edit user privileges.',
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
 
                     const SizedBox(height: 32),
 

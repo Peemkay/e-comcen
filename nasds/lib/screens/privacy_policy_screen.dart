@@ -4,7 +4,7 @@ import '../constants/app_constants.dart';
 import '../constants/app_theme.dart';
 
 class PrivacyPolicyScreen extends StatefulWidget {
-  const PrivacyPolicyScreen({Key? key}) : super(key: key);
+  const PrivacyPolicyScreen({super.key});
 
   @override
   State<PrivacyPolicyScreen> createState() => _PrivacyPolicyScreenState();

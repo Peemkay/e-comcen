@@ -134,7 +134,7 @@ class _IncomingDispatchScreenState extends State<IncomingDispatchScreen> {
                 _buildFilterChip('All'),
                 ...DispatchStatus.values
                     .map((status) => _buildFilterChip(status.label))
-                    .toList(),
+                    ,
               ],
             ),
           ),

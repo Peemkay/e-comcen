@@ -3,8 +3,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import '../constants/app_constants.dart';
 import '../constants/app_theme.dart';
-import '../constants/security_constants.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import '../widgets/placeholder_logo.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -248,35 +247,7 @@ class _LoadingScreenState extends State<LoadingScreen>
               ),
               child: Column(
                 children: [
-                  // Security classification banner
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.security,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          SecurityConstants.securityClassification,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Security classification banner removed
 
                   // Logo and title
                   Row(
@@ -301,14 +272,9 @@ class _LoadingScreenState extends State<LoadingScreen>
                                   ),
                                 ],
                               ),
-                              child: SvgPicture.asset(
-                                'assets/images/nasds_logo.svg',
-                                width: 40,
-                                height: 40,
-                                colorFilter: ColorFilter.mode(
-                                  AppTheme.primaryColor,
-                                  BlendMode.srcIn,
-                                ),
+                              child: PlaceholderLogo(
+                                size: 40,
+                                color: AppTheme.primaryColor,
                               ),
                             ),
                           );

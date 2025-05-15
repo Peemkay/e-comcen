@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io';
 import '../constants/app_constants.dart';
@@ -7,7 +6,7 @@ import '../constants/app_theme.dart';
 import '../services/settings_service.dart';
 
 class AppVersionScreen extends StatefulWidget {
-  const AppVersionScreen({Key? key}) : super(key: key);
+  const AppVersionScreen({super.key});
 
   @override
   State<AppVersionScreen> createState() => _AppVersionScreenState();

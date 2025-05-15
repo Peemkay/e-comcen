@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../constants/app_theme.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
 import '../../services/settings_service.dart';
 
 class SystemSettingsScreen extends StatefulWidget {
-  const SystemSettingsScreen({Key? key}) : super(key: key);
+  const SystemSettingsScreen({super.key});
 
   @override
   State<SystemSettingsScreen> createState() => _SystemSettingsScreenState();
@@ -419,9 +418,9 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                                               _settingsService.resetSystemSettings();
                                               _loadSettings();
                                             },
-                                            child: const Text('Reset'),
                                             style: TextButton.styleFrom(
                                                 foregroundColor: Colors.red),
+                                            child: const Text('Reset'),
                                           ),
                                         ],
                                       ),

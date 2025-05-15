@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:provider/provider.dart';
 import '../../constants/app_theme.dart';
 import '../../constants/app_constants.dart';
 import '../../constants/security_constants.dart';
-import '../../extensions/string_extensions.dart';
 import '../../models/user.dart';
-import '../../providers/security_provider.dart';
 import '../../services/auth_service.dart';
 import 'dispatcher_home_screen.dart';
 
@@ -83,60 +79,17 @@ class _DispatcherLoginScreenState extends State<DispatcherLoginScreen> {
           );
         }
       } else {
-        // Fallback for testing - accept hardcoded credentials
-        if ((username == 'dispatcher' && password == 'dispatcher') ||
-            (username == 'ibrahim' && password == 'dispatcher123') ||
-            (username == 'emeka' && password == 'dispatcher123') ||
-            (username == 'aisha' && password == 'dispatcher123')) {
-          // Create a dispatcher user manually
-          final dispatcherUser = User(
-            id: '999',
-            name: 'Test Dispatcher',
-            username: username,
-            password: password,
-            rank: 'Corporal',
-            corps: 'Signals',
-            dateOfBirth: DateTime(1995, 6, 15),
-            yearOfEnlistment: 2015,
-            armyNumber: '15NA/44/8765',
-            unit: 'Nigerian Army School of Signals',
-            role: UserRole.dispatcher,
-          );
+        _loginAttempts++;
 
-          if (mounted) {
-            // Set the current user in the auth service
-            _authService.setCurrentUser(dispatcherUser);
+        setState(() {
+          _errorMessage = 'Invalid username or password for dispatcher';
 
-            // Show a welcome message
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'Welcome, ${dispatcherUser.name} (${dispatcherUser.role.displayName})'),
-                backgroundColor: Colors.green,
-              ),
-            );
-
-            // Navigate to dispatcher home screen
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const DispatcherHomeScreen(),
-              ),
-            );
-            return;
+          // Lock account after too many attempts
+          if (_loginAttempts >= SecurityConstants.maxLoginAttempts) {
+            _errorMessage =
+                'Too many failed attempts. Please try again later.';
           }
-        } else {
-          _loginAttempts++;
-
-          setState(() {
-            _errorMessage = 'Invalid username or password for dispatcher';
-
-            // Lock account after too many attempts
-            if (_loginAttempts >= SecurityConstants.maxLoginAttempts) {
-              _errorMessage =
-                  'Too many failed attempts. Please try again later.';
-            }
-          });
+        });
         }
       }
     } catch (e) {
@@ -350,35 +303,36 @@ class _DispatcherLoginScreenState extends State<DispatcherLoginScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Security classification banner
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.security,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'SECRET',
-                            style: TextStyle(
+                    // Security classification banner (conditionally displayed)
+                    if (SecurityConstants.showClassificationBanner)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.security,
                               color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                              size: 16,
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 8),
+                            Text(
+                              'SECRET',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),

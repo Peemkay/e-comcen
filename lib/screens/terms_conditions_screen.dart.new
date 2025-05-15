@@ -1,0 +1,178 @@
+﻿
+import 'package:flutter/material.dart';
+import 'package:nasds/constants/app_theme.dart';
+import 'package:nasds/widgets/print_options_dialog.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+
+class TermsConditionsScreen extends StatefulWidget {
+  const TermsConditionsScreen({super.key});
+
+  @override
+  State<TermsConditionsScreen> createState() => _TermsConditionsScreenState();
+}
+
+class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
+  // Terms and conditions text
+  final String _termsText = '''
+Nigerian Army School of Signals (NASDS) Application Terms and Conditions
+
+1. Introduction
+   These terms and conditions govern your use of the Nigerian Army School of Signals (NASDS) 
+application.
+
+2. Acceptable Use
+   The application is to be used for official purposes only.
+
+3. Security
+   Users must maintain the confidentiality of their login credentials.
+
+4. Data Privacy
+   All information processed through the application is subject to military data handling protocols.
+
+5. Updates
+   The application may be updated periodically to improve functionality and security.
+
+6. Termination
+   Access may be revoked for violations of these terms or security protocols.
+  ''';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Terms and Conditions'),
+        backgroundColor: AppTheme.primaryColor,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Terms and Conditions',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(_termsText),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.print),
+              label: const Text('Print'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                try {
+                  // Show print options dialog
+                  final result = await showDialog<Map<String, dynamic>>(
+                    context: context,
+                    builder: (context) => const PrintOptionsDialog(
+                      documentName: 'Terms and Conditions',
+                    ),
+                  );
+
+                  // If dialog was cancelled
+                  if (result == null) {
+                    return;
+                  }
+
+                  final printAction = result['action'] as PrintAction;
+                  final pageFormat = result['pageFormat'] as PdfPageFormat;
+
+                  // Generate PDF
+                  final pdfGenerator = (PdfPageFormat format) async {
+                    final pdf = pw.Document();
+
+                    pdf.addPage(
+                      pw.Page(
+                        pageFormat: format,
+                        build: (pw.Context context) {
+                          return pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              // Header
+                              pw.Header(
+                                level: 0,
+                                child: pw.Text('Terms and Conditions'),
+                              ),
+                              pw.SizedBox(height: 20),
+
+                              // Content
+                              pw.Text(_termsText),
+
+                              // Footer with page number
+                              pw.Footer(
+                                trailing: pw.Text(
+                                  'Page ${context.pageNumber} of ${context.pagesCount}',
+                                  style: pw.TextStyle(
+                                    fontSize: 10,
+                                    color: PdfColors.grey700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    );
+
+                    return pdf.save();
+                  };
+
+                  switch (printAction) {
+                    case PrintAction.print:
+                      final printer = result['printer'] as Printer?;
+                      final copies = result['copies'] as int;
+                      final grayscale = result['grayscale'] as bool;
+
+                      await PrintingService.printPdf(
+                        onLayout: pdfGenerator,
+                        documentName: 'Terms and Conditions',
+                        printer: printer,
+                        copies: copies,
+                        grayscale: grayscale,
+                        pageFormat: pageFormat,
+                      );
+                      break;
+
+                    case PrintAction.preview:
+                      await PrintingService.showPrintPreview(
+                        onLayout: pdfGenerator,
+                        documentName: 'Terms and Conditions',
+                        pageFormat: pageFormat,
+                      );
+                      break;
+
+                    case PrintAction.share:
+                      await PrintingService.sharePdf(
+                        onLayout: pdfGenerator,
+                        documentName: 'Terms_and_Conditions.pdf',
+                        pageFormat: pageFormat,
+                      );
+                      break;
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+

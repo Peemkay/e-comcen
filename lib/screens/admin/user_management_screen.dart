@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:provider/provider.dart';
 import '../../constants/app_theme.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
@@ -9,7 +8,7 @@ import '../../extensions/string_extensions.dart';
 import 'user_edit_screen.dart';
 
 class UserManagementScreen extends StatefulWidget {
-  const UserManagementScreen({Key? key}) : super(key: key);
+  const UserManagementScreen({super.key});
 
   @override
   State<UserManagementScreen> createState() => _UserManagementScreenState();
@@ -46,8 +45,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return;
       }
 
-      // Load all users
-      final allUsers = _userService.getAllUsers();
+      // Load all users from the service (this will refresh from storage)
+      final allUsers = await _userService.getUsers();
 
       // Separate pending approval users
       final pendingUsers = allUsers.where((user) => !user.isApproved).toList();
@@ -100,8 +99,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -471,6 +470,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                   children: [
                                     Text('Username: ${user.username}'),
                                     const SizedBox(height: 4),
+                                    Text('Army Number: ${user.armyNumber}'),
+                                    const SizedBox(height: 4),
                                     Row(
                                       children: [
                                         Container(
@@ -499,17 +500,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                         Text('Rank: ${user.rank}'),
                                       ],
                                     ),
-                                    if (user.registrationDate != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Text(
-                                          'Registered: ${_formatDate(user.registrationDate!)}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
+                                    const SizedBox(height: 4),
+                                    Text('Unit: ${user.unit}'),
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        user.registrationDate != null
+                                            ? 'Registered: ${_formatDate(user.registrationDate!)}'
+                                            : 'Registration date unknown',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
                                         ),
                                       ),
+                                    ),
                                   ],
                                 ),
                                 trailing: Row(

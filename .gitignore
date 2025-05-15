@@ -90,3 +90,23 @@ app.*.map.json
 *.log
 *.tmp
 *.temp
+node_modules
+test_*
+simple_test_app/
+*_test_app/
+gradle-helper*
+run-android*
+copy-gradle*
+main_simple.dart
+
+# Test files
+**/test/
+**/tests/
+**/integration_test/
+**/test_driver/
+**/RunnerTests/
+**/*_test.dart
+**/*_test.mocks.dart
+**/*_test.cpp
+**/*_test.h
+TESTING.md

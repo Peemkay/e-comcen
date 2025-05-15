@@ -35,7 +35,7 @@ class AuthService {
 
   // Initialize the service
   Future<void> initialize() async {
-    _userService.initialize();
+    await _userService.initialize();
   }
 
   // Get the user service (for internal use)
@@ -75,18 +75,16 @@ class AuthService {
 
   // Register a new user
   Future<User?> register(User user) async {
-    try {
-      // Set registration date
-      final userWithDate = user.copyWith(
-        registrationDate: DateTime.now(),
-        isApproved: false, // New users are not approved by default
-        isActive: true, // But they are active
-      );
-      await _userService.addUser(userWithDate);
-      return userWithDate;
-    } catch (e) {
-      return null;
-    }
+    // Set registration date
+    final userWithDate = user.copyWith(
+      registrationDate: DateTime.now(),
+      isApproved: false, // New users are not approved by default
+      isActive: true, // But they are active
+    );
+
+    // We don't catch exceptions here so they can be properly handled by the caller
+    await _userService.addUser(userWithDate);
+    return userWithDate;
   }
 
   // Approve a user (only super admin can do this)

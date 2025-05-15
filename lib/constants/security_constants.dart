@@ -1,7 +1,10 @@
 /// Security constants for the E-COMCEN application
 class SecurityConstants {
-  // Security classification
-  static const String securityClassification = 'SECRET';
+  // Security classification - set to empty to ensure no classification is shown
+  static const String securityClassification = '';
+
+  // Flag to control display of security classification banners - must be false
+  static const bool showClassificationBanner = false;
 
   // Session timeout in minutes
   static const int sessionTimeoutMinutes = 15;

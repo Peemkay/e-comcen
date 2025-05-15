@@ -11,30 +11,36 @@ class NotificationBadge extends StatelessWidget {
   final Color? textColor;
   final VoidCallback? onTap;
   final bool showZero;
-  
+  final bool showBadge;
+  final int? count;
+
   const NotificationBadge({
-    Key? key,
+    super.key,
     required this.child,
     this.size = 18.0,
     this.badgeColor,
     this.textColor,
     this.onTap,
     this.showZero = false,
-  }) : super(key: key);
-  
+    this.showBadge = true,
+    this.count,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Consumer<NotificationProvider>(
       builder: (context, notificationProvider, _) {
-        final count = notificationProvider.unreadCount;
-        
-        if (count == 0 && !showZero) {
+        // Use provided count or get from provider
+        final badgeCount = count ?? notificationProvider.unreadCount;
+
+        // Don't show badge if count is 0 and showZero is false, or if showBadge is false
+        if ((badgeCount == 0 && !showZero) || !showBadge) {
           return GestureDetector(
             onTap: onTap,
             child: child,
           );
         }
-        
+
         return Stack(
           clipBehavior: Clip.none,
           children: [
@@ -66,7 +72,7 @@ class NotificationBadge extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      count > 99 ? '99+' : count.toString(),
+                      badgeCount > 99 ? '99+' : badgeCount.toString(),
                       style: TextStyle(
                         color: textColor ?? Colors.white,
                         fontSize: size * 0.6,

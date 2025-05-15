@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dispatch_tracking.dart';
+import 'file_attachment.dart';
 
 /// Base class for all dispatch types
 abstract class Dispatch {
@@ -13,7 +14,8 @@ abstract class Dispatch {
       securityClassification; // Unclassified, Restricted, Confidential, Secret, Top Secret
   final String status; // Pending, In Progress, Delivered, Received, Completed
   final String handledBy;
-  final List<String> attachments;
+  final List<String> attachments; // Paths to attachments
+  final List<FileAttachment>? fileAttachments; // Full attachment objects
   final List<DispatchLog> logs;
 
   // Enhanced tracking properties
@@ -38,6 +40,7 @@ abstract class Dispatch {
     required this.status,
     required this.handledBy,
     this.attachments = const [],
+    this.fileAttachments,
     this.logs = const [],
     this.trackingStatus,
     this.enhancedLogs,
@@ -161,10 +164,16 @@ abstract class Dispatch {
 /// Incoming Dispatch - dispatches received from external sources
 class IncomingDispatch extends Dispatch {
   @override
-  final String sender;
-  final String senderUnit;
+  final String sender; // Renamed to "Delivered by" in UI
+  final String senderUnit; // Renamed to "ADDR FROM" in UI
   final String receivedBy;
   final DateTime receivedDate;
+
+  // New fields
+  final String originatorsNumber; // Originator's Number
+  final String addrTo; // ADDR TO
+  final DateTime? timeHandedIn; // THI (Time Handed In)
+  final DateTime? timeCleared; // TCL (Time Cleared)
 
   @override
   String get recipient => 'Internal';
@@ -183,7 +192,12 @@ class IncomingDispatch extends Dispatch {
     required this.senderUnit,
     required this.receivedBy,
     required this.receivedDate,
+    this.originatorsNumber = '',
+    this.addrTo = '',
+    this.timeHandedIn,
+    this.timeCleared,
     super.attachments,
+    super.fileAttachments,
     super.logs,
     super.trackingStatus,
     super.enhancedLogs,
@@ -201,6 +215,7 @@ class IncomingDispatch extends Dispatch {
     return {
       'id': id,
       'referenceNumber': referenceNumber,
+      'originatorsNumber': originatorsNumber,
       'subject': subject,
       'content': content,
       'dateTime': dateTime.toIso8601String(),
@@ -208,11 +223,16 @@ class IncomingDispatch extends Dispatch {
       'securityClassification': securityClassification,
       'status': status,
       'handledBy': handledBy,
-      'sender': sender,
-      'senderUnit': senderUnit,
+      'sender': sender, // Delivered by
+      'senderUnit': senderUnit, // ADDR FROM
+      'addrTo': addrTo, // ADDR TO
       'receivedBy': receivedBy,
       'receivedDate': receivedDate.toIso8601String(),
+      'timeHandedIn': timeHandedIn?.toIso8601String(),
+      'timeCleared': timeCleared?.toIso8601String(),
       'attachments': attachments,
+      'fileAttachments':
+          fileAttachments?.map((attachment) => attachment.toMap()).toList(),
       'logs': logs.map((log) => log.toMap()).toList(),
       // Enhanced tracking properties
       'trackingStatus': trackingStatus?.label,
@@ -233,6 +253,7 @@ class IncomingDispatch extends Dispatch {
     return IncomingDispatch(
       id: map['id'],
       referenceNumber: map['referenceNumber'],
+      originatorsNumber: map['originatorsNumber'] ?? '',
       subject: map['subject'],
       content: map['content'],
       dateTime: DateTime.parse(map['dateTime']),
@@ -242,9 +263,19 @@ class IncomingDispatch extends Dispatch {
       handledBy: map['handledBy'],
       sender: map['sender'],
       senderUnit: map['senderUnit'],
+      addrTo: map['addrTo'] ?? '',
       receivedBy: map['receivedBy'],
       receivedDate: DateTime.parse(map['receivedDate']),
+      timeHandedIn: map['timeHandedIn'] != null
+          ? DateTime.parse(map['timeHandedIn'])
+          : null,
+      timeCleared: map['timeCleared'] != null
+          ? DateTime.parse(map['timeCleared'])
+          : null,
       attachments: List<String>.from(map['attachments'] ?? []),
+      fileAttachments: (map['fileAttachments'] as List?)
+          ?.map((attachment) => FileAttachment.fromMap(attachment))
+          .toList(),
       logs: (map['logs'] as List?)
               ?.map((log) => DispatchLog.fromMap(log))
               .toList() ??
@@ -301,6 +332,7 @@ class OutgoingDispatch extends Dispatch {
     required this.sentDate,
     required this.deliveryMethod,
     super.attachments,
+    super.fileAttachments,
     super.logs,
     super.trackingStatus,
     super.enhancedLogs,
@@ -331,6 +363,8 @@ class OutgoingDispatch extends Dispatch {
       'sentDate': sentDate.toIso8601String(),
       'deliveryMethod': deliveryMethod,
       'attachments': attachments,
+      'fileAttachments':
+          fileAttachments?.map((attachment) => attachment.toMap()).toList(),
       'logs': logs.map((log) => log.toMap()).toList(),
       // Enhanced tracking properties
       'trackingStatus': trackingStatus?.label,
@@ -364,6 +398,9 @@ class OutgoingDispatch extends Dispatch {
       sentDate: DateTime.parse(map['sentDate']),
       deliveryMethod: map['deliveryMethod'],
       attachments: List<String>.from(map['attachments'] ?? []),
+      fileAttachments: (map['fileAttachments'] as List?)
+          ?.map((attachment) => FileAttachment.fromMap(attachment))
+          .toList(),
       logs: (map['logs'] as List?)
               ?.map((log) => DispatchLog.fromMap(log))
               .toList() ??
@@ -418,6 +455,7 @@ class LocalDispatch extends Dispatch {
     required this.recipientDepartment,
     required this.internalReference,
     super.attachments,
+    super.fileAttachments,
     super.logs,
     super.trackingStatus,
     super.enhancedLogs,
@@ -448,6 +486,8 @@ class LocalDispatch extends Dispatch {
       'recipientDepartment': recipientDepartment,
       'internalReference': internalReference,
       'attachments': attachments,
+      'fileAttachments':
+          fileAttachments?.map((attachment) => attachment.toMap()).toList(),
       'logs': logs.map((log) => log.toMap()).toList(),
       // Enhanced tracking properties
       'trackingStatus': trackingStatus?.label,
@@ -481,6 +521,9 @@ class LocalDispatch extends Dispatch {
       recipientDepartment: map['recipientDepartment'],
       internalReference: map['internalReference'],
       attachments: List<String>.from(map['attachments'] ?? []),
+      fileAttachments: (map['fileAttachments'] as List?)
+          ?.map((attachment) => FileAttachment.fromMap(attachment))
+          .toList(),
       logs: (map['logs'] as List?)
               ?.map((log) => DispatchLog.fromMap(log))
               .toList() ??
@@ -540,6 +583,7 @@ class ExternalDispatch extends Dispatch {
     required this.isIncoming,
     required this.externalReference,
     super.attachments,
+    super.fileAttachments,
     super.logs,
     super.trackingStatus,
     super.enhancedLogs,
@@ -570,6 +614,8 @@ class ExternalDispatch extends Dispatch {
       'isIncoming': isIncoming,
       'externalReference': externalReference,
       'attachments': attachments,
+      'fileAttachments':
+          fileAttachments?.map((attachment) => attachment.toMap()).toList(),
       'logs': logs.map((log) => log.toMap()).toList(),
       // Enhanced tracking properties
       'trackingStatus': trackingStatus?.label,
@@ -603,6 +649,9 @@ class ExternalDispatch extends Dispatch {
       isIncoming: map['isIncoming'],
       externalReference: map['externalReference'],
       attachments: List<String>.from(map['attachments'] ?? []),
+      fileAttachments: (map['fileAttachments'] as List?)
+          ?.map((attachment) => FileAttachment.fromMap(attachment))
+          .toList(),
       logs: (map['logs'] as List?)
               ?.map((log) => DispatchLog.fromMap(log))
               .toList() ??

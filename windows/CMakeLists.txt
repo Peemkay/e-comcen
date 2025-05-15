@@ -2,6 +2,11 @@
 cmake_minimum_required(VERSION 3.14)
 project(nasds LANGUAGES CXX)
 
+# Force specific pdfium version and architecture for the printing plugin
+# This prevents build errors with the printing plugin
+set(PDFIUM_VERSION "5186" CACHE STRING "" FORCE)
+set(PDFIUM_ARCH "x64" CACHE STRING "" FORCE)
+
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
 set(BINARY_NAME "nasds")
@@ -10,6 +15,12 @@ set(BINARY_NAME "nasds")
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
 
+# Additional Windows build configuration to fix linker issues
+set(ADDITIONAL_WINDOWS_BUILD_FLAGS "/ignore:4099" CACHE STRING "Additional flags for Windows builds")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${ADDITIONAL_WINDOWS_BUILD_FLAGS}")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${ADDITIONAL_WINDOWS_BUILD_FLAGS}")
+# Comment out problematic build directory setting
+# set(CMAKE_BINARY_DIR "/temp_build")
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)
@@ -106,3 +117,5 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+

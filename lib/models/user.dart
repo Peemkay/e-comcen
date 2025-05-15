@@ -56,6 +56,7 @@ class User {
   final int yearOfEnlistment;
   final String armyNumber;
   final String unit;
+  final String unitId; // Added unitId field
   final UserRole role;
   final bool isActive;
   final bool isApproved;
@@ -74,6 +75,7 @@ class User {
     required this.yearOfEnlistment,
     required this.armyNumber,
     required this.unit,
+    this.unitId = '', // Default value for unitId
     this.role = UserRole.admin,
     this.isActive = true,
     this.isApproved = false,
@@ -94,6 +96,7 @@ class User {
     int? yearOfEnlistment,
     String? armyNumber,
     String? unit,
+    String? unitId,
     UserRole? role,
     bool? isActive,
     bool? isApproved,
@@ -112,6 +115,7 @@ class User {
       yearOfEnlistment: yearOfEnlistment ?? this.yearOfEnlistment,
       armyNumber: armyNumber ?? this.armyNumber,
       unit: unit ?? this.unit,
+      unitId: unitId ?? this.unitId,
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
       isApproved: isApproved ?? this.isApproved,
@@ -123,7 +127,8 @@ class User {
 
   // Convert user to a map for storage
   Map<String, dynamic> toMap() {
-    return {
+    // Create a map with all fields
+    final map = {
       'id': id,
       'name': name,
       'username': username,
@@ -134,13 +139,29 @@ class User {
       'yearOfEnlistment': yearOfEnlistment,
       'armyNumber': armyNumber,
       'unit': unit,
+      'unitId': unitId,
       'role': role.name,
-      'isActive': isActive,
-      'isApproved': isApproved,
-      'registrationDate': registrationDate?.millisecondsSinceEpoch,
-      'approvalDate': approvalDate?.millisecondsSinceEpoch,
-      'approvedBy': approvedBy,
+      // Convert boolean values to integers for SQLite compatibility
+      'isActive': isActive ? 1 : 0,
+      'isApproved': isApproved ? 1 : 0,
     };
+
+    // Add optional fields only if they're not null
+    if (registrationDate != null) {
+      map['registrationDate'] = registrationDate!.millisecondsSinceEpoch;
+    }
+    // We don't need to explicitly set null values as they'll be handled by SQLite
+
+    if (approvalDate != null) {
+      map['approvalDate'] = approvalDate!.millisecondsSinceEpoch;
+    }
+
+    // Handle approvedBy field safely - only add if not null
+    if (approvedBy != null) {
+      map['approvedBy'] = approvedBy as String;
+    }
+
+    return map;
   }
 
   // Create a user from a map
@@ -156,14 +177,22 @@ class User {
       yearOfEnlistment: map['yearOfEnlistment'],
       armyNumber: map['armyNumber'],
       unit: map['unit'],
+      unitId: map['unitId'] ?? '',
       role: map['role'] != null
           ? UserRole.values.firstWhere(
               (e) => e.name == map['role'],
               orElse: () => UserRole.admin,
             )
           : UserRole.admin,
-      isActive: map['isActive'] ?? true,
-      isApproved: map['isApproved'] ?? false,
+      // Convert integer values back to boolean
+      isActive: map['isActive'] == null
+          ? true
+          : (map['isActive'] is bool ? map['isActive'] : map['isActive'] == 1),
+      isApproved: map['isApproved'] == null
+          ? false
+          : (map['isApproved'] is bool
+              ? map['isApproved']
+              : map['isApproved'] == 1),
       registrationDate: map['registrationDate'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['registrationDate'])
           : null,

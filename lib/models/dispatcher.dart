@@ -1,6 +1,4 @@
-import 'package:flutter/material.dart';
 import 'user.dart';
-import 'dispatch_tracking.dart';
 
 /// Dispatcher model extending the base User model
 class Dispatcher extends User {
@@ -42,6 +40,7 @@ class Dispatcher extends User {
     int? yearOfEnlistment,
     String? armyNumber,
     String? unit,
+    String? unitId,
     UserRole? role,
     bool? isActive,
     bool? isApproved,

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../constants/app_theme.dart';
 import '../services/auth_service.dart';
 import '../services/settings_service.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
-  const NotificationSettingsScreen({Key? key}) : super(key: key);
+  const NotificationSettingsScreen({super.key});
 
   @override
   State<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
@@ -446,9 +445,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                                               _settingsService.resetNotificationSettings();
                                               _loadSettings();
                                             },
-                                            child: const Text('Reset'),
                                             style: TextButton.styleFrom(
                                                 foregroundColor: Colors.red),
+                                            child: const Text('Reset'),
                                           ),
                                         ],
                                       ),

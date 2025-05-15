@@ -65,7 +65,7 @@ dependencies:
   crypto: ^3.0.3
   jwt_decoder: ^2.0.1
   device_info_plus: ^9.1.1
-  flutter_jailbreak_detection: ^1.10.0
+  # flutter_jailbreak_detection: ^1.10.0 # Temporarily commented out due to build issues
   app_settings: ^5.1.1
   flutter_screen_lock: ^9.0.2
   flutter_app_lock: ^3.0.0
@@ -73,6 +73,17 @@ dependencies:
   # Additional utilities
   url_launcher: ^6.3.1
   package_info_plus: ^8.3.0
+  uuid: ^4.5.1
+  file_picker: ^6.1.1
+  mime: ^1.0.4
+  path: ^1.8.3
+  open_file: ^3.3.2
+
+  # PDF generation only (printing disabled due to pdfium build issues)
+  pdf: ^3.10.4
+
+  # Database for Windows support
+  sqflite_common_ffi: ^2.3.3
 
 dev_dependencies:
   flutter_test:
@@ -84,6 +95,9 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+  # Windows MSIX packaging
+  msix: ^3.16.7
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -111,8 +125,7 @@ flutter:
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
   # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
+  # list giving the asset and other descriptors for the font.
   # fonts:
   #   - family: Schyler
   #     fonts:
@@ -127,3 +140,29 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# MSIX Configuration for Windows installer
+msix_config:
+  display_name: NASDS
+  publisher_display_name: Nigerian Army Signal
+  identity_name: NigerianArmySignal.NASDS
+  publisher: CN=Nigerian Army Signal
+  msix_version: 2.0.0.0
+  logo_path: assets/images/nasds_logo.png
+  capabilities: internetClient
+  execution_alias: NASDS
+  store: false
+  languages: en-us
+  architecture: x64
+  install_certificate: false
+  sign_msix: false
+  start_menu_icon_path: assets/images/nasds_logo.png
+  tile_icon_path: assets/images/nasds_logo.png
+  icons_background_color: "#ffffff"
+  app_installer: true
+  create_desktop_shortcut: true
+  create_start_menu_shortcut: true
+  build_windows: false
+  certificate_path:
+  certificate_password:
+  trim_logo: false

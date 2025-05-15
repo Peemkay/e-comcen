@@ -6,7 +6,7 @@ import '../../services/auth_service.dart';
 import '../../services/settings_service.dart';
 
 class SecuritySettingsScreen extends StatefulWidget {
-  const SecuritySettingsScreen({Key? key}) : super(key: key);
+  const SecuritySettingsScreen({super.key});
 
   @override
   State<SecuritySettingsScreen> createState() => _SecuritySettingsScreenState();
@@ -543,9 +543,9 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                                               _settingsService.resetSecuritySettings();
                                               _loadSettings();
                                             },
-                                            child: const Text('Reset'),
                                             style: TextButton.styleFrom(
                                                 foregroundColor: Colors.red),
+                                            child: const Text('Reset'),
                                           ),
                                         ],
                                       ),

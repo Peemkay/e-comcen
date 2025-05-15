@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import '../constants/app_theme.dart';
-import '../services/transit_slip_service.dart';
+import '../services/new_transit_slip_service.dart';
 import '../services/dispatch_service.dart';
 import '../screens/reports/pdf_preview_screen.dart';
 import '../widgets/report_settings_dialog.dart';
@@ -16,7 +16,7 @@ class TransitSlipDialog extends StatefulWidget {
 }
 
 class _TransitSlipDialogState extends State<TransitSlipDialog> {
-  final TransitSlipService _transitSlipService = TransitSlipService();
+  final NewTransitSlipService _transitSlipService = NewTransitSlipService();
   final DispatchService _dispatchService = DispatchService();
 
   final TextEditingController _unitCodeController = TextEditingController();
@@ -74,14 +74,29 @@ class _TransitSlipDialogState extends State<TransitSlipDialog> {
       }
 
       // Add sender units (From units)
-      if (dispatch.sender.isNotEmpty) {
-        uniqueFromUnits.add(dispatch.sender);
+      if (dispatch.sentBy.isNotEmpty) {
+        uniqueFromUnits.add(dispatch.sentBy);
+      }
+
+      // Add sender unit if available (using unit code as a fallback)
+      final String senderUnit = _unitCodeController.text;
+      if (senderUnit.isNotEmpty) {
+        uniqueFromUnits.add(senderUnit);
+      }
+
+      // Add army signal units as potential sender units
+      for (final unit in _armySignalUnits) {
+        if (unit != 'Select Unit' && unit != 'Other (Enter Manually)') {
+          uniqueFromUnits.add(unit);
+        }
       }
     }
 
     // Debug the unique units found
     debugPrint('Unique To Units: ${uniqueToUnits.length}');
     debugPrint('Unique From Units: ${uniqueFromUnits.length}');
+    debugPrint('To Units: $uniqueToUnits');
+    debugPrint('From Units: $uniqueFromUnits');
 
     setState(() {
       _toUnits = uniqueToUnits.toList()..sort();
@@ -191,9 +206,70 @@ class _TransitSlipDialogState extends State<TransitSlipDialog> {
               const SizedBox(height: 16),
 
               // Filter To Units
-              const Text(
-                'Filter To Units:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  const Text(
+                    'Filter To Units:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  // Select Multiple button
+                  TextButton.icon(
+                    icon: const Icon(Icons.checklist, size: 16),
+                    label: const Text('Select Multiple'),
+                    onPressed: () {
+                      setState(() {
+                        if (_selectedToUnits.contains('All Units')) {
+                          _selectedToUnits = [];
+                        }
+                      });
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Select All button (when in multiple selection mode)
+                  if (!_selectedToUnits.contains('All Units'))
+                    TextButton.icon(
+                      icon: const Icon(Icons.select_all, size: 16),
+                      label: const Text('Select All'),
+                      onPressed: () {
+                        setState(() {
+                          _selectedToUnits = _toUnits
+                              .where((unit) => unit != 'All Units')
+                              .toList();
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  // Clear selection button
+                  if (!_selectedToUnits.contains('All Units'))
+                    TextButton.icon(
+                      icon: const Icon(Icons.clear_all, size: 16),
+                      label: const Text('Clear'),
+                      onPressed: () {
+                        setState(() {
+                          _selectedToUnits = ['All Units'];
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
               Container(
@@ -205,7 +281,20 @@ class _TransitSlipDialogState extends State<TransitSlipDialog> {
                   children: [
                     // "Select All" option
                     CheckboxListTile(
-                      title: const Text('All Units'),
+                      title: Row(
+                        children: [
+                          const Text('All Units'),
+                          const Spacer(),
+                          if (_selectedToUnits.contains('All Units'))
+                            const Chip(
+                              label: Text('Selected'),
+                              backgroundColor: Colors.green,
+                              labelStyle:
+                                  TextStyle(color: Colors.white, fontSize: 12),
+                              padding: EdgeInsets.zero,
+                            ),
+                        ],
+                      ),
                       value: _selectedToUnits.contains('All Units'),
                       onChanged: (bool? value) {
                         setState(() {
@@ -237,7 +326,24 @@ class _TransitSlipDialogState extends State<TransitSlipDialog> {
                                 .where((unit) => unit != 'All Units')
                                 .toList()[index];
                             return CheckboxListTile(
-                              title: Text(unit),
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      unit,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (_selectedToUnits.contains(unit))
+                                    const Chip(
+                                      label: Text('Selected'),
+                                      backgroundColor: Colors.green,
+                                      labelStyle: TextStyle(
+                                          color: Colors.white, fontSize: 12),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                ],
+                              ),
                               value: _selectedToUnits.contains(unit),
                               onChanged: (bool? value) {
                                 setState(() {
@@ -264,9 +370,70 @@ class _TransitSlipDialogState extends State<TransitSlipDialog> {
               const SizedBox(height: 16),
 
               // Filter From Units
-              const Text(
-                'Filter From Units:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  const Text(
+                    'Filter From Units:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  // Select Multiple button
+                  TextButton.icon(
+                    icon: const Icon(Icons.checklist, size: 16),
+                    label: const Text('Select Multiple'),
+                    onPressed: () {
+                      setState(() {
+                        if (_selectedFromUnits.contains('All Units')) {
+                          _selectedFromUnits = [];
+                        }
+                      });
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Select All button (when in multiple selection mode)
+                  if (!_selectedFromUnits.contains('All Units'))
+                    TextButton.icon(
+                      icon: const Icon(Icons.select_all, size: 16),
+                      label: const Text('Select All'),
+                      onPressed: () {
+                        setState(() {
+                          _selectedFromUnits = _fromUnits
+                              .where((unit) => unit != 'All Units')
+                              .toList();
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  // Clear selection button
+                  if (!_selectedFromUnits.contains('All Units'))
+                    TextButton.icon(
+                      icon: const Icon(Icons.clear_all, size: 16),
+                      label: const Text('Clear'),
+                      onPressed: () {
+                        setState(() {
+                          _selectedFromUnits = ['All Units'];
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
               Container(
@@ -278,7 +445,20 @@ class _TransitSlipDialogState extends State<TransitSlipDialog> {
                   children: [
                     // "Select All" option
                     CheckboxListTile(
-                      title: const Text('All Units'),
+                      title: Row(
+                        children: [
+                          const Text('All Units'),
+                          const Spacer(),
+                          if (_selectedFromUnits.contains('All Units'))
+                            const Chip(
+                              label: Text('Selected'),
+                              backgroundColor: Colors.green,
+                              labelStyle:
+                                  TextStyle(color: Colors.white, fontSize: 12),
+                              padding: EdgeInsets.zero,
+                            ),
+                        ],
+                      ),
                       value: _selectedFromUnits.contains('All Units'),
                       onChanged: (bool? value) {
                         setState(() {
@@ -310,7 +490,24 @@ class _TransitSlipDialogState extends State<TransitSlipDialog> {
                                 .where((unit) => unit != 'All Units')
                                 .toList()[index];
                             return CheckboxListTile(
-                              title: Text(unit),
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      unit,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (_selectedFromUnits.contains(unit))
+                                    const Chip(
+                                      label: Text('Selected'),
+                                      backgroundColor: Colors.green,
+                                      labelStyle: TextStyle(
+                                          color: Colors.white, fontSize: 12),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                ],
+                              ),
                               value: _selectedFromUnits.contains(unit),
                               onChanged: (bool? value) {
                                 setState(() {
@@ -512,17 +709,33 @@ class _TransitSlipDialogState extends State<TransitSlipDialog> {
     });
 
     try {
+      // Debug the selected filters
+      debugPrint('Selected To Units: $_selectedToUnits');
+      debugPrint('Selected From Units: $_selectedFromUnits');
+
+      // Prepare filter lists
+      List<String>? toUnitsFilter;
+      if (!_selectedToUnits.contains('All Units') &&
+          _selectedToUnits.isNotEmpty) {
+        toUnitsFilter = List<String>.from(_selectedToUnits);
+        debugPrint('To Units Filter: $toUnitsFilter');
+      }
+
+      List<String>? fromUnitsFilter;
+      if (!_selectedFromUnits.contains('All Units') &&
+          _selectedFromUnits.isNotEmpty) {
+        fromUnitsFilter = List<String>.from(_selectedFromUnits);
+        debugPrint('From Units Filter: $fromUnitsFilter');
+      }
+
       // Generate the transit slip
       final pdf = await _transitSlipService.generateTransitSlip(
         unitCode: _unitCodeController.text,
         destinationUnit: _destinationUnit,
         startDate: _startDate,
         endDate: _endDate,
-        filterToUnits:
-            _selectedToUnits.contains('All Units') ? null : _selectedToUnits,
-        filterFromUnits: _selectedFromUnits.contains('All Units')
-            ? null
-            : _selectedFromUnits,
+        filterToUnits: toUnitsFilter,
+        filterFromUnits: fromUnitsFilter,
       );
 
       // Generate filename with current date
@@ -533,6 +746,23 @@ class _TransitSlipDialogState extends State<TransitSlipDialog> {
       // Store the generated PDF and filename for use after setState
       final generatedPdf = pdf;
       final generatedFileName = fileName;
+
+      // Save the report to the library
+      final savedReport = await _transitSlipService.saveReportToLibrary(
+        pdf: generatedPdf,
+        unitCode: _unitCodeController.text,
+        destinationUnit: _destinationUnit,
+        metadata: {
+          'unitCode': _unitCodeController.text,
+          'destinationUnit': _destinationUnit,
+          'startDate': _startDate.millisecondsSinceEpoch.toString(),
+          'endDate': _endDate.millisecondsSinceEpoch.toString(),
+          'filterToUnits':
+              toUnitsFilter != null ? toUnitsFilter.join(',') : null,
+          'filterFromUnits':
+              fromUnitsFilter != null ? fromUnitsFilter.join(',') : null,
+        },
+      );
 
       setState(() {
         _isGenerating = false;
@@ -551,6 +781,7 @@ class _TransitSlipDialogState extends State<TransitSlipDialog> {
               pdfDocument: generatedPdf,
               defaultFileName: generatedFileName,
               title: 'Transit Slip Preview',
+              savedReport: savedReport,
             ),
           ),
         );

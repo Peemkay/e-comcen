@@ -8,7 +8,7 @@ import '../../services/user_service.dart';
 class UserEditScreen extends StatefulWidget {
   final User? user;
 
-  const UserEditScreen({Key? key, this.user}) : super(key: key);
+  const UserEditScreen({super.key, this.user});
 
   @override
   State<UserEditScreen> createState() => _UserEditScreenState();

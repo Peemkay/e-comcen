@@ -4,7 +4,7 @@ import '../constants/app_constants.dart';
 import '../constants/app_theme.dart';
 
 class TermsConditionsScreen extends StatefulWidget {
-  const TermsConditionsScreen({Key? key}) : super(key: key);
+  const TermsConditionsScreen({super.key});
 
   @override
   State<TermsConditionsScreen> createState() => _TermsConditionsScreenState();

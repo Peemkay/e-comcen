@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
 import '../constants/app_constants.dart';
 import '../constants/security_constants.dart';
-import '../extensions/string_extensions.dart';
-import '../providers/security_provider.dart';
 import '../services/security_service.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
@@ -29,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _supportsBiometrics = false;
+  final bool _supportsBiometrics = false;
   int _loginAttempts = 0;
   bool _isLocked = false;
   DateTime? _lockoutEndTime;

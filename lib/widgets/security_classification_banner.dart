@@ -5,18 +5,18 @@ import '../constants/security_constants.dart';
 class SecurityClassificationBanner extends StatelessWidget {
   final bool isTop;
   final bool isCompact;
-  
+
   const SecurityClassificationBanner({
-    Key? key,
+    super.key,
     this.isTop = true,
     this.isCompact = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final classification = SecurityConstants.securityClassification;
     final Color bannerColor = _getBannerColor(classification);
-    
+
     return Container(
       width: double.infinity,
       color: bannerColor,
@@ -27,7 +27,8 @@ class SecurityClassificationBanner extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (!isCompact) const Icon(Icons.security, color: Colors.white, size: 16),
+          if (!isCompact)
+            const Icon(Icons.security, color: Colors.white, size: 16),
           if (!isCompact) const SizedBox(width: 8),
           Text(
             classification,
@@ -41,7 +42,7 @@ class SecurityClassificationBanner extends StatelessWidget {
       ),
     );
   }
-  
+
   Color _getBannerColor(String classification) {
     switch (classification.toUpperCase()) {
       case 'TOP SECRET':
@@ -66,24 +67,22 @@ class SecurityClassificationWrapper extends StatelessWidget {
   final bool showTopBanner;
   final bool showBottomBanner;
   final bool isCompact;
-  
+
   const SecurityClassificationWrapper({
-    Key? key,
+    super.key,
     required this.child,
     this.showTopBanner = true,
     this.showBottomBanner = true,
     this.isCompact = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Return just the child without any classification banners
+    // This effectively removes the classification banners from the app
     return Column(
       children: [
-        if (showTopBanner)
-          SecurityClassificationBanner(isTop: true, isCompact: isCompact),
         Expanded(child: child),
-        if (showBottomBanner)
-          SecurityClassificationBanner(isTop: false, isCompact: isCompact),
       ],
     );
   }

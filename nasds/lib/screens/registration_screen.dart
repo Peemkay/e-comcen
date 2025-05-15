@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
 import '../constants/army_data.dart';
 import '../extensions/string_extensions.dart';
 import '../models/admin_user.dart';
-import '../providers/translation_provider.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});

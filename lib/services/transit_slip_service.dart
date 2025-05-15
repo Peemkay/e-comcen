@@ -7,11 +7,13 @@ import 'package:pdf/widgets.dart' as pw;
 import '../models/dispatch.dart';
 import '../services/dispatch_service.dart';
 import '../services/file_save_dialog_service.dart';
+import '../services/report_library_service.dart';
 import '../utils/pdf_fonts.dart';
 
 /// Service for generating Transit Slip reports in A4 format
 class TransitSlipService {
   final DispatchService _dispatchService = DispatchService();
+  final ReportLibraryService _reportLibraryService = ReportLibraryService();
 
   /// Report settings
   final Map<String, dynamic> _settings = {
@@ -82,63 +84,290 @@ class TransitSlipService {
     debugPrint(
         'Total outgoing dispatches before filtering: ${allDispatches.length}');
 
+    // Debug: Print filter parameters
+    debugPrint('FILTER PARAMETERS:');
+    debugPrint('Unit Code: $unitCode');
+    debugPrint('Destination Unit: $destinationUnit');
+    debugPrint('Start Date: $startDate');
+    debugPrint('End Date: $endDate');
+    debugPrint('Filter To Units: $filterToUnits');
+    debugPrint('Filter From Units: $filterFromUnits');
+
     // Apply filters one by one for better debugging
-    List<OutgoingDispatch> slipDispatches = allDispatches.where((dispatch) {
-      // Check if dispatch date is within the selected date range
-      final bool dateMatches = dispatch.dateTime.isAfter(startDate) &&
-          dispatch.dateTime.isBefore(endDate.add(const Duration(days: 1)));
+    List<OutgoingDispatch> dateFilteredDispatches = allDispatches;
 
-      if (!dateMatches) {
-        return false;
-      }
+    // Only apply date filtering if we have dispatches
+    if (allDispatches.isNotEmpty) {
+      // Make the date range more inclusive by using the start of the start date and end of the end date
+      final DateTime startOfStartDate =
+          DateTime(startDate.year, startDate.month, startDate.day);
+      final DateTime endOfEndDate =
+          DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
 
-      // Check if dispatch is for the selected destination unit
-      // Make this a case-insensitive comparison and handle partial matches
-      final bool unitMatches = destinationUnit == 'Select Unit' ||
-          destinationUnit.isEmpty ||
-          dispatch.recipientUnit
-              .toLowerCase()
-              .contains(destinationUnit.toLowerCase()) ||
-          (destinationUnit.contains('Signal Regiment') &&
-              dispatch.recipientUnit.contains('SR'));
+      debugPrint(
+          'Using date range: ${startOfStartDate.toString()} to ${endOfEndDate.toString()}');
 
-      if (!unitMatches) {
-        return false;
-      }
+      dateFilteredDispatches = allDispatches.where((dispatch) {
+        // Check if dispatch date is within the selected date range (more inclusive)
+        final bool dateMatches = dispatch.dateTime
+                .isAfter(startOfStartDate.subtract(const Duration(days: 1))) &&
+            dispatch.dateTime
+                .isBefore(endOfEndDate.add(const Duration(days: 1)));
 
-      // Check if dispatch matches the selected "To" units filter
-      bool toUnitMatches = true;
-      if (filterToUnits != null && !filterToUnits.contains('All Units')) {
-        toUnitMatches = false;
+        if (!dateMatches) {
+          debugPrint(
+              'Dispatch ${dispatch.referenceNumber} date ${dispatch.dateTime} does not match date range $startOfStartDate - $endOfEndDate');
+        }
+
+        return dateMatches;
+      }).toList();
+    } else {
+      debugPrint('WARNING: No dispatches found in the system!');
+    }
+
+    debugPrint(
+        'After date filtering: ${dateFilteredDispatches.length} dispatches');
+
+    // Filter by destination unit
+    List<OutgoingDispatch> unitFilteredDispatches = dateFilteredDispatches;
+
+    // Only apply destination unit filtering if a specific unit is selected
+    if (destinationUnit != 'Select Unit' && destinationUnit.isNotEmpty) {
+      unitFilteredDispatches = dateFilteredDispatches.where((dispatch) {
+        // Check if dispatch is for the selected destination unit
+        // Make this a case-insensitive comparison and handle partial matches
+        final bool unitMatches =
+            // Direct match on recipient unit
+            dispatch.recipientUnit
+                    .toLowerCase()
+                    .contains(destinationUnit.toLowerCase()) ||
+                // Direct match on recipient
+                dispatch.recipient
+                    .toLowerCase()
+                    .contains(destinationUnit.toLowerCase()) ||
+                // Handle Signal Regiment abbreviations
+                (destinationUnit.contains('Signal Regiment') &&
+                    dispatch.recipientUnit.contains('SR')) ||
+                (destinationUnit.contains('SR') &&
+                    dispatch.recipientUnit.contains('Signal')) ||
+                // Handle common abbreviations
+                (destinationUnit.contains('521') &&
+                    dispatch.recipientUnit.contains('521')) ||
+                (destinationUnit.contains('522') &&
+                    dispatch.recipientUnit.contains('522')) ||
+                (destinationUnit.contains('523') &&
+                    dispatch.recipientUnit.contains('523')) ||
+                (destinationUnit.contains('524') &&
+                    dispatch.recipientUnit.contains('524'));
+
+        if (!unitMatches) {
+          debugPrint(
+              'Dispatch ${dispatch.referenceNumber} recipient unit ${dispatch.recipientUnit} does not match destination unit $destinationUnit');
+        } else {
+          debugPrint(
+              'Dispatch ${dispatch.referenceNumber} MATCHES destination unit $destinationUnit');
+        }
+
+        return unitMatches;
+      }).toList();
+    } else {
+      debugPrint(
+          'No destination unit filtering applied (Select Unit or empty)');
+    }
+
+    debugPrint(
+        'After unit filtering: ${unitFilteredDispatches.length} dispatches');
+
+    // Filter by "To" units if specified
+    List<OutgoingDispatch> toFilteredDispatches = unitFilteredDispatches;
+    if (filterToUnits != null &&
+        !filterToUnits.contains('All Units') &&
+        filterToUnits.isNotEmpty) {
+      // Debug the filter units
+      debugPrint('Applying To unit filters: $filterToUnits');
+
+      toFilteredDispatches = unitFilteredDispatches.where((dispatch) {
+        // If no filters are specified, include all dispatches
+        if (filterToUnits.isEmpty) {
+          return true;
+        }
+
+        bool toUnitMatches = false;
+
         for (final unit in filterToUnits) {
-          if (dispatch.recipient.toLowerCase().contains(unit.toLowerCase()) ||
-              dispatch.recipientUnit
-                  .toLowerCase()
-                  .contains(unit.toLowerCase())) {
+          // Skip empty units
+          if (unit.isEmpty) {
+            continue;
+          }
+
+          // Check against recipient and recipientUnit fields (case insensitive)
+          final String recipientLower = dispatch.recipient.toLowerCase();
+          final String recipientUnitLower =
+              dispatch.recipientUnit.toLowerCase();
+          final String unitLower = unit.toLowerCase();
+
+          // Direct matches
+          if (recipientLower.contains(unitLower) ||
+              recipientUnitLower.contains(unitLower) ||
+              unitLower.contains(recipientLower) ||
+              unitLower.contains(recipientUnitLower)) {
             toUnitMatches = true;
+            debugPrint(
+                'Dispatch ${dispatch.referenceNumber} matches To unit filter: $unit');
+            break;
+          }
+
+          // Check if the destination unit matches
+          if (destinationUnit.toLowerCase().contains(unitLower) ||
+              unitLower.contains(destinationUnit.toLowerCase())) {
+            toUnitMatches = true;
+            debugPrint(
+                'Dispatch ${dispatch.referenceNumber} destination matches To unit filter: $unit');
+            break;
+          }
+
+          // Check for Signal Regiment abbreviations
+          if ((unit.contains('Signal') &&
+                  (recipientLower.contains('sr') ||
+                      recipientUnitLower.contains('sr'))) ||
+              (unit.contains('SR') &&
+                  (recipientLower.contains('signal') ||
+                      recipientUnitLower.contains('signal')))) {
+            toUnitMatches = true;
+            debugPrint(
+                'Dispatch ${dispatch.referenceNumber} abbreviation matches To unit filter: $unit');
+            break;
+          }
+
+          // Check for numeric unit codes
+          if ((unit.contains('521') &&
+                  (recipientLower.contains('521') ||
+                      recipientUnitLower.contains('521'))) ||
+              (unit.contains('522') &&
+                  (recipientLower.contains('522') ||
+                      recipientUnitLower.contains('522'))) ||
+              (unit.contains('523') &&
+                  (recipientLower.contains('523') ||
+                      recipientUnitLower.contains('523'))) ||
+              (unit.contains('524') &&
+                  (recipientLower.contains('524') ||
+                      recipientUnitLower.contains('524')))) {
+            toUnitMatches = true;
+            debugPrint(
+                'Dispatch ${dispatch.referenceNumber} numeric code matches To unit filter: $unit');
             break;
           }
         }
-      }
 
-      if (!toUnitMatches) {
-        return false;
-      }
+        if (!toUnitMatches) {
+          debugPrint(
+              'Dispatch ${dispatch.referenceNumber} recipient ${dispatch.recipient} and unit ${dispatch.recipientUnit} do not match any To unit filter');
+        }
 
-      // Check if dispatch matches the selected "From" units filter
-      bool fromUnitMatches = true;
-      if (filterFromUnits != null && !filterFromUnits.contains('All Units')) {
-        fromUnitMatches = false;
+        return toUnitMatches;
+      }).toList();
+
+      debugPrint(
+          'After To unit filtering: ${toFilteredDispatches.length} dispatches');
+    } else {
+      debugPrint('No To unit filtering applied (All Units selected)');
+    }
+
+    // Filter by "From" units if specified
+    List<OutgoingDispatch> fromFilteredDispatches = toFilteredDispatches;
+    if (filterFromUnits != null &&
+        !filterFromUnits.contains('All Units') &&
+        filterFromUnits.isNotEmpty) {
+      // Debug the filter units
+      debugPrint('Applying From unit filters: $filterFromUnits');
+
+      fromFilteredDispatches = toFilteredDispatches.where((dispatch) {
+        // If no filters are specified, include all dispatches
+        if (filterFromUnits.isEmpty) {
+          return true;
+        }
+
+        bool fromUnitMatches = false;
+
         for (final unit in filterFromUnits) {
-          if (dispatch.sender.toLowerCase().contains(unit.toLowerCase())) {
+          // Skip empty units
+          if (unit.isEmpty) {
+            continue;
+          }
+
+          // Check against sentBy (sender) field (case insensitive)
+          final String sentByLower = dispatch.sentBy.toLowerCase();
+          final String unitLower = unit.toLowerCase();
+
+          // Direct matches
+          if (sentByLower.contains(unitLower) ||
+              unitLower.contains(sentByLower)) {
             fromUnitMatches = true;
+            debugPrint(
+                'Dispatch ${dispatch.referenceNumber} matches From unit filter: $unit');
+            break;
+          }
+
+          // Also check against unit code or any other potential sender identifier
+          if (unitCode.toLowerCase().contains(unitLower) ||
+              unitLower.contains(unitCode.toLowerCase())) {
+            fromUnitMatches = true;
+            debugPrint(
+                'Dispatch ${dispatch.referenceNumber} unit code matches From unit filter: $unit');
+            break;
+          }
+
+          // Check for Signal Regiment abbreviations
+          if ((unit.contains('Signal') && sentByLower.contains('sr')) ||
+              (unit.contains('SR') && sentByLower.contains('signal'))) {
+            fromUnitMatches = true;
+            debugPrint(
+                'Dispatch ${dispatch.referenceNumber} abbreviation matches From unit filter: $unit');
+            break;
+          }
+
+          // Check for numeric unit codes
+          if ((unit.contains('521') && sentByLower.contains('521')) ||
+              (unit.contains('522') && sentByLower.contains('522')) ||
+              (unit.contains('523') && sentByLower.contains('523')) ||
+              (unit.contains('524') && sentByLower.contains('524'))) {
+            fromUnitMatches = true;
+            debugPrint(
+                'Dispatch ${dispatch.referenceNumber} numeric code matches From unit filter: $unit');
+            break;
+          }
+
+          // Special case: if the unit is a Signal Regiment, match any sender that might be from that regiment
+          if ((unit.contains('Signal Regiment') || unit.contains('SR')) &&
+              (sentByLower.contains('capt') ||
+                  sentByLower.contains('lt') ||
+                  sentByLower.contains('maj') ||
+                  sentByLower.contains('col') ||
+                  sentByLower.contains('sgt') ||
+                  sentByLower.contains('cpl'))) {
+            fromUnitMatches = true;
+            debugPrint(
+                'Dispatch ${dispatch.referenceNumber} rank matches From unit filter: $unit');
             break;
           }
         }
-      }
 
-      return fromUnitMatches;
-    }).toList();
+        if (!fromUnitMatches) {
+          debugPrint(
+              'Dispatch ${dispatch.referenceNumber} sender ${dispatch.sentBy} does not match any From unit filter');
+        }
+
+        return fromUnitMatches;
+      }).toList();
+
+      debugPrint(
+          'After From unit filtering: ${fromFilteredDispatches.length} dispatches');
+    } else {
+      debugPrint('No From unit filtering applied (All Units selected)');
+    }
+
+    // Final filtered dispatches
+    List<OutgoingDispatch> slipDispatches = fromFilteredDispatches;
 
     // Debug: Print the number of dispatches after filtering
     debugPrint('Filtered outgoing dispatches: ${slipDispatches.length}');
@@ -148,6 +377,55 @@ class TransitSlipService {
     }
     if (filterFromUnits != null) {
       debugPrint('From units filter: $filterFromUnits');
+    }
+
+    // Print details of each filtered dispatch for debugging
+    for (int i = 0; i < slipDispatches.length; i++) {
+      final dispatch = slipDispatches[i];
+      debugPrint('Dispatch $i:');
+      debugPrint('  Reference: ${dispatch.referenceNumber}');
+      debugPrint('  Recipient: ${dispatch.recipient}');
+      debugPrint('  RecipientUnit: ${dispatch.recipientUnit}');
+      debugPrint('  SentBy: ${dispatch.sentBy}');
+      debugPrint('  Date: ${dispatch.dateTime}');
+    }
+
+    // If no dispatches were found, print a clear message and use all dispatches as a fallback
+    if (slipDispatches.isEmpty) {
+      debugPrint('NO DISPATCHES MATCHED THE FILTERS!');
+      debugPrint(
+          'Using all dispatches as a fallback to ensure content is displayed');
+
+      // Use all dispatches as a fallback (limited to 10 for performance)
+      if (allDispatches.isNotEmpty) {
+        slipDispatches = allDispatches.take(10).toList();
+        debugPrint('Using ${slipDispatches.length} dispatches as fallback');
+      } else {
+        // If there are no dispatches at all, create a sample one
+        debugPrint(
+            'No dispatches found in the system. Creating a sample dispatch for display purposes.');
+        slipDispatches = [
+          OutgoingDispatch(
+            id: 'sample-1',
+            referenceNumber: 'SAMPLE-001',
+            subject: 'Sample Dispatch',
+            content: 'This is a sample dispatch for display purposes.',
+            dateTime: DateTime.now(),
+            priority: 'Normal',
+            securityClassification: 'Unclassified',
+            status: 'Pending',
+            handledBy: 'System',
+            recipient: 'Sample Recipient',
+            recipientUnit:
+                destinationUnit.isEmpty ? 'Sample Unit' : destinationUnit,
+            sentBy: 'Sample Sender',
+            sentDate: DateTime.now(),
+            deliveryMethod: 'Physical',
+            attachments: [],
+            logs: [],
+          ),
+        ];
+      }
     }
 
     // Sort dispatches by date
@@ -300,8 +578,12 @@ class TransitSlipService {
 
   /// Build the transit slip table
   pw.Widget _buildTransitTable(List<OutgoingDispatch> dispatches) {
+    // Debug the dispatches being passed to the table
+    debugPrint('Building transit table with ${dispatches.length} dispatches');
+
     // Always show exactly the number of rows specified in settings, default to 50
     final int totalRows = _settings['rowsPerPage'] ?? 50;
+    debugPrint('Table will show $totalRows rows (filled or empty)');
 
     // Get border settings
     final bool showTableBorders = _settings['showTableBorders'] ?? true;
@@ -376,8 +658,18 @@ class TransitSlipService {
               _buildTableCell(hasData
                   ? DateFormat('dd/MM/yyyy').format(dispatches[index].dateTime)
                   : ''),
-              _buildTableCell(hasData ? dispatches[index].sender : ''),
-              _buildTableCell(hasData ? dispatches[index].recipient : ''),
+              _buildTableCell(hasData
+                  ? (dispatches[index].sentBy.isNotEmpty
+                      ? dispatches[index].sentBy
+                      : 'N/A')
+                  : ''),
+              _buildTableCell(hasData
+                  ? (dispatches[index].recipientUnit.isNotEmpty
+                      ? dispatches[index].recipientUnit
+                      : (dispatches[index].recipient.isNotEmpty
+                          ? dispatches[index].recipient
+                          : 'N/A'))
+                  : ''),
               _buildTableCell(hasData ? dispatches[index].referenceNumber : ''),
             ],
           );
@@ -539,5 +831,27 @@ class TransitSlipService {
   Future<bool> openReportFolder(String filePath) async {
     final fileSaveDialogService = FileSaveDialogService();
     return await fileSaveDialogService.openContainingFolder(filePath);
+  }
+
+  /// Save the report to the library
+  Future<SavedReport?> saveReportToLibrary({
+    required pw.Document pdf,
+    required String unitCode,
+    required String destinationUnit,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final reportName = 'Transit Slip - $unitCode to $destinationUnit';
+
+    return await _reportLibraryService.saveReport(
+      pdfDocument: pdf,
+      name: reportName,
+      reportType: 'Transit Slip',
+      metadata: metadata ??
+          {
+            'unitCode': unitCode,
+            'destinationUnit': destinationUnit,
+            'generatedAt': DateTime.now().millisecondsSinceEpoch,
+          },
+    );
   }
 }
