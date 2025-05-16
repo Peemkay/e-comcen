@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../constants/security_constants.dart';
 import '../providers/security_provider.dart';
 import '../providers/navigation_provider.dart';
-import '../screens/lock_screen.dart';
 
 /// A widget that wraps the entire app to enforce security policies
 class SecureAppWrapper extends StatefulWidget {
@@ -13,10 +12,10 @@ class SecureAppWrapper extends StatefulWidget {
   final bool enforceScreenCapturePrevention;
 
   const SecureAppWrapper({
-    Key? key,
+    super.key,
     required this.child,
     this.enforceScreenCapturePrevention = true,
-  }) : super(key: key);
+  });
 
   @override
   State<SecureAppWrapper> createState() => _SecureAppWrapperState();
@@ -28,7 +27,6 @@ class _SecureAppWrapperState extends State<SecureAppWrapper>
   late NavigationProvider _navigationProvider;
   Timer? _inactivityTimer;
   DateTime? _lastActivityTime;
-  bool _isLocked = false;
   final RouteObserver<ModalRoute<void>> _routeObserver =
       RouteObserver<ModalRoute<void>>();
 
@@ -119,8 +117,15 @@ class _SecureAppWrapperState extends State<SecureAppWrapper>
       // Check if session is still active
       if (!_securityProvider.isSessionActive &&
           _securityProvider.isAuthenticated) {
-        setState(() {
-          _isLocked = true;
+        // Log out the user completely
+        _securityProvider.logout().then((_) {
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/login',
+              (route) => false,
+            );
+          }
         });
       }
 
@@ -151,22 +156,22 @@ class _SecureAppWrapperState extends State<SecureAppWrapper>
     final difference = now.difference(_lastActivityTime!);
 
     if (difference.inMinutes >= SecurityConstants.sessionTimeoutMinutes) {
-      // Save the current route before locking
-      final route = ModalRoute.of(context);
-      if (route?.settings.name != null && route!.settings.name != '/lock') {
-        _navigationProvider.setLastActiveRoute(route.settings.name!);
-      }
-
-      setState(() {
-        _isLocked = true;
+      // Log out the user completely
+      _securityProvider.logout().then((_) {
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/login',
+            (route) => false,
+          );
+        }
       });
+
       _cancelInactivityTimer();
     }
   }
 
   void _onUserInteraction() {
-    if (_isLocked) return;
-
     _lastActivityTime = DateTime.now();
     if (_securityProvider.isInitialized) {
       _securityProvider.updateActivity();
@@ -203,9 +208,7 @@ class _SecureAppWrapperState extends State<SecureAppWrapper>
     // This route was replaced by another route
     if (newRoute?.settings.name != null) {
       _navigationProvider.setCurrentRoute(newRoute!.settings.name!);
-      if (newRoute.settings.name != '/lock') {
-        _navigationProvider.setLastActiveRoute(newRoute.settings.name!);
-      }
+      _navigationProvider.setLastActiveRoute(newRoute.settings.name!);
     }
   }
 
@@ -219,10 +222,6 @@ class _SecureAppWrapperState extends State<SecureAppWrapper>
 
   @override
   Widget build(BuildContext context) {
-    if (_isLocked) {
-      return const LockScreen();
-    }
-
     return Listener(
       onPointerDown: (_) => _onUserInteraction(),
       onPointerMove: (_) => _onUserInteraction(),

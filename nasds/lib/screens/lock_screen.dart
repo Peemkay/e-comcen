@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screen_lock/flutter_screen_lock.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
 import '../constants/security_constants.dart';
 import '../extensions/string_extensions.dart';
 import '../providers/security_provider.dart';
-import '../providers/navigation_provider.dart';
+import '../services/auth_service.dart';
 
 class LockScreen extends StatefulWidget {
   const LockScreen({super.key});
@@ -18,26 +16,24 @@ class LockScreen extends StatefulWidget {
 }
 
 class _LockScreenState extends State<LockScreen> {
-  final LocalAuthentication _localAuth = LocalAuthentication();
-  bool _canCheckBiometrics = false;
-  bool _isBiometricSupported = false;
-  List<BiometricType> _availableBiometrics = [];
-  bool _isAuthenticating = false;
-
   // Session timeout timer
   Timer? _sessionTimer;
   DateTime? _sessionExpiryTime;
 
-  // PIN for unlocking (should be retrieved from secure storage in a real app)
-  final String _correctPin = '123456';
+  // Form controllers
+  final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  bool _isLoading = false;
+  String? _errorMessage;
 
   late SecurityProvider _securityProvider;
-  late NavigationProvider _navigationProvider;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
-    _checkBiometrics();
     _startSessionExpiryTimer();
   }
 
@@ -45,38 +41,17 @@ class _LockScreenState extends State<LockScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _securityProvider = Provider.of<SecurityProvider>(context, listen: false);
-    _navigationProvider =
-        Provider.of<NavigationProvider>(context, listen: false);
 
-    // Calculate session expiry time
-    _sessionExpiryTime = DateTime.now()
-        .add(Duration(minutes: SecurityConstants.sessionTimeoutMinutes * 2));
-  }
-
-  Future<void> _checkBiometrics() async {
-    try {
-      _canCheckBiometrics = await _localAuth.canCheckBiometrics;
-      _isBiometricSupported = await _localAuth.isDeviceSupported();
-
-      if (_canCheckBiometrics && _isBiometricSupported) {
-        _availableBiometrics = await _localAuth.getAvailableBiometrics();
-
-        if (_availableBiometrics.isNotEmpty) {
-          _authenticateWithBiometrics();
-        }
-      }
-    } on PlatformException catch (e) {
-      debugPrint('Error checking biometrics: $e');
-    }
+    // Calculate session expiry time (just a short time since we'll log out on expiry)
+    _sessionExpiryTime = DateTime.now().add(const Duration(minutes: 2));
   }
 
   void _startSessionExpiryTimer() {
     // Cancel any existing timer
     _sessionTimer?.cancel();
 
-    // Set session expiry time (twice the session timeout to give users time to unlock)
-    _sessionExpiryTime = DateTime.now()
-        .add(Duration(minutes: SecurityConstants.sessionTimeoutMinutes * 2));
+    // Set session expiry time (short timeout)
+    _sessionExpiryTime = DateTime.now().add(const Duration(minutes: 2));
 
     // Start a timer to update the countdown
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -107,6 +82,44 @@ class _LockScreenState extends State<LockScreen> {
     });
   }
 
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await _authService.login(
+        _usernameController.text,
+        _passwordController.text,
+      );
+
+      if (result != null) {
+        // Login successful
+        _securityProvider.updateActivity();
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        // Login failed
+        setState(() {
+          _errorMessage = 'Invalid username or password';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Login failed: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
   String _getTimeRemaining() {
     if (_sessionExpiryTime == null) return '00:00';
 
@@ -123,57 +136,11 @@ class _LockScreenState extends State<LockScreen> {
     return '$minutes:$seconds';
   }
 
-  Future<void> _authenticateWithBiometrics() async {
-    if (_isAuthenticating) return;
-
-    setState(() {
-      _isAuthenticating = true;
-    });
-
-    try {
-      final authenticated =
-          await _securityProvider.authenticateUser(biometricOnly: true);
-
-      if (authenticated && mounted) {
-        // Resume session
-        _securityProvider.updateActivity();
-
-        // Navigate to the last active route
-        final lastRoute = _navigationProvider.lastActiveRoute;
-        Navigator.pushReplacementNamed(context, lastRoute);
-
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Session resumed successfully'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error authenticating with biometrics: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Biometric authentication failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isAuthenticating = false;
-        });
-      }
-    }
-  }
-
   @override
   void dispose() {
     _sessionTimer?.cancel();
+    _usernameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -318,81 +285,113 @@ class _LockScreenState extends State<LockScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Unlock options
-                    Text(
-                      'Unlock Options',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    // Login form
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Username field
+                          TextFormField(
+                            controller: _usernameController,
+                            decoration: InputDecoration(
+                              labelText: 'Username',
+                              labelStyle:
+                                  const TextStyle(color: Colors.white70),
+                              filled: true,
+                              fillColor: Colors.white.withAlpha(30),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              prefixIcon: const Icon(Icons.person,
+                                  color: Colors.white70),
+                            ),
+                            style: const TextStyle(color: Colors.white),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your username';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Password field
+                          TextFormField(
+                            controller: _passwordController,
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              labelStyle:
+                                  const TextStyle(color: Colors.white70),
+                              filled: true,
+                              fillColor: Colors.white.withAlpha(30),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              prefixIcon:
+                                  const Icon(Icons.lock, color: Colors.white70),
+                            ),
+                            style: const TextStyle(color: Colors.white),
+                            obscureText: true,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your password';
+                              }
+                              return null;
+                            },
+                          ),
+
+                          if (_errorMessage != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+
+                          const SizedBox(height: 24),
+
+                          // Login button
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _login,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppTheme.primaryColor,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 2,
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        AppTheme.primaryColor,
+                                      ),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Login',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-
-                    // PIN unlock button
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        _showUnlockScreen();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppTheme.primaryColor,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 2,
-                      ),
-                      icon: const Icon(Icons.pin_outlined),
-                      label: Text(
-                        'Enter PIN',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Biometric authentication button
-                    if (_canCheckBiometrics &&
-                        _isBiometricSupported &&
-                        _availableBiometrics.isNotEmpty)
-                      ElevatedButton.icon(
-                        onPressed: _authenticateWithBiometrics,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 16,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side: BorderSide(color: Colors.white, width: 1),
-                          ),
-                          elevation: 0,
-                        ),
-                        icon: Icon(
-                          _availableBiometrics.contains(BiometricType.face)
-                              ? Icons.face
-                              : _availableBiometrics
-                                      .contains(BiometricType.fingerprint)
-                                  ? Icons.fingerprint
-                                  : Icons.security,
-                        ),
-                        label: Text(
-                          _availableBiometrics.contains(BiometricType.face)
-                              ? 'Use Face ID'
-                              : _availableBiometrics
-                                      .contains(BiometricType.fingerprint)
-                                  ? 'Use Fingerprint'
-                                  : 'Use Biometrics',
-                        ),
-                      ),
                     const SizedBox(height: 32),
 
                     // Divider
@@ -422,78 +421,6 @@ class _LockScreenState extends State<LockScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  void _showUnlockScreen() {
-    // Cancel the session expiry timer while showing the unlock screen
-    _sessionTimer?.cancel();
-
-    screenLock(
-      context: context,
-      title: const Text('Enter PIN to Unlock'),
-      // The subtitle parameter is not supported in the current version
-      // description: const Text('Enter your PIN to resume your session'),
-      customizedButtonChild: const Icon(
-        Icons.fingerprint,
-        color: Colors.white,
-      ),
-      customizedButtonTap: _canCheckBiometrics && _isBiometricSupported
-          ? () async {
-              final authenticated =
-                  await _securityProvider.authenticateUser(biometricOnly: true);
-              if (authenticated && mounted) {
-                // Resume session
-                _securityProvider.updateActivity();
-
-                // Navigate to the last active route
-                final lastRoute = _navigationProvider.lastActiveRoute;
-                Navigator.pop(context); // Close the PIN screen
-                Navigator.pushReplacementNamed(context, lastRoute);
-
-                // Show success message
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Session resumed successfully'),
-                    backgroundColor: Colors.green,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            }
-          : null,
-      correctString: _correctPin,
-      onUnlocked: () {
-        // Resume session
-        _securityProvider.updateActivity();
-
-        // Navigate to the last active route
-        final lastRoute = _navigationProvider.lastActiveRoute;
-        Navigator.pushReplacementNamed(context, lastRoute);
-
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Session resumed successfully'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
-      config: ScreenLockConfig(
-        backgroundColor: AppTheme.primaryColor,
-        buttonStyle: OutlinedButton.styleFrom(
-          backgroundColor: Colors.white24,
-          foregroundColor: Colors.white,
-        ),
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      // When the user cancels the PIN entry, restart the session expiry timer
-      cancelButton: const Text('Cancel', style: TextStyle(color: Colors.white)),
     );
   }
 
