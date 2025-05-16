@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screen_lock/flutter_screen_lock.dart';
@@ -7,9 +8,10 @@ import '../constants/app_theme.dart';
 import '../constants/security_constants.dart';
 import '../extensions/string_extensions.dart';
 import '../providers/security_provider.dart';
+import '../providers/navigation_provider.dart';
 
 class LockScreen extends StatefulWidget {
-  const LockScreen({Key? key}) : super(key: key);
+  const LockScreen({super.key});
 
   @override
   State<LockScreen> createState() => _LockScreenState();
@@ -22,10 +24,33 @@ class _LockScreenState extends State<LockScreen> {
   List<BiometricType> _availableBiometrics = [];
   bool _isAuthenticating = false;
 
+  // Session timeout timer
+  Timer? _sessionTimer;
+  DateTime? _sessionExpiryTime;
+
+  // PIN for unlocking (should be retrieved from secure storage in a real app)
+  final String _correctPin = '123456';
+
+  late SecurityProvider _securityProvider;
+  late NavigationProvider _navigationProvider;
+
   @override
   void initState() {
     super.initState();
     _checkBiometrics();
+    _startSessionExpiryTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _securityProvider = Provider.of<SecurityProvider>(context, listen: false);
+    _navigationProvider =
+        Provider.of<NavigationProvider>(context, listen: false);
+
+    // Calculate session expiry time
+    _sessionExpiryTime = DateTime.now()
+        .add(Duration(minutes: SecurityConstants.sessionTimeoutMinutes * 2));
   }
 
   Future<void> _checkBiometrics() async {
@@ -45,6 +70,59 @@ class _LockScreenState extends State<LockScreen> {
     }
   }
 
+  void _startSessionExpiryTimer() {
+    // Cancel any existing timer
+    _sessionTimer?.cancel();
+
+    // Set session expiry time (twice the session timeout to give users time to unlock)
+    _sessionExpiryTime = DateTime.now()
+        .add(Duration(minutes: SecurityConstants.sessionTimeoutMinutes * 2));
+
+    // Start a timer to update the countdown
+    _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          // Just trigger a rebuild to update the countdown
+        });
+
+        // Check if session has completely expired
+        if (DateTime.now().isAfter(_sessionExpiryTime!)) {
+          _sessionTimer?.cancel();
+          _handleCompleteSessionExpiry();
+        }
+      }
+    });
+  }
+
+  void _handleCompleteSessionExpiry() {
+    // Completely log out the user when session fully expires
+    _securityProvider.logout().then((_) {
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+          (route) => false,
+        );
+      }
+    });
+  }
+
+  String _getTimeRemaining() {
+    if (_sessionExpiryTime == null) return '00:00';
+
+    final now = DateTime.now();
+    final remaining = _sessionExpiryTime!.difference(now);
+
+    if (remaining.isNegative) return '00:00';
+
+    final minutes =
+        remaining.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds =
+        remaining.inSeconds.remainder(60).toString().padLeft(2, '0');
+
+    return '$minutes:$seconds';
+  }
+
   Future<void> _authenticateWithBiometrics() async {
     if (_isAuthenticating) return;
 
@@ -53,18 +131,37 @@ class _LockScreenState extends State<LockScreen> {
     });
 
     try {
-      final securityProvider =
-          Provider.of<SecurityProvider>(context, listen: false);
       final authenticated =
-          await securityProvider.authenticateUser(biometricOnly: true);
+          await _securityProvider.authenticateUser(biometricOnly: true);
 
-      if (authenticated) {
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
-        }
+      if (authenticated && mounted) {
+        // Resume session
+        _securityProvider.updateActivity();
+
+        // Navigate to the last active route
+        final lastRoute = _navigationProvider.lastActiveRoute;
+        Navigator.pushReplacementNamed(context, lastRoute);
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Session resumed successfully'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Error authenticating with biometrics: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Biometric authentication failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -72,6 +169,12 @@ class _LockScreenState extends State<LockScreen> {
         });
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _sessionTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -88,12 +191,31 @@ class _LockScreenState extends State<LockScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Logo
-                    Image.asset(
-                      'assets/images/nasds_logo.png',
-                      height: 120,
+                    // Logo with lock icon overlay
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // App logo
+                        Image.asset(
+                          'assets/images/nasds_logo.png',
+                          height: 120,
+                        ),
+                        // Lock icon overlay
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.lock_outline,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
                     // Title
                     Text(
@@ -117,39 +239,97 @@ class _LockScreenState extends State<LockScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Security classification
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        SecurityConstants.securityClassification,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                    // Security classification if enabled
+                    if (SecurityConstants.securityClassification.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          SecurityConstants.securityClassification,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
 
-                    // Session timeout message
-                    Text(
-                      'session_timeout_message'.tr(),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
+                    // Session timeout message with countdown
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
+                      child: Column(
+                        children: [
+                          Text(
+                            'Session Locked',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Your session has been locked due to inactivity',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Countdown timer
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.timer_outlined,
+                                color: Colors.white70,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Session expires in: ${_getTimeRemaining()}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 32),
 
-                    // Unlock button
+                    // Unlock options
+                    Text(
+                      'Unlock Options',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // PIN unlock button
                     ElevatedButton.icon(
                       onPressed: () {
                         _showUnlockScreen();
@@ -164,10 +344,11 @@ class _LockScreenState extends State<LockScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        elevation: 2,
                       ),
-                      icon: const Icon(Icons.lock_open),
+                      icon: const Icon(Icons.pin_outlined),
                       label: Text(
-                        'unlock'.tr(),
+                        'Enter PIN',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -180,8 +361,21 @@ class _LockScreenState extends State<LockScreen> {
                     if (_canCheckBiometrics &&
                         _isBiometricSupported &&
                         _availableBiometrics.isNotEmpty)
-                      TextButton.icon(
+                      ElevatedButton.icon(
                         onPressed: _authenticateWithBiometrics,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(color: Colors.white, width: 1),
+                          ),
+                          elevation: 0,
+                        ),
                         icon: Icon(
                           _availableBiometrics.contains(BiometricType.face)
                               ? Icons.face
@@ -189,16 +383,21 @@ class _LockScreenState extends State<LockScreen> {
                                       .contains(BiometricType.fingerprint)
                                   ? Icons.fingerprint
                                   : Icons.security,
-                          color: Colors.white,
                         ),
                         label: Text(
-                          'use_biometrics'.tr(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                          ),
+                          _availableBiometrics.contains(BiometricType.face)
+                              ? 'Use Face ID'
+                              : _availableBiometrics
+                                      .contains(BiometricType.fingerprint)
+                                  ? 'Use Fingerprint'
+                                  : 'Use Biometrics',
                         ),
                       ),
                     const SizedBox(height: 32),
+
+                    // Divider
+                    Divider(color: Colors.white.withOpacity(0.2)),
+                    const SizedBox(height: 16),
 
                     // Logout button
                     TextButton.icon(
@@ -210,7 +409,7 @@ class _LockScreenState extends State<LockScreen> {
                         color: Colors.white70,
                       ),
                       label: Text(
-                        'logout'.tr(),
+                        'Log Out Completely',
                         style: const TextStyle(
                           color: Colors.white70,
                         ),
@@ -227,13 +426,14 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   void _showUnlockScreen() {
-    final securityProvider =
-        Provider.of<SecurityProvider>(context, listen: false);
+    // Cancel the session expiry timer while showing the unlock screen
+    _sessionTimer?.cancel();
 
     screenLock(
       context: context,
-      title: Text('enter_pin'.tr()),
-      // Remove confirmTitle as it's not supported in the current version
+      title: const Text('Enter PIN to Unlock'),
+      // The subtitle parameter is not supported in the current version
+      // description: const Text('Enter your PIN to resume your session'),
       customizedButtonChild: const Icon(
         Icons.fingerprint,
         color: Colors.white,
@@ -241,56 +441,137 @@ class _LockScreenState extends State<LockScreen> {
       customizedButtonTap: _canCheckBiometrics && _isBiometricSupported
           ? () async {
               final authenticated =
-                  await securityProvider.authenticateUser(biometricOnly: true);
+                  await _securityProvider.authenticateUser(biometricOnly: true);
               if (authenticated && mounted) {
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/home');
+                // Resume session
+                _securityProvider.updateActivity();
+
+                // Navigate to the last active route
+                final lastRoute = _navigationProvider.lastActiveRoute;
+                Navigator.pop(context); // Close the PIN screen
+                Navigator.pushReplacementNamed(context, lastRoute);
+
+                // Show success message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Session resumed successfully'),
+                    backgroundColor: Colors.green,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               }
             }
           : null,
-      correctString: '123456', // This should be retrieved from secure storage
+      correctString: _correctPin,
       onUnlocked: () {
-        securityProvider.updateActivity();
-        Navigator.pushReplacementNamed(context, '/home');
+        // Resume session
+        _securityProvider.updateActivity();
+
+        // Navigate to the last active route
+        final lastRoute = _navigationProvider.lastActiveRoute;
+        Navigator.pushReplacementNamed(context, lastRoute);
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Session resumed successfully'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       },
       config: ScreenLockConfig(
         backgroundColor: AppTheme.primaryColor,
+        buttonStyle: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white24,
+          foregroundColor: Colors.white,
+        ),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
       ),
+      // When the user cancels the PIN entry, restart the session expiry timer
+      cancelButton: const Text('Cancel', style: TextStyle(color: Colors.white)),
     );
   }
 
   void _showLogoutConfirmation() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('logout_confirmation_title'.tr()),
-        content: Text('logout_confirmation_message'.tr()),
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text(
+          'Are you sure you want to log out completely? You will need to log in again to access the application.',
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
             },
-            child: Text('cancel'.tr()),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              final securityProvider =
-                  Provider.of<SecurityProvider>(context, listen: false);
-              await securityProvider.logout();
+            onPressed: () {
+              // Close the dialog first
+              Navigator.pop(dialogContext);
 
-              if (mounted) {
-                Navigator.pop(context);
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/login',
-                  (route) => false,
-                );
-              }
+              // Show loading indicator
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                  ),
+                ),
+              );
+
+              // Perform logout
+              _securityProvider.logout().then((_) {
+                // Pop the loading dialog
+                if (mounted && Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+
+                // Navigate to login screen
+                if (mounted) {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
+                }
+              }).catchError((error) {
+                // Pop the loading dialog
+                if (mounted && Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+
+                // Show error message
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error logging out: ${error.toString()}'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              });
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: Text('logout'.tr()),
+            child: const Text('Logout'),
           ),
         ],
       ),

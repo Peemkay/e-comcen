@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../constants/app_theme.dart';
 import '../../constants/app_constants.dart';
 import '../../services/dispatch_service.dart';
+import '../../utils/responsive_util.dart';
 import '../../widgets/dispatch_tracking_dialog.dart';
 import 'incoming_dispatch_screen.dart';
 import 'outgoing_dispatch_screen.dart';
@@ -37,9 +38,19 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get responsive values
+    final isSmallScreen = ResponsiveUtil.isMobile(context);
+    final gridColumns = ResponsiveUtil.getGridColumns(context);
+    final spacing = ResponsiveUtil.getSpacing(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('E-COMCEN Dispatches'),
+        title: Text(
+          'E-COMCEN Dispatches',
+          style: TextStyle(
+            fontSize: ResponsiveUtil.getFontSize(context, 18),
+          ),
+        ),
         backgroundColor: AppTheme.primaryColor,
         actions: [
           // Track dispatch button
@@ -57,6 +68,7 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Help feature coming soon'),
+                  behavior: SnackBarBehavior.floating,
                 ),
               );
             },
@@ -69,8 +81,8 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
             child: Center(
               child: Text(
                 'v${AppConstants.appVersion}',
-                style: const TextStyle(
-                  fontSize: 12,
+                style: TextStyle(
+                  fontSize: ResponsiveUtil.getFontSize(context, 12),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -80,133 +92,93 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: ResponsiveUtil.getScreenPadding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              const Text(
+              Text(
                 'Dispatch Categories',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: ResponsiveUtil.getFontSize(context, 22),
                   fontWeight: FontWeight.bold,
                   color: AppTheme.primaryColor,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: spacing * 0.5),
+              Text(
                 'Select a category to manage dispatches',
                 style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
+                  fontSize: ResponsiveUtil.getFontSize(context, 14),
+                  color: Colors.grey[600],
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: spacing * 1.5),
 
               // Dispatch Category Cards
               Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  children: [
-                    _buildDispatchCategoryCard(
-                      title: 'Incoming Dispatch',
-                      icon: FontAwesomeIcons.envelopeOpenText,
-                      color: Colors.blue,
-                      count: _dispatchService.getIncomingDispatches().length,
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: gridColumns,
+                    crossAxisSpacing: spacing,
+                    mainAxisSpacing: spacing,
+                    childAspectRatio:
+                        ResponsiveUtil.getCardAspectRatio(context),
+                  ),
+                  itemCount: _getDispatchCategories().length,
+                  itemBuilder: (context, index) {
+                    final category = _getDispatchCategories()[index];
+                    return _buildDispatchCategoryCard(
+                      title: category['title'] as String,
+                      icon: category['icon'] as IconData,
+                      color: category['color'] as Color,
+                      count: category['count'] as int,
+                      description: category['description'] as String?,
                       onTap: () =>
-                          _navigateToScreen(const IncomingDispatchScreen()),
-                    ),
-                    _buildDispatchCategoryCard(
-                      title: 'Outgoing Dispatch',
-                      icon: FontAwesomeIcons.paperPlane,
-                      color: Colors.green,
-                      count: _dispatchService.getOutgoingDispatches().length,
-                      onTap: () =>
-                          _navigateToScreen(const OutgoingDispatchScreen()),
-                    ),
-                    _buildDispatchCategoryCard(
-                      title: 'Local Dispatch',
-                      icon: FontAwesomeIcons.buildingUser,
-                      color: Colors.orange,
-                      count: _dispatchService.getLocalDispatches().length,
-                      onTap: () =>
-                          _navigateToScreen(const LocalDispatchScreen()),
-                    ),
-                    _buildDispatchCategoryCard(
-                      title: 'External Dispatch',
-                      icon: FontAwesomeIcons.globe,
-                      color: Colors.purple,
-                      count: _dispatchService.getExternalDispatches().length,
-                      onTap: () =>
-                          _navigateToScreen(const ExternalDispatchScreen()),
-                    ),
-                    _buildDispatchCategoryCard(
-                      title: 'COMCEN Log',
-                      icon: FontAwesomeIcons.clipboardList,
-                      color: Colors.red,
-                      count: _dispatchService.getComcenLogs().length,
-                      onTap: () => _navigateToScreen(const ComcenLogScreen()),
-                    ),
-                  ],
+                          _navigateToScreen(category['screen'] as Widget),
+                    );
+                  },
                 ),
               ),
 
               // Summary Section
               Card(
-                elevation: 2,
+                elevation: 1,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                margin: EdgeInsets.symmetric(vertical: spacing * 0.5),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(spacing),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Dispatch Summary',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: ResponsiveUtil.getFontSize(context, 16),
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primaryColor,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildSummaryItem(
-                            'Total',
-                            _dispatchService.getIncomingDispatches().length +
-                                _dispatchService
-                                    .getOutgoingDispatches()
-                                    .length +
-                                _dispatchService.getLocalDispatches().length +
-                                _dispatchService.getExternalDispatches().length,
-                            FontAwesomeIcons.envelopesBulk,
-                            AppTheme.primaryColor,
-                          ),
-                          _buildSummaryItem(
-                            'Pending',
-                            _countPendingDispatches(),
-                            FontAwesomeIcons.clock,
-                            Colors.orange,
-                          ),
-                          _buildSummaryItem(
-                            'Completed',
-                            _countCompletedDispatches(),
-                            FontAwesomeIcons.checkDouble,
-                            Colors.green,
-                          ),
-                          _buildSummaryItem(
-                            'Urgent',
-                            _countUrgentDispatches(),
-                            FontAwesomeIcons.bolt,
-                            Colors.red,
-                          ),
-                        ],
-                      ),
+                      SizedBox(height: spacing * 0.75),
+
+                      // For mobile: use a grid with 2 columns
+                      isSmallScreen
+                          ? GridView.count(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              crossAxisCount: 2,
+                              childAspectRatio: 1.8,
+                              mainAxisSpacing: spacing * 0.5,
+                              crossAxisSpacing: spacing * 0.5,
+                              children: _buildSummaryItems(),
+                            )
+                          // For larger screens: use a row
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: _buildSummaryItems(),
+                            ),
                     ],
                   ),
                 ),
@@ -218,95 +190,315 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
     );
   }
 
+  // Get dispatch categories data
+  List<Map<String, dynamic>> _getDispatchCategories() {
+    return [
+      {
+        'title': 'Incoming Dispatch',
+        'icon': FontAwesomeIcons.envelopeOpenText,
+        'color': Colors.blue,
+        'count': _dispatchService.getIncomingDispatches().length,
+        'description': 'Manage incoming dispatches from other units',
+        'screen': const IncomingDispatchScreen(),
+      },
+      {
+        'title': 'TRANSIT',
+        'icon': FontAwesomeIcons.paperPlane,
+        'color': Colors.green,
+        'count': _dispatchService.getOutgoingDispatches().length,
+        'description': 'Manage outgoing dispatches to other units',
+        'screen': const OutgoingDispatchScreen(),
+      },
+      {
+        'title': 'Local Dispatch',
+        'icon': FontAwesomeIcons.buildingUser,
+        'color': Colors.orange,
+        'count': _dispatchService.getLocalDispatches().length,
+        'description': 'Manage dispatches within the unit',
+        'screen': const LocalDispatchScreen(),
+      },
+      {
+        'title': 'External Dispatch',
+        'icon': FontAwesomeIcons.globe,
+        'color': Colors.purple,
+        'count': _dispatchService.getExternalDispatches().length,
+        'description': 'Manage dispatches to external organizations',
+        'screen': const ExternalDispatchScreen(),
+      },
+      {
+        'title': 'COMCEN Log',
+        'icon': FontAwesomeIcons.clipboardList,
+        'color': Colors.red,
+        'count': _dispatchService.getComcenLogs().length,
+        'description': 'View communication center logs',
+        'screen': const ComcenLogScreen(),
+      },
+      {
+        'title': 'Track Dispatch',
+        'icon': FontAwesomeIcons.magnifyingGlass,
+        'color': Colors.teal,
+        'count': 0,
+        'description': 'Track dispatches by reference number',
+        'screen': const DispatchTrackingDialog(),
+      },
+    ];
+  }
+
+  // Build summary items
+  List<Widget> _buildSummaryItems() {
+    return [
+      _buildSummaryItem(
+        'Total',
+        _dispatchService.getIncomingDispatches().length +
+            _dispatchService.getOutgoingDispatches().length +
+            _dispatchService.getLocalDispatches().length +
+            _dispatchService.getExternalDispatches().length,
+        FontAwesomeIcons.envelopesBulk,
+        AppTheme.primaryColor,
+      ),
+      _buildSummaryItem(
+        'Pending',
+        _countPendingDispatches(),
+        FontAwesomeIcons.clock,
+        Colors.orange,
+      ),
+      _buildSummaryItem(
+        'Completed',
+        _countCompletedDispatches(),
+        FontAwesomeIcons.checkDouble,
+        Colors.green,
+      ),
+      _buildSummaryItem(
+        'Urgent',
+        _countUrgentDispatches(),
+        FontAwesomeIcons.bolt,
+        Colors.red,
+      ),
+    ];
+  }
+
   Widget _buildDispatchCategoryCard({
     required String title,
     required IconData icon,
     required Color color,
     required int count,
     required VoidCallback onTap,
+    String? description,
   }) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    icon,
-                    size: 40,
-                    color: color,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: color.withAlpha(51), // 0.2 opacity
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      count.toString(),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Get responsive values
+        final isSmallScreen = ResponsiveUtil.isMobile(context);
+        final iconSize = ResponsiveUtil.getIconSize(context, factor: 1.2);
+        final spacing = ResponsiveUtil.getSpacing(context);
+
+        // Adjust text sizes based on available width
+        final titleSize = ResponsiveUtil.getFontSize(
+            context, constraints.maxWidth < 180 ? 13 : 15);
+        final countSize = ResponsiveUtil.getFontSize(context, 13);
+        final descSize = ResponsiveUtil.getFontSize(context, 11);
+
+        return Card(
+          elevation: 2,
+          shadowColor: color.withAlpha(40),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    color.withAlpha(15),
+                    Colors.white,
+                  ],
+                ),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Icon with background
+                    Container(
+                      padding: EdgeInsets.all(spacing * 0.75),
+                      decoration: BoxDecoration(
+                        color: color.withAlpha(20),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        icon,
+                        size: iconSize,
                         color: color,
                       ),
                     ),
-                  ),
-                ],
-              );
-            },
+                    SizedBox(height: spacing * 0.75),
+
+                    // Title with count badge
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: titleSize,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (count > 0) ...[
+                          SizedBox(width: spacing * 0.5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: color.withAlpha(30),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              count.toString(),
+                              style: TextStyle(
+                                fontSize: countSize,
+                                fontWeight: FontWeight.bold,
+                                color: color,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    // Description
+                    if (description != null && !isSmallScreen) ...[
+                      SizedBox(height: spacing * 0.5),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: descSize,
+                          color: Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+
+                    // Action hint
+                    SizedBox(height: spacing * 0.75),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          FontAwesomeIcons.arrowRight,
+                          size: 10,
+                          color: color,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'View',
+                          style: TextStyle(
+                            fontSize: descSize,
+                            fontWeight: FontWeight.w500,
+                            color: color,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   Widget _buildSummaryItem(
       String title, int count, IconData icon, Color color) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          color: color,
-          size: 24,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          count.toString(),
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: color,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Get responsive values
+        final iconSize = ResponsiveUtil.getIconSize(context, factor: 0.8);
+        final spacing = ResponsiveUtil.getSpacing(context);
+
+        // Adjust text sizes based on available width
+        final countSize = ResponsiveUtil.getFontSize(context, 16);
+        final titleSize = ResponsiveUtil.getFontSize(context, 12);
+
+        return Container(
+          padding: EdgeInsets.all(spacing * 0.5),
+          decoration: BoxDecoration(
+            color: color.withAlpha(10),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: color.withAlpha(30),
+              width: 1,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon with subtle background
+              Container(
+                padding: EdgeInsets.all(spacing * 0.5),
+                decoration: BoxDecoration(
+                  color: color.withAlpha(20),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: iconSize,
+                ),
+              ),
+              SizedBox(height: spacing * 0.5),
+
+              // Count with animation effect
+              TweenAnimationBuilder<int>(
+                tween: IntTween(begin: 0, end: count),
+                duration: const Duration(milliseconds: 800),
+                builder: (context, value, child) {
+                  return Text(
+                    value.toString(),
+                    style: TextStyle(
+                      fontSize: countSize,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  );
+                },
+              ),
+
+              SizedBox(height: spacing * 0.25),
+
+              // Title
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: titleSize,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 

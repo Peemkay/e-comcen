@@ -10,6 +10,7 @@ import 'providers/translation_provider.dart';
 import 'providers/security_provider.dart';
 import 'providers/dispatcher_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/navigation_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/loading_screen.dart';
 import 'screens/home_screen.dart';
@@ -161,9 +162,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SecurityProvider()),
         ChangeNotifierProvider(create: (_) => DispatcherProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => NavigationProvider()),
       ],
-      child: Consumer2<TranslationProvider, SecurityProvider>(
-        builder: (context, translationProvider, securityProvider, _) {
+      child:
+          Consumer3<TranslationProvider, SecurityProvider, NavigationProvider>(
+        builder: (context, translationProvider, securityProvider,
+            navigationProvider, _) {
           // Initialize the translation provider if not already initialized
           if (!translationProvider.isLoading) {
             Future.microtask(() => translationProvider.initialize());
@@ -173,6 +177,9 @@ class MyApp extends StatelessWidget {
           if (!securityProvider.isInitialized) {
             Future.microtask(() => securityProvider.initialize());
           }
+
+          // Initialize the navigation provider
+          Future.microtask(() => navigationProvider.initialize());
 
           return MaterialApp(
             title: currentAppMode == AppMode.main
