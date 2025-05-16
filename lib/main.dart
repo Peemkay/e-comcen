@@ -24,11 +24,11 @@ import 'screens/admin/user_management_screen.dart';
 import 'screens/admin/user_edit_screen.dart';
 import 'screens/admin/system_settings_screen.dart';
 import 'screens/admin/security_settings_screen.dart';
+import 'screens/units/units_management_screen_new.dart';
 import 'screens/notification_settings_screen.dart';
 import 'screens/notification_center_screen.dart';
 import 'screens/profile/user_profile_screen.dart';
 import 'screens/help/help_menu_screen.dart';
-import 'screens/reports/report_library_screen.dart';
 import 'widgets/secure_app_wrapper.dart';
 import 'widgets/security_classification_banner.dart';
 import 'widgets/notifications/notification_manager.dart';
@@ -135,6 +135,8 @@ class MyApp extends StatelessWidget {
                   const SystemSettingsScreen(),
               AppConstants.securitySettingsRoute: (context) =>
                   const SecuritySettingsScreen(),
+              AppConstants.unitsManagementRoute: (context) =>
+                  const UnitsManagementScreenNew(),
               AppConstants.dispatcherLoginRoute: (context) =>
                   const DispatcherLoginScreen(),
               AppConstants.dispatcherHomeRoute: (context) =>
@@ -147,7 +149,6 @@ class MyApp extends StatelessWidget {
               '/about': (context) => const HelpMenuScreen(),
               '/terms': (context) => const HelpMenuScreen(),
               '/privacy': (context) => const HelpMenuScreen(),
-              '/report_library': (context) => const ReportLibraryScreen(),
             },
 
             // Add localization support

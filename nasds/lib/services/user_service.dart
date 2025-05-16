@@ -188,20 +188,18 @@ class UserService {
     final oneWeekAgo = now.subtract(const Duration(days: 7));
     final twoWeeksAgo = now.subtract(const Duration(days: 14));
 
-    // Create a single super admin user with placeholder credentials
-    // In a production environment, this would be set up during installation
-    // or through a secure registration process
-    _users.add(
+    _users.addAll([
+      // Super Admin user (always approved and active)
       User(
         id: '1',
-        name: 'System Administrator',
-        username: '', // Empty username - will require setup on first run
-        password: '', // Empty password - will require setup on first run
-        rank: 'Administrator',
+        name: 'Super Admin',
+        username: 'super',
+        password: 'super123',
+        rank: 'Brigadier General',
         corps: 'Signals',
-        dateOfBirth: DateTime(1970, 1, 1),
-        yearOfEnlistment: 2000,
-        armyNumber: 'ADMIN',
+        dateOfBirth: DateTime(1970, 3, 10),
+        yearOfEnlistment: 1990,
+        armyNumber: 'NA/10001',
         unit: 'Nigerian Army School of Signals',
         role: UserRole.superadmin,
         isActive: true,
@@ -210,6 +208,162 @@ class UserService {
         approvalDate: twoWeeksAgo,
         approvedBy: 'System',
       ),
-    );
+
+      // Admin users (approved and active)
+      User(
+        id: '2',
+        name: 'Admin User',
+        username: 'admin',
+        password: 'admin123',
+        rank: 'Colonel',
+        corps: 'Signals',
+        dateOfBirth: DateTime(1975, 5, 15),
+        yearOfEnlistment: 1995,
+        armyNumber: 'NA/12345',
+        unit: 'Nigerian Army School of Signals',
+        role: UserRole.admin,
+        isActive: true,
+        isApproved: true,
+        registrationDate: twoWeeksAgo,
+        approvalDate: twoWeeksAgo,
+        approvedBy: 'Super Admin',
+      ),
+      User(
+        id: '3',
+        name: 'John Doe',
+        username: 'johndoe',
+        password: 'password123',
+        rank: 'Captain',
+        corps: 'Signals',
+        dateOfBirth: DateTime(1985, 8, 22),
+        yearOfEnlistment: 2005,
+        armyNumber: 'NA/23456',
+        unit: 'Nigerian Army School of Signals',
+        role: UserRole.admin,
+        isActive: true,
+        isApproved: true,
+        registrationDate: twoWeeksAgo,
+        approvalDate: twoWeeksAgo,
+        approvedBy: 'Super Admin',
+      ),
+
+      // Admin user (inactive but approved)
+      User(
+        id: '4',
+        name: 'Jane Smith',
+        username: 'janesmith',
+        password: 'password123',
+        rank: 'Lieutenant',
+        corps: 'Signals',
+        dateOfBirth: DateTime(1990, 3, 10),
+        yearOfEnlistment: 2012,
+        armyNumber: 'NA/34567',
+        unit: 'Nigerian Army School of Signals',
+        role: UserRole.admin,
+        isActive: false,
+        isApproved: true,
+        registrationDate: twoWeeksAgo,
+        approvalDate: twoWeeksAgo,
+        approvedBy: 'Super Admin',
+      ),
+
+      // Dispatcher users (approved and active)
+      User(
+        id: '5',
+        name: 'Ibrahim Mohammed',
+        username: 'ibrahim',
+        password: 'dispatcher123',
+        rank: 'Sergeant',
+        corps: 'Signals',
+        dateOfBirth: DateTime(1988, 11, 5),
+        yearOfEnlistment: 2008,
+        armyNumber: '08NA/44/5678',
+        unit: 'Nigerian Army School of Signals',
+        role: UserRole.dispatcher,
+        isActive: true,
+        isApproved: true,
+        registrationDate: oneWeekAgo,
+        approvalDate: oneWeekAgo,
+        approvedBy: 'Admin User',
+      ),
+      User(
+        id: '6',
+        name: 'Chukwu Emeka',
+        username: 'emeka',
+        password: 'dispatcher123',
+        rank: 'Corporal',
+        corps: 'Signals',
+        dateOfBirth: DateTime(1992, 7, 18),
+        yearOfEnlistment: 2012,
+        armyNumber: '12NA/44/7890',
+        unit: 'Nigerian Army School of Signals',
+        role: UserRole.dispatcher,
+        isActive: true,
+        isApproved: true,
+        registrationDate: oneWeekAgo,
+        approvalDate: oneWeekAgo,
+        approvedBy: 'Admin User',
+      ),
+
+      // Dispatcher (pending approval)
+      User(
+        id: '7',
+        name: 'Aisha Bello',
+        username: 'aisha',
+        password: 'dispatcher123',
+        rank: 'Sergeant',
+        corps: 'Signals',
+        dateOfBirth: DateTime(1990, 4, 12),
+        yearOfEnlistment: 2010,
+        armyNumber: '10NA/44/6543',
+        unit: 'Nigerian Army School of Signals',
+        role: UserRole.dispatcher,
+        isActive: true,
+        isApproved: false,
+        registrationDate: now,
+        approvalDate: null,
+        approvedBy: null,
+      ),
+
+      // Test dispatcher (approved and active)
+      User(
+        id: '8',
+        name: 'Test Dispatcher',
+        username: 'dispatcher',
+        password: 'dispatcher',
+        rank: 'Corporal',
+        corps: 'Signals',
+        dateOfBirth: DateTime(1995, 6, 15),
+        yearOfEnlistment: 2015,
+        armyNumber: '15NA/44/8765',
+        unit: 'Nigerian Army School of Signals',
+        role: UserRole.dispatcher,
+        isActive: true,
+        isApproved: true,
+        registrationDate: oneWeekAgo,
+        approvalDate: oneWeekAgo,
+        approvedBy: 'Super Admin',
+      ),
+
+      // New user (pending approval)
+      User(
+        id: '9',
+        name: 'New User',
+        username: 'newuser',
+        password: 'password123',
+        rank: 'Lieutenant',
+        corps: 'Signals',
+        dateOfBirth: DateTime(1993, 9, 25),
+        yearOfEnlistment: 2018,
+        armyNumber: 'NA/45678',
+        unit: 'Nigerian Army School of Signals',
+        role: UserRole.admin,
+        isActive: true,
+        isApproved: false,
+        registrationDate: now,
+        approvalDate: null,
+        approvedBy: null,
+      ),
+    ]);
   }
 }

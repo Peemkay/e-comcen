@@ -36,7 +36,7 @@ class ResponsiveForm extends StatelessWidget {
 
   /// Creates a responsive form.
   const ResponsiveForm({
-    super.key,
+    Key? key,
     required this.formKey,
     required this.children,
     this.padding,
@@ -46,7 +46,7 @@ class ResponsiveForm extends StatelessWidget {
     this.isLoading = false,
     this.cancelButtonText,
     this.onCancel,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -167,7 +167,7 @@ class ResponsiveTextFormField extends StatelessWidget {
 
   /// Creates a responsive text form field.
   const ResponsiveTextFormField({
-    super.key,
+    Key? key,
     required this.controller,
     required this.labelText,
     this.hintText,
@@ -184,7 +184,7 @@ class ResponsiveTextFormField extends StatelessWidget {
     this.minLines,
     this.maxLength,
     this.autofocus = false,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -265,7 +265,7 @@ class ResponsiveDropdownFormField<T> extends StatelessWidget {
 
   /// Creates a responsive dropdown form field.
   const ResponsiveDropdownFormField({
-    super.key,
+    Key? key,
     required this.value,
     required this.items,
     required this.onChanged,
@@ -274,7 +274,7 @@ class ResponsiveDropdownFormField<T> extends StatelessWidget {
     this.prefixIcon,
     this.validator,
     this.enabled = true,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -351,7 +351,7 @@ class ResponsiveDatePickerFormField extends StatelessWidget {
 
   /// Creates a responsive date picker form field.
   const ResponsiveDatePickerFormField({
-    super.key,
+    Key? key,
     required this.controller,
     required this.labelText,
     this.hintText,
@@ -362,7 +362,7 @@ class ResponsiveDatePickerFormField extends StatelessWidget {
     this.validator,
     this.enabled = true,
     this.dateFormat,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

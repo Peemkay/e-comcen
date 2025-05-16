@@ -5,11 +5,14 @@ import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
 import '../../models/dispatch_tracking.dart';
 import '../../models/file_attachment.dart';
+import '../../models/unit.dart';
 import '../../services/dispatch_service.dart';
 import '../../services/attachment_service.dart';
+import '../../services/unit_service.dart';
 import '../../utils/responsive_layout_util.dart';
 import '../../widgets/attachment_list.dart';
 import '../../widgets/enhanced_card.dart';
+import '../../widgets/unit_selector.dart';
 
 class IncomingDispatchForm extends StatefulWidget {
   final IncomingDispatch? dispatch;
@@ -23,6 +26,7 @@ class IncomingDispatchForm extends StatefulWidget {
 class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
   final _formKey = GlobalKey<FormState>();
   final DispatchService _dispatchService = DispatchService();
+  final UnitService _unitService = UnitService();
 
   // Form controllers
   final _referenceController = TextEditingController();
@@ -34,6 +38,10 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
   final _addrToController = TextEditingController(); // ADDR TO
   final _receivedByController = TextEditingController();
   final _handledByController = TextEditingController();
+
+  // Unit selection
+  Unit? _senderUnit;
+  Unit? _recipientUnit;
 
   // Time controllers
   DateTime? _timeHandedIn; // THI
@@ -72,6 +80,9 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
     super.initState();
     _isEditing = widget.dispatch != null;
 
+    // Initialize unit service
+    _unitService.initialize();
+
     if (_isEditing) {
       // Populate form with existing dispatch data
       _referenceController.text = widget.dispatch!.referenceNumber;
@@ -100,6 +111,9 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
         // Convert legacy attachment paths to FileAttachment objects
         _loadAttachmentsFromPaths();
       }
+
+      // Load units asynchronously
+      _loadUnits();
     } else {
       // Set default values for new dispatch
       _referenceController.text =
@@ -109,6 +123,62 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
       _timeHandedIn = DateTime.now(); // Default to current time
       _timeCleared =
           null; // Default to null (will be set when dispatch is cleared)
+
+      // Set primary unit as default recipient unit
+      _setPrimaryUnitAsDefault();
+    }
+  }
+
+  // Load units for editing
+  Future<void> _loadUnits() async {
+    try {
+      // Try to find sender unit by name
+      final units = await _unitService.getAllUnits();
+
+      // Find sender unit
+      if (_senderUnitController.text.isNotEmpty) {
+        for (final unit in units) {
+          if (unit.name == _senderUnitController.text ||
+              unit.code == _senderUnitController.text) {
+            setState(() {
+              _senderUnit = unit;
+            });
+            break;
+          }
+        }
+      }
+
+      // Find recipient unit
+      if (_addrToController.text.isNotEmpty) {
+        for (final unit in units) {
+          if (unit.name == _addrToController.text ||
+              unit.code == _addrToController.text) {
+            setState(() {
+              _recipientUnit = unit;
+            });
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading units: $e');
+    }
+  }
+
+  // Set primary unit as default recipient
+  Future<void> _setPrimaryUnitAsDefault() async {
+    try {
+      await _unitService.initialize();
+      final primaryUnit = _unitService.primaryUnit;
+
+      if (primaryUnit != null) {
+        setState(() {
+          _recipientUnit = primaryUnit;
+          _addrToController.text = primaryUnit.name;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error setting primary unit: $e');
     }
   }
 
@@ -756,19 +826,15 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.only(left: 8.0),
-                              child: TextFormField(
-                                controller: _senderUnitController,
-                                decoration: const InputDecoration(
-                                  labelText: 'ADDR FROM *',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon:
-                                      Icon(FontAwesomeIcons.building, size: 16),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter sender unit';
-                                  }
-                                  return null;
+                              child: UnitSelector(
+                                selectedUnitId: _senderUnit?.id,
+                                label: 'ADDR FROM *',
+                                isRequired: true,
+                                onUnitSelected: (unit) {
+                                  setState(() {
+                                    _senderUnit = unit;
+                                    _senderUnitController.text = unit.name;
+                                  });
                                 },
                               ),
                             ),
@@ -793,19 +859,15 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                             },
                           ),
                           const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _senderUnitController,
-                            decoration: const InputDecoration(
-                              labelText: 'ADDR FROM *',
-                              border: OutlineInputBorder(),
-                              prefixIcon:
-                                  Icon(FontAwesomeIcons.building, size: 16),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter sender unit';
-                              }
-                              return null;
+                          UnitSelector(
+                            selectedUnitId: _senderUnit?.id,
+                            label: 'ADDR FROM *',
+                            isRequired: true,
+                            onUnitSelected: (unit) {
+                              setState(() {
+                                _senderUnit = unit;
+                                _senderUnitController.text = unit.name;
+                              });
                             },
                           ),
                         ],
@@ -814,19 +876,17 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                     const SizedBox(height: 16),
 
                     // ADDR TO
-                    TextFormField(
-                      controller: _addrToController,
-                      decoration: const InputDecoration(
-                        labelText: 'ADDR TO *',
-                        border: OutlineInputBorder(),
-                        prefixIcon:
-                            Icon(FontAwesomeIcons.buildingUser, size: 16),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter recipient unit';
-                        }
-                        return null;
+                    UnitSelector(
+                      selectedUnitId: _recipientUnit?.id,
+                      label: 'ADDR TO *',
+                      isRequired: true,
+                      filterByType: UnitType
+                          .headquarters, // Filter to show only headquarters units
+                      onUnitSelected: (unit) {
+                        setState(() {
+                          _recipientUnit = unit;
+                          _addrToController.text = unit.name;
+                        });
                       },
                     ),
                   ],

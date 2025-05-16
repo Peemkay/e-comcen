@@ -15,7 +15,7 @@ import 'profile/user_profile_screen.dart';
 
 import 'dispatches/dispatches_screen.dart';
 import 'users/users_screen.dart';
-import 'reports/reports_screen.dart';
+import 'units/units_management_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -608,15 +608,24 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       _buildDashboardCard(
+        icon: FontAwesomeIcons.buildingFlag,
+        title: 'Units',
+        subtitle: 'Manage units and formations',
+        color: Colors.indigo,
+        onTap: () {
+          Navigator.pushNamed(context, AppConstants.unitsManagementRoute);
+        },
+      ),
+      _buildDashboardCard(
         icon: FontAwesomeIcons.chartLine,
         title: 'Reports',
         subtitle: 'View reports',
         color: Colors.orange,
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ReportsScreen(),
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Report functionality has been removed'),
+              backgroundColor: Colors.orange,
             ),
           );
         },

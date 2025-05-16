@@ -17,6 +17,7 @@ class Dispatcher extends User {
     required super.yearOfEnlistment,
     required super.armyNumber,
     required super.unit,
+    required super.unitId,
     super.isActive = true,
     super.isApproved = false,
     super.registrationDate,
@@ -62,6 +63,7 @@ class Dispatcher extends User {
       yearOfEnlistment: yearOfEnlistment ?? this.yearOfEnlistment,
       armyNumber: armyNumber ?? this.armyNumber,
       unit: unit ?? this.unit,
+      unitId: unitId ?? this.unitId,
       isActive: isActive ?? this.isActive,
       isApproved: isApproved ?? this.isApproved,
       registrationDate: registrationDate ?? this.registrationDate,
@@ -98,8 +100,15 @@ class Dispatcher extends User {
       yearOfEnlistment: map['yearOfEnlistment'],
       armyNumber: map['armyNumber'],
       unit: map['unit'],
-      isActive: map['isActive'] ?? true,
-      isApproved: map['isApproved'] ?? false,
+      unitId: map['unitId'] ?? '',
+      isActive: map['isActive'] == null
+          ? true
+          : (map['isActive'] is bool ? map['isActive'] : map['isActive'] == 1),
+      isApproved: map['isApproved'] == null
+          ? false
+          : (map['isApproved'] is bool
+              ? map['isApproved']
+              : map['isApproved'] == 1),
       registrationDate: map['registrationDate'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['registrationDate'])
           : null,
@@ -131,6 +140,7 @@ class Dispatcher extends User {
       yearOfEnlistment: user.yearOfEnlistment,
       armyNumber: user.armyNumber,
       unit: user.unit,
+      unitId: user.unitId,
       isActive: user.isActive,
       isApproved: user.isApproved,
       registrationDate: user.registrationDate,

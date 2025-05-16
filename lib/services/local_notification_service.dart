@@ -87,7 +87,7 @@ class LocalNotificationService {
   Future<void> _insertSampleNotifications(Database db) async {
     final now = DateTime.now();
 
-    // Insert sample notifications
+    // Insert welcome notification
     await db.insert(_notificationsTable, {
       'id': const Uuid().v4(),
       'title': 'Welcome to NASDS',
@@ -98,18 +98,6 @@ class LocalNotificationService {
       'isRead': 0,
       'data': jsonEncode({'type': 'welcome'}),
       'createdAt': now.toIso8601String(),
-    });
-
-    await db.insert(_notificationsTable, {
-      'id': const Uuid().v4(),
-      'title': 'New Dispatch Available',
-      'body': 'You have a new dispatch to review.',
-      'senderId': 'user_001',
-      'recipientId': 'user_002',
-      'unitId': 'unit_001',
-      'isRead': 0,
-      'data': jsonEncode({'type': 'dispatch', 'dispatchId': 'dispatch_001'}),
-      'createdAt': now.subtract(const Duration(hours: 2)).toIso8601String(),
     });
   }
 

@@ -9,7 +9,7 @@ import '../extensions/string_extensions.dart';
 import '../providers/security_provider.dart';
 
 class LockScreen extends StatefulWidget {
-  const LockScreen({super.key});
+  const LockScreen({Key? key}) : super(key: key);
 
   @override
   State<LockScreen> createState() => _LockScreenState();
@@ -226,46 +226,37 @@ class _LockScreenState extends State<LockScreen> {
     );
   }
 
-  Future<void> _showUnlockScreen() async {
-    if (!mounted) return;
-
+  void _showUnlockScreen() {
     final securityProvider =
         Provider.of<SecurityProvider>(context, listen: false);
 
-    // Use a default PIN if we can't retrieve one from secure storage
-    // In a real app, this would be retrieved from secure storage
-    const defaultPin = '000000';
-
-    if (mounted) {
-      screenLock(
-        context: context,
-        title: Text('enter_pin'.tr()),
-        // Remove confirmTitle as it's not supported in the current version
-        customizedButtonChild: const Icon(
-          Icons.fingerprint,
-          color: Colors.white,
-        ),
-        customizedButtonTap: _canCheckBiometrics && _isBiometricSupported
-            ? () async {
-                final authenticated = await securityProvider.authenticateUser(
-                    biometricOnly: true);
-                if (authenticated && mounted) {
-                  Navigator.pop(context);
-                  Navigator.pushReplacementNamed(context, '/home');
-                }
+    screenLock(
+      context: context,
+      title: Text('enter_pin'.tr()),
+      // Remove confirmTitle as it's not supported in the current version
+      customizedButtonChild: const Icon(
+        Icons.fingerprint,
+        color: Colors.white,
+      ),
+      customizedButtonTap: _canCheckBiometrics && _isBiometricSupported
+          ? () async {
+              final authenticated =
+                  await securityProvider.authenticateUser(biometricOnly: true);
+              if (authenticated && mounted) {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/home');
               }
-            : null,
-        correctString:
-            defaultPin, // Use a default PIN instead of hardcoded value
-        onUnlocked: () {
-          securityProvider.updateActivity();
-          Navigator.pushReplacementNamed(context, '/home');
-        },
-        config: ScreenLockConfig(
-          backgroundColor: AppTheme.primaryColor,
-        ),
-      );
-    }
+            }
+          : null,
+      correctString: '123456', // This should be retrieved from secure storage
+      onUnlocked: () {
+        securityProvider.updateActivity();
+        Navigator.pushReplacementNamed(context, '/home');
+      },
+      config: ScreenLockConfig(
+        backgroundColor: AppTheme.primaryColor,
+      ),
+    );
   }
 
   void _showLogoutConfirmation() {

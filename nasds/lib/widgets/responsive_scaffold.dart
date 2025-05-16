@@ -38,7 +38,7 @@ class ResponsiveScaffold extends StatelessWidget {
 
   /// Creates a responsive scaffold.
   const ResponsiveScaffold({
-    super.key,
+    Key? key,
     this.appBar,
     required this.body,
     this.drawer,
@@ -49,7 +49,7 @@ class ResponsiveScaffold extends StatelessWidget {
     this.scrollable = true,
     this.padding,
     this.backgroundColor,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +115,7 @@ class ResponsiveAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// Creates a responsive app bar.
   const ResponsiveAppBar({
-    super.key,
+    Key? key,
     required this.title,
     this.actions,
     this.leading,
@@ -123,7 +123,7 @@ class ResponsiveAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.backgroundColor,
     this.elevation,
     this.bottom,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -165,11 +165,11 @@ class ResponsiveDrawer extends StatelessWidget {
 
   /// Creates a responsive drawer.
   const ResponsiveDrawer({
-    super.key,
+    Key? key,
     this.header,
     required this.children,
     this.backgroundColor,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

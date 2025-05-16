@@ -6,7 +6,6 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
 import '../../services/dispatch_service.dart';
-import '../../screens/reports/pdf_preview_screen.dart';
 
 class ComcenReportScreen extends StatefulWidget {
   const ComcenReportScreen({super.key});
@@ -1264,72 +1263,24 @@ class _ComcenReportScreenState extends State<ComcenReportScreen> {
 
   // Print report
   Future<void> _printReport() async {
-    try {
-      // Generate PDF
-      final pdf = await _generatePdf();
-
-      // Generate filename with current date
-      final fileName =
-          'Communication_State_Report_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.pdf';
-
-      // Show the PDF preview screen
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PdfPreviewScreen(
-              pdfDocument: pdf,
-              defaultFileName: fileName,
-              title: 'Communication State Report Preview',
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error generating report: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    // Report functionality has been removed
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Report printing functionality has been removed'),
+        backgroundColor: Colors.orange,
+      ),
+    );
   }
 
   // Export report as PDF
   Future<void> _exportReport() async {
-    try {
-      // Generate PDF
-      final pdf = await _generatePdf();
-
-      // Generate filename with current date
-      final fileName =
-          'Communication_State_Report_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.pdf';
-
-      // Show the PDF preview screen
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PdfPreviewScreen(
-              pdfDocument: pdf,
-              defaultFileName: fileName,
-              title: 'Communication State Report Export',
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error exporting report: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    // Report functionality has been removed
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Report export functionality has been removed'),
+        backgroundColor: Colors.orange,
+      ),
+    );
   }
 
   // Generate PDF

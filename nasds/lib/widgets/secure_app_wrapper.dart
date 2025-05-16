@@ -12,10 +12,10 @@ class SecureAppWrapper extends StatefulWidget {
   final bool enforceScreenCapturePrevention;
   
   const SecureAppWrapper({
-    super.key,
+    Key? key,
     required this.child,
     this.enforceScreenCapturePrevention = true,
-  });
+  }) : super(key: key);
 
   @override
   State<SecureAppWrapper> createState() => _SecureAppWrapperState();

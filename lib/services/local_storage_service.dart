@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -114,9 +115,13 @@ class LocalStorageService {
             CREATE TABLE $_unitsTable (
               id TEXT PRIMARY KEY,
               name TEXT NOT NULL,
+              code TEXT NOT NULL,
               location TEXT,
               commanderId TEXT,
               parentUnitId TEXT,
+              unitType TEXT,
+              isPrimary INTEGER DEFAULT 0,
+              description TEXT,
               createdAt TEXT,
               updatedAt TEXT
             )
@@ -168,28 +173,51 @@ class LocalStorageService {
 
   /// Insert sample data into the database
   Future<void> _insertSampleData(Database db) async {
-    // Insert sample units
+    // Insert default unit
     await db.insert(_unitsTable, {
       'id': 'unit_001',
-      'name': '521 Signal Regiment',
+      'name': 'Nigerian Army School of Signals',
+      'code': 'NASS',
       'location': 'Abuja',
       'commanderId': 'user_001',
       'parentUnitId': null,
+      'unitType': 'headquarters',
+      'isPrimary': 1,
+      'description': 'Headquarters of the Nigerian Army Signal Corps',
+      'createdAt': DateTime.now().toIso8601String(),
+      'updatedAt': DateTime.now().toIso8601String(),
+    });
+
+    // Insert additional sample units
+    await db.insert(_unitsTable, {
+      'id': 'unit_002',
+      'name': '521 Signal Regiment',
+      'code': '521SR',
+      'location': 'Lagos',
+      'commanderId': null,
+      'parentUnitId': 'unit_001',
+      'unitType': 'forwardLink',
+      'isPrimary': 0,
+      'description': 'Forward link signal regiment',
       'createdAt': DateTime.now().toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
     });
 
     await db.insert(_unitsTable, {
-      'id': 'unit_002',
+      'id': 'unit_003',
       'name': '522 Signal Regiment',
-      'location': 'Lagos',
-      'commanderId': 'user_002',
-      'parentUnitId': null,
+      'code': '522SR',
+      'location': 'Port Harcourt',
+      'commanderId': null,
+      'parentUnitId': 'unit_001',
+      'unitType': 'rearLink',
+      'isPrimary': 0,
+      'description': 'Rear link signal regiment',
       'createdAt': DateTime.now().toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
     });
 
-    // Insert sample users - System Administrator with super admin privileges
+    // Insert System Administrator with super admin privileges
     // SYSTEM ADMINISTRATOR CREDENTIALS:
     // Username: admin
     // Password: admin123
@@ -205,38 +233,6 @@ class LocalStorageService {
       'unitId': 'unit_001',
       'isActive': 1,
       'isApproved': 1, // Always approved
-      'lastLogin': DateTime.now().toIso8601String(),
-      'createdAt': DateTime.now().toIso8601String(),
-      'updatedAt': DateTime.now().toIso8601String(),
-    });
-
-    await db.insert(_usersTable, {
-      'id': 'user_002',
-      'username': 'dispatcher',
-      'password': 'dispatch123', // In a real app, this would be hashed
-      'fullName': 'Dispatch Officer',
-      'email': 'dispatch@nasds.mil.ng',
-      'phoneNumber': '+2348023456789',
-      'rank': 'Major',
-      'role': 'dispatcher',
-      'unitId': 'unit_001',
-      'isActive': 1,
-      'lastLogin': DateTime.now().toIso8601String(),
-      'createdAt': DateTime.now().toIso8601String(),
-      'updatedAt': DateTime.now().toIso8601String(),
-    });
-
-    await db.insert(_usersTable, {
-      'id': 'user_003',
-      'username': 'user',
-      'password': 'user123', // In a real app, this would be hashed
-      'fullName': 'Regular User',
-      'email': 'user@nasds.mil.ng',
-      'phoneNumber': '+2348034567890',
-      'rank': 'Captain',
-      'role': 'user',
-      'unitId': 'unit_001',
-      'isActive': 1,
       'lastLogin': DateTime.now().toIso8601String(),
       'createdAt': DateTime.now().toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
@@ -479,32 +475,6 @@ class LocalStorageService {
     final now = DateTime.now();
 
     return [
-      // Super Admin
-      // SUPER ADMIN CREDENTIALS:
-      // Username: superadmin
-      // Password: superadmin123
-      User(
-        id: 'superadmin_001',
-        name: 'Super Admin',
-        username: 'superadmin',
-        password:
-            'superadmin123', // Super admin credentials with full privileges
-        rank: 'Brigadier General',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1970, 1, 1),
-        yearOfEnlistment: 1990,
-        armyNumber: 'NA/00001',
-        unit: 'Nigerian Army School of Signals',
-        unitId: 'unit_001',
-        role: UserRole
-            .superadmin, // Has all permissions including managing user privileges
-        isActive: true,
-        isApproved: true,
-        registrationDate: now,
-        approvalDate: now,
-        approvedBy: 'System',
-      ),
-
       // System Administrator (Super Admin)
       // SYSTEM ADMINISTRATOR CREDENTIALS:
       // Username: admin
@@ -518,53 +488,11 @@ class LocalStorageService {
         corps: 'Signals',
         dateOfBirth: DateTime(1975, 5, 15),
         yearOfEnlistment: 1995,
-        armyNumber: 'NA/00002',
+        armyNumber: 'NA/00001',
         unit: 'Nigerian Army School of Signals',
         unitId: 'unit_001',
         role: UserRole
             .superadmin, // System Administrator has super admin privileges
-        isActive: true,
-        isApproved: true,
-        registrationDate: now,
-        approvalDate: now,
-        approvedBy: 'System',
-      ),
-
-      // Regular Admin
-      User(
-        id: 'admin_001',
-        name: 'Admin User',
-        username: 'user',
-        password: 'user123',
-        rank: 'Colonel',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1975, 5, 15),
-        yearOfEnlistment: 1995,
-        armyNumber: 'NA/12345',
-        unit: 'Nigerian Army School of Signals',
-        unitId: 'unit_001',
-        role: UserRole.admin,
-        isActive: true,
-        isApproved: true,
-        registrationDate: now,
-        approvalDate: now,
-        approvedBy: 'System',
-      ),
-
-      // Dispatcher
-      User(
-        id: 'dispatcher_001',
-        name: 'Dispatcher User',
-        username: 'dispatcher',
-        password: 'dispatch123',
-        rank: 'Major',
-        corps: 'Signals',
-        dateOfBirth: DateTime(1980, 8, 20),
-        yearOfEnlistment: 2000,
-        armyNumber: 'NA/54321',
-        unit: 'Nigerian Army School of Signals',
-        unitId: 'unit_001',
-        role: UserRole.dispatcher,
         isActive: true,
         isApproved: true,
         registrationDate: now,
@@ -752,10 +680,127 @@ class LocalStorageService {
       final db = await _getDatabase();
       final result = await db.query(_unitsTable);
 
+      debugPrint(
+          'LocalStorageService: Found ${result.length} units in database');
+
+      if (result.isEmpty) {
+        debugPrint(
+            'LocalStorageService: No units found in database, inserting default units');
+        // Insert default units if none exist
+        await _insertDefaultUnits();
+
+        // Query again after inserting defaults
+        final newResult = await db.query(_unitsTable);
+        debugPrint(
+            'LocalStorageService: Inserted ${newResult.length} default units');
+
+        return newResult.map((unitData) => Unit.fromMap(unitData)).toList();
+      }
+
       return result.map((unitData) => Unit.fromMap(unitData)).toList();
     } catch (e) {
       debugPrint('Error getting all units: $e');
-      return [];
+
+      // Return default units in memory as fallback
+      return _createDefaultUnitsInMemory();
+    }
+  }
+
+  /// Create default units in memory as fallback
+  List<Unit> _createDefaultUnitsInMemory() {
+    debugPrint('LocalStorageService: Creating default units in memory');
+    return [
+      Unit(
+        id: 'unit_hq_default',
+        name: 'Nigerian Army School of Signals',
+        code: 'NASS',
+        location: 'Abuja',
+        unitType: UnitType.headquarters,
+        isPrimary: true,
+        description: 'Headquarters of the Nigerian Army Signal Corps',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+      Unit(
+        id: 'unit_forward_default',
+        name: '521 Signal Regiment',
+        code: '521SR',
+        location: 'Lagos',
+        parentUnitId: 'unit_hq_default',
+        unitType: UnitType.forwardLink,
+        isPrimary: false,
+        description: 'Forward link signal regiment',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+      Unit(
+        id: 'unit_rear_default',
+        name: '522 Signal Regiment',
+        code: '522SR',
+        location: 'Port Harcourt',
+        parentUnitId: 'unit_hq_default',
+        unitType: UnitType.rearLink,
+        isPrimary: false,
+        description: 'Rear link signal regiment',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    ];
+  }
+
+  /// Insert default units into the database
+  Future<void> _insertDefaultUnits() async {
+    try {
+      final db = await _getDatabase();
+
+      // Check if units table exists
+      final tables = await db.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='$_unitsTable'");
+
+      if (tables.isEmpty) {
+        debugPrint(
+            'LocalStorageService: Units table does not exist, creating it');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS $_unitsTable (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            code TEXT NOT NULL,
+            location TEXT,
+            commanderId TEXT,
+            parentUnitId TEXT,
+            unitType TEXT,
+            isPrimary INTEGER DEFAULT 0,
+            description TEXT,
+            createdAt TEXT,
+            updatedAt TEXT
+          )
+        ''');
+      }
+
+      // Insert default units
+      final defaultUnits = _createDefaultUnitsInMemory();
+
+      for (final unit in defaultUnits) {
+        try {
+          // Check if unit already exists
+          final existing = await db.query(
+            _unitsTable,
+            where: 'id = ?',
+            whereArgs: [unit.id],
+          );
+
+          if (existing.isEmpty) {
+            final unitMap = unit.toMap();
+            await db.insert(_unitsTable, unitMap);
+            debugPrint('LocalStorageService: Inserted unit ${unit.name}');
+          }
+        } catch (e) {
+          debugPrint(
+              'LocalStorageService: Error inserting unit ${unit.name}: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('LocalStorageService: Error inserting default units: $e');
     }
   }
 
@@ -777,6 +822,173 @@ class LocalStorageService {
     } catch (e) {
       debugPrint('Error getting unit by ID: $e');
       return null;
+    }
+  }
+
+  /// Add a new unit
+  Future<bool> addUnit(Unit unit) async {
+    try {
+      final db = await _getDatabase();
+
+      debugPrint('Adding unit: ${unit.name} (${unit.code})');
+      debugPrint('Unit data: ${unit.toMap()}');
+
+      // Check if unit with same code already exists
+      final existingUnits = await db.query(
+        _unitsTable,
+        where: 'code = ?',
+        whereArgs: [unit.code],
+      );
+
+      if (existingUnits.isNotEmpty) {
+        debugPrint('Unit with code ${unit.code} already exists');
+        return false;
+      }
+
+      // Insert the unit
+      final unitMap = unit.toMap();
+
+      // Ensure all required fields are present and have valid types
+      if (unitMap['id'] == null || unitMap['id'] == '') {
+        debugPrint('Unit ID is missing or empty');
+        return false;
+      }
+
+      if (unitMap['name'] == null || unitMap['name'] == '') {
+        debugPrint('Unit name is missing or empty');
+        return false;
+      }
+
+      if (unitMap['code'] == null || unitMap['code'] == '') {
+        debugPrint('Unit code is missing or empty');
+        return false;
+      }
+
+      // Ensure isPrimary is an integer (0 or 1)
+      if (unitMap['isPrimary'] is bool) {
+        unitMap['isPrimary'] = unitMap['isPrimary'] ? 1 : 0;
+      }
+
+      try {
+        final id = await db.insert(_unitsTable, unitMap);
+        debugPrint('Unit inserted with row ID: $id');
+        return true;
+      } catch (insertError) {
+        debugPrint('Error during insert operation: $insertError');
+        // Print the map for debugging
+        unitMap.forEach((key, value) {
+          debugPrint('  $key: $value (${value?.runtimeType})');
+        });
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error adding unit: $e');
+      return false;
+    }
+  }
+
+  /// Update an existing unit
+  Future<bool> updateUnit(Unit unit) async {
+    try {
+      final db = await _getDatabase();
+
+      // Check if unit exists
+      final existingUnit = await getUnitById(unit.id);
+      if (existingUnit == null) {
+        debugPrint('Unit not found: ${unit.id}');
+        return false;
+      }
+
+      // Check if another unit with the same code exists
+      final existingUnits = await db.query(
+        _unitsTable,
+        where: 'code = ? AND id != ?',
+        whereArgs: [unit.code, unit.id],
+      );
+
+      if (existingUnits.isNotEmpty) {
+        debugPrint('Another unit with code ${unit.code} already exists');
+        return false;
+      }
+
+      // Update the unit
+      final count = await db.update(
+        _unitsTable,
+        unit.toMap(),
+        where: 'id = ?',
+        whereArgs: [unit.id],
+      );
+
+      // If this is the current unit, update the current unit
+      if (_currentUnitId == unit.id) {
+        _currentUnit = unit;
+      }
+
+      return count > 0;
+    } catch (e) {
+      debugPrint('Error updating unit: $e');
+      return false;
+    }
+  }
+
+  /// Delete a unit
+  Future<bool> deleteUnit(String unitId) async {
+    try {
+      final db = await _getDatabase();
+
+      // Check if unit exists
+      final existingUnit = await getUnitById(unitId);
+      if (existingUnit == null) {
+        debugPrint('Unit not found: $unitId');
+        return false;
+      }
+
+      // Check if this is the current unit
+      if (_currentUnitId == unitId) {
+        debugPrint('Cannot delete current unit');
+        return false;
+      }
+
+      // Check if there are users assigned to this unit
+      final usersWithUnit = await db.query(
+        _usersTable,
+        where: 'unitId = ?',
+        whereArgs: [unitId],
+      );
+
+      if (usersWithUnit.isNotEmpty) {
+        debugPrint('Cannot delete unit with assigned users');
+        return false;
+      }
+
+      // Delete the unit
+      final count = await db.delete(
+        _unitsTable,
+        where: 'id = ?',
+        whereArgs: [unitId],
+      );
+
+      return count > 0;
+    } catch (e) {
+      debugPrint('Error deleting unit: $e');
+      return false;
+    }
+  }
+
+  /// Get units by type
+  Future<List<Unit>> getUnitsByType(String unitType) async {
+    try {
+      final db = await _getDatabase();
+      final result = await db.query(
+        _unitsTable,
+        where: 'unitType = ?',
+        whereArgs: [unitType],
+      );
+
+      return result.map((unitData) => Unit.fromMap(unitData)).toList();
+    } catch (e) {
+      debugPrint('Error getting units by type: $e');
+      return [];
     }
   }
 }

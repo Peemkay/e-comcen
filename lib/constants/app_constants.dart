@@ -33,6 +33,7 @@ class AppConstants {
   static const String systemSettingsRoute = '/admin/system';
   static const String securitySettingsRoute = '/admin/security';
   static const String deviceManagementRoute = '/admin/devices';
+  static const String unitsManagementRoute = '/admin/units';
 
   // Dispatcher Routes
   static const String dispatcherLoginRoute = '/dispatcher/login';

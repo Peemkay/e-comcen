@@ -7,10 +7,10 @@ class SecurityClassificationBanner extends StatelessWidget {
   final bool isCompact;
 
   const SecurityClassificationBanner({
-    super.key,
+    Key? key,
     this.isTop = true,
     this.isCompact = false,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -69,12 +69,12 @@ class SecurityClassificationWrapper extends StatelessWidget {
   final bool isCompact;
 
   const SecurityClassificationWrapper({
-    super.key,
+    Key? key,
     required this.child,
     this.showTopBanner = true,
     this.showBottomBanner = true,
     this.isCompact = false,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

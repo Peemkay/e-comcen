@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
 import '../../models/dispatch_tracking.dart';
+import '../../models/unit.dart';
 import '../../services/dispatch_service.dart';
+import '../../widgets/unit_selector.dart';
 
 class OutgoingDispatchForm extends StatefulWidget {
   final OutgoingDispatch? dispatch;
@@ -27,6 +29,10 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
   final _recipientUnitController = TextEditingController();
   final _sentByController = TextEditingController();
   final _handledByController = TextEditingController();
+
+  // Unit objects for the sender and recipient units
+  Unit? _senderUnit;
+  Unit? _recipientUnit;
 
   // Form values
   DateTime _dispatchDate = DateTime.now();
@@ -74,6 +80,9 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
       _status = widget.dispatch!.status;
       _deliveryMethod = widget.dispatch!.deliveryMethod;
       _attachments = List.from(widget.dispatch!.attachments);
+
+      // Note: When editing, the unit objects will be loaded by the UnitSelector
+      // based on the unit names stored in the controllers
     } else {
       // Set default values for new dispatch
       _referenceController.text =
@@ -119,6 +128,27 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
 
   void _saveDispatch() {
     if (_formKey.currentState!.validate()) {
+      // Validate that units are selected
+      if (_senderUnit == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a sender unit'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      if (_recipientUnit == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a recipient unit'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       setState(() {
         _isLoading = true;
       });
@@ -137,7 +167,7 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
         status: _status,
         handledBy: _handledByController.text,
         recipient: _recipientController.text,
-        recipientUnit: _recipientUnitController.text,
+        recipientUnit: _recipientUnit!.name,
         sentBy: _sentByController.text,
         sentDate: _sentDate,
         deliveryMethod: _deliveryMethod,
@@ -407,49 +437,29 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
                         const Divider(height: 24),
 
                         // 6. From (Sender Unit)
-                        TextFormField(
-                          controller: _sentByController,
-                          decoration: InputDecoration(
-                            labelText: 'From',
-                            hintText: 'Enter sender unit',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            prefixIcon: const Icon(
-                                FontAwesomeIcons.buildingUser,
-                                size: 16),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter sender unit';
-                            }
-                            return null;
+                        UnitSelector(
+                          selectedUnitId: _senderUnit?.id,
+                          label: 'From (Sender Unit)',
+                          isRequired: true,
+                          onUnitSelected: (unit) {
+                            setState(() {
+                              _senderUnit = unit;
+                              _sentByController.text = unit.name;
+                            });
                           },
                         ),
                         const SizedBox(height: 20),
 
                         // 7. To (Recipient Unit)
-                        TextFormField(
-                          controller: _recipientUnitController,
-                          decoration: InputDecoration(
-                            labelText: 'To',
-                            hintText: 'Enter recipient unit',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            prefixIcon: const Icon(
-                                FontAwesomeIcons.buildingFlag,
-                                size: 16),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter recipient unit';
-                            }
-                            return null;
+                        UnitSelector(
+                          selectedUnitId: _recipientUnit?.id,
+                          label: 'To (Recipient Unit)',
+                          isRequired: true,
+                          onUnitSelected: (unit) {
+                            setState(() {
+                              _recipientUnit = unit;
+                              _recipientUnitController.text = unit.name;
+                            });
                           },
                         ),
                       ],

@@ -90,11 +90,16 @@ class _DispatcherLoginScreenState extends State<DispatcherLoginScreen> {
           }
         });
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'An error occurred: ${e.toString()}';
-      });
-    } finally {
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'An error occurred: ${error.toString()}';
+        });
+      }
+    }
+
+    // Always set loading to false when done
+    if (mounted) {
       setState(() {
         _isLoading = false;
       });

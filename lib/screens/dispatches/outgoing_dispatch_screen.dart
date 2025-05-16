@@ -5,7 +5,7 @@ import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
 import '../../models/dispatch_tracking.dart';
 import '../../services/dispatch_service.dart';
-import '../../widgets/basic_transit_slip_dialog.dart';
+
 import 'dispatch_detail_screen.dart';
 import 'outgoing_dispatch_form.dart';
 
@@ -388,9 +388,12 @@ class _OutgoingDispatchScreenState extends State<OutgoingDispatchScreen> {
   }
 
   void _showTransitSlipDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => const BasicTransitSlipDialog(),
+    // Transit slip functionality has been removed
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Transit slip functionality has been removed'),
+        backgroundColor: Colors.orange,
+      ),
     );
   }
 }

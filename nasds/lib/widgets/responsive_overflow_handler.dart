@@ -32,7 +32,7 @@ class ResponsiveOverflowHandler extends StatelessWidget {
 
   /// Creates a responsive overflow handler.
   const ResponsiveOverflowHandler({
-    super.key,
+    Key? key,
     required this.child,
     this.maxWidth,
     this.maxHeight,
@@ -41,7 +41,7 @@ class ResponsiveOverflowHandler extends StatelessWidget {
     this.padding,
     this.alignment = Alignment.center,
     this.backgroundColor,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +128,7 @@ class ResponsiveAutoSizeText extends StatelessWidget {
   /// Creates a responsive auto-size text.
   const ResponsiveAutoSizeText(
     this.text, {
-    super.key,
+    Key? key,
     this.style,
     this.minFontSize = 8.0,
     this.maxFontSize = 24.0,
@@ -137,7 +137,7 @@ class ResponsiveAutoSizeText extends StatelessWidget {
     this.overflow = TextOverflow.ellipsis,
     this.textAlign,
     this.softWrap = true,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

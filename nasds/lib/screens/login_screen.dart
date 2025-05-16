@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
 import '../constants/app_constants.dart';
 import '../constants/security_constants.dart';
+import '../extensions/string_extensions.dart';
+import '../providers/security_provider.dart';
 import '../services/security_service.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
@@ -25,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
-  final bool _supportsBiometrics = false;
+  bool _supportsBiometrics = false;
   int _loginAttempts = 0;
   bool _isLocked = false;
   DateTime? _lockoutEndTime;
@@ -447,34 +451,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         SizedBox(height: verticalSpacing * 1.5),
 
-                        // Security Classification Banner
-                        Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.red[700],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                FontAwesomeIcons.shieldHalved,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'SECRET',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: verticalSpacing),
+                        // Security Classification Banner removed
 
                         // Login Form
                         Card(

@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'constants/app_constants.dart';
 import 'constants/app_theme.dart';
+import 'constants/security_constants.dart';
 import 'providers/translation_provider.dart';
 import 'providers/security_provider.dart';
 import 'providers/dispatcher_provider.dart';
@@ -28,8 +29,35 @@ import 'widgets/secure_app_wrapper.dart';
 import 'widgets/security_classification_banner.dart';
 import 'widgets/notifications/notification_manager.dart';
 
-void main() {
+// Define application modes
+enum AppMode {
+  main, // Main NASDS application
+  dispatcher // Dispatcher application
+}
+
+// Global variable to track the current app mode
+AppMode currentAppMode = AppMode.main;
+
+void main(List<String> args) {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Parse command line arguments to determine app mode
+  if (args.isNotEmpty) {
+    if (args.contains('--dispatcher') ||
+        args.contains('--target=lib/main_dispatch.dart')) {
+      currentAppMode = AppMode.dispatcher;
+      debugPrint('Starting in Dispatcher mode (via command line args)');
+    }
+  }
+
+  // Check for dart-define parameters
+  const appModeParam = String.fromEnvironment('APP_MODE');
+  if (appModeParam.isNotEmpty) {
+    if (appModeParam.toLowerCase() == 'dispatcher') {
+      currentAppMode = AppMode.dispatcher;
+      debugPrint('Starting in Dispatcher mode (via dart-define)');
+    }
+  }
 
   // Check if running on Windows platform
   if (!isWindows()) {
@@ -147,10 +175,15 @@ class MyApp extends StatelessWidget {
           }
 
           return MaterialApp(
-            title: AppConstants.appName,
+            title: currentAppMode == AppMode.main
+                ? AppConstants.appName
+                : 'E-COMCEN Dispatcher',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
-            initialRoute: AppConstants.splashRoute,
+            // Set initial route based on app mode
+            initialRoute: currentAppMode == AppMode.main
+                ? AppConstants.splashRoute
+                : AppConstants.dispatcherLoginRoute,
 
             // Define routes with builder functions that create responsive layouts
             routes: {

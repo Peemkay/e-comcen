@@ -6,26 +6,26 @@ import '../models/user.dart';
 class DeviceManagementProvider extends ChangeNotifier {
   bool _isInitialized = false;
   bool _isInitializing = false;
-  
+
   // Current device info
   Map<String, dynamic>? _currentDevice;
-  
+
   // List of user devices
   List<Map<String, dynamic>> _userDevices = [];
-  
+
   // Getters
   bool get isInitialized => _isInitialized;
   bool get isInitializing => _isInitializing;
   Map<String, dynamic>? get currentDevice => _currentDevice;
   List<Map<String, dynamic>> get userDevices => _userDevices;
-  
+
   /// Initialize device management
   Future<void> initialize(User user) async {
     if (_isInitialized || _isInitializing) return;
-    
+
     _isInitializing = true;
     notifyListeners();
-    
+
     try {
       // Get current device info
       _currentDevice = {
@@ -37,8 +37,8 @@ class DeviceManagementProvider extends ChangeNotifier {
         'isPrimary': true,
         'lastUsed': DateTime.now().millisecondsSinceEpoch,
       };
-      
-      // Get user devices
+
+      // Initialize empty user devices list
       _userDevices = [
         {
           'id': 'device_001',
@@ -49,17 +49,8 @@ class DeviceManagementProvider extends ChangeNotifier {
           'isPrimary': true,
           'lastUsed': DateTime.now().millisecondsSinceEpoch,
         },
-        {
-          'id': 'device_002',
-          'name': 'Mobile Device',
-          'model': 'Android Phone',
-          'platform': 'Android',
-          'isActive': false,
-          'isPrimary': false,
-          'lastUsed': DateTime.now().subtract(const Duration(days: 2)).millisecondsSinceEpoch,
-        },
       ];
-      
+
       _isInitialized = true;
     } catch (e) {
       debugPrint('Error initializing device management: $e');
@@ -68,7 +59,7 @@ class DeviceManagementProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   /// Refresh devices
   Future<void> refreshDevices() async {
     try {
@@ -79,7 +70,7 @@ class DeviceManagementProvider extends ChangeNotifier {
       debugPrint('Error refreshing devices: $e');
     }
   }
-  
+
   /// Remove device
   Future<bool> removeDevice(String deviceId) async {
     try {
@@ -87,27 +78,28 @@ class DeviceManagementProvider extends ChangeNotifier {
       if (_currentDevice != null && _currentDevice!['id'] == deviceId) {
         return false;
       }
-      
+
       // Remove device from list
       _userDevices.removeWhere((device) => device['id'] == deviceId);
       notifyListeners();
-      
+
       return true;
     } catch (e) {
       debugPrint('Error removing device: $e');
       return false;
     }
   }
-  
+
   /// Set device as primary
   Future<bool> setDeviceAsPrimary(String deviceId) async {
     try {
       // Find device
-      final deviceIndex = _userDevices.indexWhere((device) => device['id'] == deviceId);
+      final deviceIndex =
+          _userDevices.indexWhere((device) => device['id'] == deviceId);
       if (deviceIndex == -1) {
         return false;
       }
-      
+
       // Update all devices
       for (int i = 0; i < _userDevices.length; i++) {
         _userDevices[i] = {
@@ -115,7 +107,7 @@ class DeviceManagementProvider extends ChangeNotifier {
           'isPrimary': i == deviceIndex,
         };
       }
-      
+
       // Update current device if it's the one being set as primary
       if (_currentDevice != null && _currentDevice!['id'] == deviceId) {
         _currentDevice = {
@@ -123,7 +115,7 @@ class DeviceManagementProvider extends ChangeNotifier {
           'isPrimary': true,
         };
       }
-      
+
       notifyListeners();
       return true;
     } catch (e) {

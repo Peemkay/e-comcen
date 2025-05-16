@@ -5,7 +5,7 @@ import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
 import '../../models/dispatch_tracking.dart';
 import '../../services/dispatch_service.dart';
-import '../../widgets/incoming_report_dialog.dart';
+
 import 'dispatch_detail_screen.dart';
 import 'incoming_dispatch_form.dart';
 
@@ -829,9 +829,12 @@ class _IncomingDispatchScreenState extends State<IncomingDispatchScreen> {
   }
 
   void _showReportDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => const IncomingReportDialog(),
+    // Report functionality has been removed
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Report functionality has been removed'),
+        backgroundColor: Colors.orange,
+      ),
     );
   }
 }

@@ -19,11 +19,11 @@ class ResponsiveWrapper extends StatelessWidget {
   /// The [mobile] parameter is required and will be used as a fallback
   /// if [tablet] or [desktop] are not provided.
   const ResponsiveWrapper({
-    super.key,
+    Key? key,
     required this.mobile,
     this.tablet,
     this.desktop,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -69,13 +69,13 @@ class ResponsiveGridView extends StatelessWidget {
 
   /// Creates a responsive grid view.
   const ResponsiveGridView({
-    super.key,
+    Key? key,
     required this.children,
     this.spacing = 16.0,
     this.columnCount,
     this.aspectRatio = 1.0,
     this.padding,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +127,7 @@ class ResponsiveContainer extends StatelessWidget {
 
   /// Creates a responsive container.
   const ResponsiveContainer({
-    super.key,
+    Key? key,
     required this.child,
     this.maxWidth,
     this.minWidth,
@@ -135,7 +135,7 @@ class ResponsiveContainer extends StatelessWidget {
     this.padding,
     this.margin,
     this.decoration,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -191,14 +191,14 @@ class ResponsiveText extends StatelessWidget {
   /// Creates a responsive text widget.
   const ResponsiveText(
     this.text, {
-    super.key,
+    Key? key,
     this.fontSize = 14.0,
     this.style,
     this.textAlign,
     this.bold = false,
     this.maxLines,
     this.overflow,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

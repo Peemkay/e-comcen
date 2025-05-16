@@ -409,44 +409,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
 
-              // Security classification banner
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: AnimatedBuilder(
-                  animation: _securityBannerController,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _securityBannerAnimation.value),
-                      child: Container(
-                        color: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.security,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              SecurityConstants.securityClassification,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+              // Security classification banner removed
 
               // Organization name at bottom
               Positioned(

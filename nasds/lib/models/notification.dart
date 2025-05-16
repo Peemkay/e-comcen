@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 
 /// Enum defining different types of notifications
 enum NotificationType {

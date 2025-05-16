@@ -248,35 +248,7 @@ class _LoadingScreenState extends State<LoadingScreen>
               ),
               child: Column(
                 children: [
-                  // Security classification banner
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.security,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          SecurityConstants.securityClassification,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Security classification banner removed
 
                   // Logo and title
                   Row(

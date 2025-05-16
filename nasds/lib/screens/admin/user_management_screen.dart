@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
 import '../../constants/app_theme.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
@@ -8,7 +9,7 @@ import '../../extensions/string_extensions.dart';
 import 'user_edit_screen.dart';
 
 class UserManagementScreen extends StatefulWidget {
-  const UserManagementScreen({super.key});
+  const UserManagementScreen({Key? key}) : super(key: key);
 
   @override
   State<UserManagementScreen> createState() => _UserManagementScreenState();
@@ -99,8 +100,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
           ),
         ],
       ),

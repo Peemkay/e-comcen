@@ -10,12 +10,12 @@ class NotificationCard extends StatelessWidget {
   final bool isExpanded;
   
   const NotificationCard({
-    super.key,
+    Key? key,
     required this.notification,
     this.onTap,
     this.onDismiss,
     this.isExpanded = false,
-  });
+  }) : super(key: key);
   
   @override
   Widget build(BuildContext context) {
