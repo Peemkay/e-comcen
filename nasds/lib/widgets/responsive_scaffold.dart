@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../constants/app_theme.dart';
+import '../providers/security_provider.dart';
 
 /// A responsive scaffold that adapts its layout based on screen size.
 ///
@@ -8,37 +11,37 @@ import '../constants/app_theme.dart';
 class ResponsiveScaffold extends StatelessWidget {
   /// The app bar to display at the top of the scaffold
   final PreferredSizeWidget? appBar;
-  
+
   /// The primary content of the scaffold
   final Widget body;
-  
+
   /// Optional drawer widget
   final Widget? drawer;
-  
+
   /// Optional bottom navigation bar
   final Widget? bottomNavigationBar;
-  
+
   /// Optional floating action button
   final Widget? floatingActionButton;
-  
+
   /// Optional floating action button location
   final FloatingActionButtonLocation? floatingActionButtonLocation;
-  
+
   /// Whether to resize the body to avoid the bottom inset
   final bool resizeToAvoidBottomInset;
-  
+
   /// Whether to use a scrollable body
   final bool scrollable;
-  
+
   /// Optional padding around the body
   final EdgeInsetsGeometry? padding;
-  
+
   /// Optional background color
   final Color? backgroundColor;
 
   /// Creates a responsive scaffold.
   const ResponsiveScaffold({
-    Key? key,
+    super.key,
     this.appBar,
     required this.body,
     this.drawer,
@@ -49,20 +52,20 @@ class ResponsiveScaffold extends StatelessWidget {
     this.scrollable = true,
     this.padding,
     this.backgroundColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     // Get responsive padding based on screen size
-    final responsivePadding = padding ?? 
-        AppTheme.getResponsivePadding(context, factor: 1.0);
-    
+    final responsivePadding =
+        padding ?? AppTheme.getResponsivePadding(context, factor: 1.0);
+
     // Create the body with responsive padding
     Widget responsiveBody = Padding(
       padding: responsivePadding,
       child: body,
     );
-    
+
     // Wrap in SingleChildScrollView if scrollable is true
     if (scrollable) {
       responsiveBody = SingleChildScrollView(
@@ -70,12 +73,12 @@ class ResponsiveScaffold extends StatelessWidget {
         child: responsiveBody,
       );
     }
-    
+
     // Use SafeArea to avoid system UI overlays
     responsiveBody = SafeArea(
       child: responsiveBody,
     );
-    
+
     // Create the scaffold with the responsive body
     return Scaffold(
       appBar: appBar,
@@ -94,28 +97,31 @@ class ResponsiveScaffold extends StatelessWidget {
 class ResponsiveAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// The title of the app bar
   final Widget title;
-  
+
   /// Optional list of actions to display on the right side of the app bar
   final List<Widget>? actions;
-  
+
   /// Optional leading widget to display on the left side of the app bar
   final Widget? leading;
-  
+
   /// Whether to center the title
   final bool centerTitle;
-  
+
   /// Optional background color
   final Color? backgroundColor;
-  
+
   /// Optional elevation
   final double? elevation;
-  
+
   /// Optional bottom widget
   final PreferredSizeWidget? bottom;
 
+  /// Whether to show the lock screen icon
+  final bool showLockIcon;
+
   /// Creates a responsive app bar.
   const ResponsiveAppBar({
-    Key? key,
+    super.key,
     required this.title,
     this.actions,
     this.leading,
@@ -123,16 +129,44 @@ class ResponsiveAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.backgroundColor,
     this.elevation,
     this.bottom,
-  }) : super(key: key);
+    this.showLockIcon = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     // Determine if we're on a small screen
     final isSmallScreen = AppTheme.isMobileDevice(context);
-    
+
+    // Create actions list with lock icon
+    final List<Widget> actionWidgets = [];
+
+    // Add lock screen icon if enabled
+    if (showLockIcon) {
+      actionWidgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: IconButton(
+            icon: const FaIcon(FontAwesomeIcons.lock, size: 18),
+            tooltip: 'Lock Screen',
+            onPressed: () {
+              // Get the security provider and lock the screen
+              final securityProvider =
+                  Provider.of<SecurityProvider>(context, listen: false);
+              securityProvider.lockApplication(context);
+            },
+          ),
+        ),
+      );
+    }
+
+    // Add other actions
+    if (actions != null) {
+      actionWidgets.addAll(actions!);
+    }
+
     return AppBar(
       title: title,
-      actions: actions,
+      actions: actionWidgets,
       leading: leading,
       centerTitle: centerTitle,
       backgroundColor: backgroundColor ?? AppTheme.primaryColor,
@@ -156,27 +190,27 @@ class ResponsiveAppBar extends StatelessWidget implements PreferredSizeWidget {
 class ResponsiveDrawer extends StatelessWidget {
   /// The header widget to display at the top of the drawer
   final Widget? header;
-  
+
   /// The list of drawer items
   final List<Widget> children;
-  
+
   /// Optional background color
   final Color? backgroundColor;
 
   /// Creates a responsive drawer.
   const ResponsiveDrawer({
-    Key? key,
+    super.key,
     this.header,
     required this.children,
     this.backgroundColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     // Calculate the drawer width based on screen size
     final screenWidth = MediaQuery.of(context).size.width;
     final drawerWidth = screenWidth * (screenWidth > 600 ? 0.3 : 0.7);
-    
+
     return Drawer(
       width: drawerWidth,
       backgroundColor: backgroundColor,
