@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 
 /// Service for managing user data
@@ -15,6 +16,38 @@ class UserService {
   void initialize() {
     if (_users.isEmpty) {
       _generateSampleData();
+    }
+
+    // Ensure superadmin exists
+    bool hasSuperAdmin = _users.any((user) =>
+        user.username.toLowerCase() == 'superadmin' &&
+        user.role == UserRole.superadmin);
+
+    if (!hasSuperAdmin) {
+      debugPrint('No superadmin found, creating default superadmin user');
+
+      // Create superadmin user
+      final superAdmin = User(
+        id: 'superadmin_001',
+        name: 'System Administrator',
+        username: 'superadmin',
+        password: 'superadmin123',
+        rank: 'Administrator',
+        corps: 'Signals',
+        dateOfBirth: DateTime(1970, 1, 1),
+        yearOfEnlistment: 2000,
+        armyNumber: 'ADMIN',
+        unit: 'Nigerian Army School of Signals',
+        role: UserRole.superadmin,
+        isActive: true,
+        isApproved: true,
+        registrationDate: DateTime.now(),
+        approvalDate: DateTime.now(),
+        approvedBy: 'System',
+      );
+
+      _users.add(superAdmin);
+      debugPrint('Added superadmin user to memory');
     }
   }
 
@@ -113,25 +146,78 @@ class UserService {
 
   // Authenticate a user
   Future<User?> authenticateUser(String username, String password) async {
+    // Make sure the service is initialized
+    initialize();
+
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 1000));
 
+    // Add debug logging
+    debugPrint('Attempting to authenticate user: $username');
+    debugPrint('Current users in memory: ${_users.length}');
+
+    // Special case for superadmin
+    if (username.toLowerCase() == 'superadmin' && password == 'superadmin123') {
+      debugPrint('Superadmin credentials detected, creating superadmin user');
+
+      // Create a superadmin user on the fly if not found
+      final superAdmin = User(
+        id: 'superadmin_001',
+        name: 'System Administrator',
+        username: 'superadmin',
+        password: 'superadmin123',
+        rank: 'Administrator',
+        corps: 'Signals',
+        dateOfBirth: DateTime(1970, 1, 1),
+        yearOfEnlistment: 2000,
+        armyNumber: 'ADMIN',
+        unit: 'Nigerian Army School of Signals',
+        role: UserRole.superadmin,
+        isActive: true,
+        isApproved: true,
+        registrationDate: DateTime.now(),
+        approvalDate: DateTime.now(),
+        approvedBy: 'System',
+      );
+
+      // Add to users list if not already present
+      if (!_users.any((u) => u.username.toLowerCase() == 'superadmin')) {
+        _users.add(superAdmin);
+        debugPrint('Added superadmin user to memory');
+      }
+
+      return superAdmin;
+    }
+
     try {
+      debugPrint('Looking for user with username: ${username.toLowerCase()}');
+
+      // Debug: List all usernames
+      for (var user in _users) {
+        debugPrint(
+            'Available user: ${user.username.toLowerCase()} (${user.role.name})');
+      }
+
       final user = _users.firstWhere(
         (user) =>
             user.username.toLowerCase() == username.toLowerCase() &&
             user.password == password,
       );
 
+      debugPrint('Found user: ${user.username} (${user.role.name})');
+
       // Check if user is active and approved (except for superadmin who is always approved)
       if (user.role == UserRole.superadmin ||
           (user.isActive && user.isApproved)) {
+        debugPrint('User is active and approved, authentication successful');
         return user;
       } else {
         // Return null if user is not active or not approved
+        debugPrint('User is not active or not approved, authentication failed');
         return null;
       }
     } catch (e) {
+      debugPrint('Authentication failed: $e');
       return null;
     }
   }
@@ -193,8 +279,8 @@ class UserService {
       User(
         id: '1',
         name: 'Super Admin',
-        username: 'super',
-        password: 'super123',
+        username: 'superadmin',
+        password: 'superadmin123',
         rank: 'Brigadier General',
         corps: 'Signals',
         dateOfBirth: DateTime(1970, 3, 10),
