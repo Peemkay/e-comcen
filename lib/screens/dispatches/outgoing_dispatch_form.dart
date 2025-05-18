@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as path;
 import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
 import '../../models/dispatch_tracking.dart';
@@ -54,7 +57,10 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
   String _securityClassification = 'Unclassified';
   String _status = 'Pending';
   String _deliveryMethod = 'Physical';
+
+  // Attachments
   List<String> _attachments = [];
+  List<Map<String, dynamic>> _attachmentDetails = [];
 
   // Lists for dropdowns
   final List<String> _securityClassifications = [
@@ -223,8 +229,11 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
       // Set default values for new dispatch
       _referenceController.text =
           'OUT-${DateTime.now().year}-${_generateReferenceNumber()}';
-      _handledByController.text = 'Admin'; // Default to current user
-      _deliveredByController.text = 'Admin'; // Default to current user
+
+      // Keep delivery details fields empty
+      _handledByController.text = '';
+      _deliveredByController.text = '';
+      _recipientController.text = '';
 
       // Default sender unit to "Nigerian Army School of Signals"
       _sentByController.text = 'Nigerian Army School of Signals';
@@ -395,49 +404,96 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
     }
   }
 
-  // SIMPLE DIRECT REFRESH - No async/await, just use then/catchError
-  void _refreshUnits() {
-    debugPrint('OutgoingDispatchForm: Simple direct refresh requested');
+  // File attachment methods
+  Future<void> _pickFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+      );
 
-    // Show loading indicator
-    setState(() {
-      _isLoadingUnits = true;
-    });
+      if (result != null && result.files.isNotEmpty && mounted) {
+        final file = result.files.first;
+        final fileName = file.name;
+        final fileSize = (file.size / 1024).toStringAsFixed(2); // Convert to KB
+        final fileExtension = fileName.split('.').last.toLowerCase();
 
-    // Use UnitService for simplicity
-    _unitService.getAllUnits().then((units) {
-      debugPrint(
-          'OutgoingDispatchForm: Got ${units.length} units from UnitService');
-
-      if (mounted) {
         setState(() {
-          _allUnits = units;
-          _isLoadingUnits = false;
+          // Add to attachments list (for compatibility with existing code)
+          _attachments.add(fileName);
+
+          // Add detailed information
+          _attachmentDetails.add({
+            'name': fileName,
+            'path': file.path,
+            'size': fileSize,
+            'extension': fileExtension,
+          });
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Units refreshed (${units.length} units)'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('File attached: $fileName'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
-    }).catchError((e) {
-      debugPrint('OutgoingDispatchForm: Error refreshing units: $e');
-
+    } catch (e) {
       if (mounted) {
-        setState(() {
-          _isLoadingUnits = false;
-        });
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error refreshing units: $e'),
+            content: Text('Error picking file: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
+    }
+  }
+
+  // Remove attachment at specified index
+  void _removeAttachment(int index) {
+    setState(() {
+      _attachments.removeAt(index);
+      _attachmentDetails.removeAt(index);
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Attachment removed'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  // Get appropriate icon based on file extension
+  IconData _getFileIcon(String extension) {
+    switch (extension) {
+      case 'pdf':
+        return FontAwesomeIcons.filePdf;
+      case 'doc':
+      case 'docx':
+        return FontAwesomeIcons.fileWord;
+      case 'xls':
+      case 'xlsx':
+        return FontAwesomeIcons.fileExcel;
+      case 'ppt':
+      case 'pptx':
+        return FontAwesomeIcons.filePowerpoint;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return FontAwesomeIcons.fileImage;
+      case 'txt':
+        return FontAwesomeIcons.fileLines;
+      case 'zip':
+      case 'rar':
+        return FontAwesomeIcons.fileZipper;
+      default:
+        return FontAwesomeIcons.file;
+    }
   }
 
   void _saveDispatch() {
@@ -1219,15 +1275,7 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
                         // Attachment Button
                         Center(
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              // In a real app, this would open a file picker
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                      'File attachment functionality would be implemented here'),
-                                ),
-                              );
-                            },
+                            onPressed: _pickFile,
                             icon: const Icon(FontAwesomeIcons.paperclip),
                             label: const Text('Add Attachment'),
                             style: OutlinedButton.styleFrom(
@@ -1239,6 +1287,40 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
                             ),
                           ),
                         ),
+
+                        // Display attachments
+                        if (_attachmentDetails.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Attached Files:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _attachmentDetails.length,
+                            itemBuilder: (context, index) {
+                              final attachment = _attachmentDetails[index];
+                              return ListTile(
+                                leading: Icon(
+                                  _getFileIcon(attachment['extension']),
+                                  color: AppTheme.primaryColor,
+                                ),
+                                title: Text(attachment['name']),
+                                subtitle: Text('${attachment['size']} KB'),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
+                                  onPressed: () => _removeAttachment(index),
+                                ),
+                                dense: true,
+                              );
+                            },
+                          ),
+                        ],
                       ],
                     ),
                   ),

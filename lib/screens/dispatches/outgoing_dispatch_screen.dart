@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import '../../constants/app_constants.dart';
 import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
 import '../../models/dispatch_tracking.dart';
@@ -388,12 +389,7 @@ class _OutgoingDispatchScreenState extends State<OutgoingDispatchScreen> {
   }
 
   void _showTransitSlipDialog() {
-    // Transit slip functionality has been removed
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Transit slip functionality has been removed'),
-        backgroundColor: Colors.orange,
-      ),
-    );
+    // Navigate to the transit slip generator screen
+    Navigator.pushNamed(context, AppConstants.transitSlipGeneratorRoute);
   }
 }

@@ -39,6 +39,9 @@ class AppConstants {
   static const String dispatcherLoginRoute = '/dispatcher/login';
   static const String dispatcherHomeRoute = '/dispatcher/home';
 
+  // Reports Routes
+  static const String transitSlipGeneratorRoute = '/reports/transit-slip';
+
   // Assets
   static const String logoPath =
       'assets/images/nasds_logo.png'; // Will need to update logo

@@ -3,7 +3,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../constants/app_constants.dart';
 import '../constants/app_theme.dart';
 import '../models/user.dart';
-import '../models/dispatch.dart';
 import '../services/auth_service.dart';
 import '../services/dispatch_service.dart';
 import '../services/user_service.dart';
@@ -15,7 +14,6 @@ import 'profile/user_profile_screen.dart';
 
 import 'dispatches/dispatches_screen.dart';
 import 'users/users_screen.dart';
-import 'units/units_management_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -617,17 +615,12 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       _buildDashboardCard(
-        icon: FontAwesomeIcons.chartLine,
-        title: 'Reports',
-        subtitle: 'View reports',
+        icon: FontAwesomeIcons.fileLines,
+        title: 'Transit Slips',
+        subtitle: 'Generate transit slips',
         color: Colors.orange,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Report functionality has been removed'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+          Navigator.pushNamed(context, AppConstants.transitSlipGeneratorRoute);
         },
       ),
       _buildDashboardCard(

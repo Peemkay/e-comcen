@@ -29,6 +29,7 @@ import 'screens/notification_settings_screen.dart';
 import 'screens/notification_center_screen.dart';
 import 'screens/profile/user_profile_screen.dart';
 import 'screens/help/help_menu_screen.dart';
+import 'screens/reports/transit_slip_generator.dart';
 import 'widgets/secure_app_wrapper.dart';
 import 'widgets/security_classification_banner.dart';
 import 'widgets/notifications/notification_manager.dart';
@@ -149,6 +150,8 @@ class MyApp extends StatelessWidget {
               '/about': (context) => const HelpMenuScreen(),
               '/terms': (context) => const HelpMenuScreen(),
               '/privacy': (context) => const HelpMenuScreen(),
+              AppConstants.transitSlipGeneratorRoute: (context) =>
+                  const TransitSlipGenerator(),
             },
 
             // Add localization support
