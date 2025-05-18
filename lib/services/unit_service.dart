@@ -130,7 +130,9 @@ class UnitService {
   }
 
   /// Create default units in memory if database operations failed
-  void _createDefaultUnitsInMemory() {
+  List<Unit> _createDefaultUnitsInMemory() {
+    // Default empty list to ensure we always return something
+    List<Unit> result = [];
     try {
       debugPrint('Creating default units in memory');
 
@@ -214,17 +216,20 @@ class UnitService {
       ];
 
       // Add to in-memory cache
-      _unitsCache = [hqUnit, forwardUnit, rearUnit, ...additionalUnits];
+      final units = [hqUnit, forwardUnit, rearUnit, ...additionalUnits];
+      _unitsCache = units;
       _primaryUnit = hqUnit;
 
       debugPrint('Created ${_unitsCache.length} default units in memory');
 
       // Try to save these units to the database
       _saveUnitsToDatabase();
+
+      return units;
     } catch (e) {
       debugPrint('Error creating default units in memory: $e');
       // Create minimal fallback
-      _unitsCache = [
+      final fallbackUnits = [
         Unit(
           id: 'unit_fallback_1',
           name: 'Nigerian Army School of Signals',
@@ -240,7 +245,10 @@ class UnitService {
           isPrimary: false,
         ),
       ];
+      _unitsCache = fallbackUnits;
       _primaryUnit = _unitsCache.first;
+
+      return fallbackUnits;
     }
   }
 
@@ -259,8 +267,16 @@ class UnitService {
   /// Load all units from storage
   Future<void> _loadUnits() async {
     try {
-      _unitsCache = await _localStorageService.getAllUnits();
-      debugPrint('Loaded ${_unitsCache.length} units');
+      // Clear the cache first to ensure we get fresh data
+      _unitsCache = [];
+
+      // Load units from database
+      final units = await _localStorageService.getAllUnits();
+
+      // Update cache with fresh data
+      _unitsCache = units;
+
+      debugPrint('Loaded ${_unitsCache.length} units from database');
     } catch (e) {
       debugPrint('Error loading units: $e');
       _unitsCache = [];
@@ -286,35 +302,56 @@ class UnitService {
     }
   }
 
-  /// Get all units
-  Future<List<Unit>> getAllUnits() async {
+  /// Get all units - ALWAYS REFRESH FROM DATABASE
+  Future<List<Unit>> getAllUnits({bool forceRefresh = true}) async {
     try {
       // Initialize if not already initialized
       if (!_isInitialized) {
-        debugPrint('UnitService not initialized, initializing now...');
+        debugPrint('UnitService: Not initialized, initializing now...');
         await initialize();
       }
 
-      // Refresh cache if needed
+      // ALWAYS refresh the cache from the database
+      debugPrint('UnitService: ALWAYS refreshing unit cache from storage...');
+
+      // Clear the cache first
+      _unitsCache = [];
+
+      // Load fresh data from database
+      final freshUnits = await _localStorageService.getAllUnits();
+
+      // Update cache with fresh data
+      _unitsCache = freshUnits;
+
+      debugPrint(
+          'UnitService: Loaded ${_unitsCache.length} units from database');
+
+      // If still empty after loading, create default units
       if (_unitsCache.isEmpty) {
-        debugPrint('Unit cache is empty, loading units from storage...');
-        await _loadUnits();
+        debugPrint(
+            'UnitService: No units found after loading, creating default units...');
+        await _createDefaultUnits();
 
-        // If still empty after loading, create default units
+        // If still empty, create in memory
         if (_unitsCache.isEmpty) {
-          debugPrint('No units found after loading, creating default units...');
-          await _createDefaultUnits();
-
-          // If still empty, create in memory
-          if (_unitsCache.isEmpty) {
-            debugPrint(
-                'Failed to create units in database, creating in memory...');
-            _createDefaultUnitsInMemory();
-          }
+          debugPrint(
+              'UnitService: Failed to create units in database, creating in memory...');
+          _unitsCache = _createDefaultUnitsInMemory();
         }
       }
 
-      debugPrint('Returning ${_unitsCache.length} units from cache');
+      // Print all units for debugging
+      if (_unitsCache.isNotEmpty) {
+        debugPrint('UnitService: Units in cache:');
+        for (var i = 0; i < _unitsCache.length; i++) {
+          final unit = _unitsCache[i];
+          debugPrint(
+              '  Unit ${i + 1}: ID=${unit.id}, Name=${unit.name}, Code=${unit.code}');
+        }
+      }
+
+      debugPrint(
+          'UnitService: Returning ${_unitsCache.length} units from cache');
       return List.from(_unitsCache);
     } catch (e) {
       debugPrint('Error getting all units: $e');
@@ -328,8 +365,8 @@ class UnitService {
 
       // Create and return default units in memory as a last resort
       debugPrint('Creating default units in memory as fallback');
-      _createDefaultUnitsInMemory();
-      return List.from(_unitsCache);
+      final defaultUnits = _createDefaultUnitsInMemory();
+      return defaultUnits;
     }
   }
 
@@ -546,19 +583,43 @@ class UnitService {
             )
           : unit;
 
-      debugPrint('Adding unit: ${newUnit.name} (${newUnit.code})');
+      debugPrint(
+          'UnitService: Adding unit: ${newUnit.name} (${newUnit.code}) with ID ${newUnit.id}');
 
       // Add to database
       final success = await _localStorageService.addUnit(newUnit);
 
       if (!success) {
-        debugPrint('Failed to add unit to database');
+        debugPrint('UnitService: Failed to add unit to database');
         return null;
       }
 
-      // Update cache
-      _unitsCache.add(newUnit);
-      debugPrint('Unit added to cache, total units: ${_unitsCache.length}');
+      debugPrint(
+          'UnitService: Successfully added unit to database, refreshing cache');
+
+      // Clear the cache completely
+      _unitsCache = [];
+
+      // Reload all units from database to ensure consistency
+      await _loadUnits();
+
+      // Double-check if the unit was added to the cache
+      final addedUnit = _unitsCache.firstWhere(
+        (u) => u.id == newUnit.id,
+        orElse: () => newUnit,
+      );
+
+      // If the unit wasn't added to the cache by _loadUnits, add it manually
+      if (addedUnit.id != newUnit.id) {
+        debugPrint(
+            'UnitService: Unit not found in cache after reload, adding manually');
+        _unitsCache.add(newUnit);
+      } else {
+        debugPrint('UnitService: Unit found in cache after reload');
+      }
+
+      debugPrint(
+          'UnitService: Unit added to cache, total units: ${_unitsCache.length}');
 
       // If this is the first unit, set it as primary
       if (_unitsCache.length == 1) {
@@ -582,22 +643,49 @@ class UnitService {
         updatedAt: DateTime.now(),
       );
 
+      debugPrint(
+          'UnitService: Updating unit: ${updatedUnit.name} (${updatedUnit.code}) with ID ${updatedUnit.id}');
+
       // Update in database
       final success = await _localStorageService.updateUnit(updatedUnit);
 
       if (success) {
-        // Update cache
-        final index = _unitsCache.indexWhere((u) => u.id == unit.id);
-        if (index != -1) {
-          _unitsCache[index] = updatedUnit;
+        debugPrint(
+            'UnitService: Successfully updated unit in database, refreshing cache');
+
+        // Clear the cache completely
+        _unitsCache = [];
+
+        // Reload all units from database to ensure consistency
+        await _loadUnits();
+
+        // Double-check if the unit was updated in the cache
+        final updatedCachedUnit = _unitsCache.firstWhere(
+          (u) => u.id == updatedUnit.id,
+          orElse: () => updatedUnit,
+        );
+
+        // If the unit wasn't updated in the cache by _loadUnits, update it manually
+        if (updatedCachedUnit.updatedAt != updatedUnit.updatedAt) {
+          debugPrint(
+              'UnitService: Unit not properly updated in cache after reload, updating manually');
+          final index = _unitsCache.indexWhere((u) => u.id == updatedUnit.id);
+          if (index != -1) {
+            _unitsCache[index] = updatedUnit;
+          } else {
+            _unitsCache.add(updatedUnit);
+          }
         } else {
-          _unitsCache.add(updatedUnit);
+          debugPrint(
+              'UnitService: Unit properly updated in cache after reload');
         }
 
         // Update primary unit if needed
         if (_primaryUnit?.id == unit.id) {
           _primaryUnit = updatedUnit;
         }
+      } else {
+        debugPrint('UnitService: Failed to update unit in database');
       }
 
       return success;
@@ -622,8 +710,29 @@ class UnitService {
       final success = await _localStorageService.deleteUnit(unitId);
 
       if (success) {
-        // Update cache
-        _unitsCache.removeWhere((unit) => unit.id == unitId);
+        debugPrint(
+            'UnitService: Successfully deleted unit from database, refreshing cache');
+
+        // Clear the cache completely
+        _unitsCache = [];
+
+        // Reload all units from database to ensure consistency
+        await _loadUnits();
+
+        // Double-check if the unit was removed from the cache
+        final stillExists = _unitsCache.any((unit) => unit.id == unitId);
+
+        // If the unit is still in the cache after _loadUnits, remove it manually
+        if (stillExists) {
+          debugPrint(
+              'UnitService: Unit still exists in cache after reload, removing manually');
+          _unitsCache.removeWhere((unit) => unit.id == unitId);
+        } else {
+          debugPrint(
+              'UnitService: Unit properly removed from cache after reload');
+        }
+      } else {
+        debugPrint('UnitService: Failed to delete unit from database');
       }
 
       return success;

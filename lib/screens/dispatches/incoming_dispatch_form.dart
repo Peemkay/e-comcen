@@ -12,7 +12,7 @@ import '../../services/unit_service.dart';
 import '../../utils/responsive_layout_util.dart';
 import '../../widgets/attachment_list.dart';
 import '../../widgets/enhanced_card.dart';
-import '../../widgets/unit_selector.dart';
+import '../../widgets/unit_selector_updated.dart';
 
 class IncomingDispatchForm extends StatefulWidget {
   final IncomingDispatch? dispatch;
@@ -826,7 +826,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.only(left: 8.0),
-                              child: UnitSelector(
+                              child: UnitSelectorUpdated(
                                 selectedUnitId: _senderUnit?.id,
                                 label: 'ADDR FROM *',
                                 isRequired: true,
@@ -859,7 +859,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                             },
                           ),
                           const SizedBox(height: 16),
-                          UnitSelector(
+                          UnitSelectorUpdated(
                             selectedUnitId: _senderUnit?.id,
                             label: 'ADDR FROM *',
                             isRequired: true,
@@ -876,7 +876,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                     const SizedBox(height: 16),
 
                     // ADDR TO
-                    UnitSelector(
+                    UnitSelectorUpdated(
                       selectedUnitId: _recipientUnit?.id,
                       label: 'ADDR TO *',
                       isRequired: true,

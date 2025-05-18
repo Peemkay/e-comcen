@@ -678,10 +678,25 @@ class LocalStorageService {
   Future<List<Unit>> getAllUnits() async {
     try {
       final db = await _getDatabase();
+
+      // Print database path for debugging
+      debugPrint('LocalStorageService: Database path: ${db.path}');
+
+      // Query all units
       final result = await db.query(_unitsTable);
 
       debugPrint(
           'LocalStorageService: Found ${result.length} units in database');
+
+      // Print all units for debugging
+      if (result.isNotEmpty) {
+        debugPrint('LocalStorageService: Units in database:');
+        for (var i = 0; i < result.length; i++) {
+          final unit = result[i];
+          debugPrint(
+              '  Unit ${i + 1}: ID=${unit['id']}, Name=${unit['name']}, Code=${unit['code']}');
+        }
+      }
 
       if (result.isEmpty) {
         debugPrint(
@@ -694,10 +709,18 @@ class LocalStorageService {
         debugPrint(
             'LocalStorageService: Inserted ${newResult.length} default units');
 
-        return newResult.map((unitData) => Unit.fromMap(unitData)).toList();
+        // Convert to Unit objects
+        final units =
+            newResult.map((unitData) => Unit.fromMap(unitData)).toList();
+        debugPrint(
+            'LocalStorageService: Returning ${units.length} default units');
+        return units;
       }
 
-      return result.map((unitData) => Unit.fromMap(unitData)).toList();
+      // Convert to Unit objects
+      final units = result.map((unitData) => Unit.fromMap(unitData)).toList();
+      debugPrint('LocalStorageService: Returning ${units.length} units');
+      return units;
     } catch (e) {
       debugPrint('Error getting all units: $e');
 
@@ -825,106 +848,152 @@ class LocalStorageService {
     }
   }
 
-  /// Add a new unit
+  /// Add a new unit - DIRECT DATABASE IMPLEMENTATION
   Future<bool> addUnit(Unit unit) async {
     try {
       final db = await _getDatabase();
 
-      debugPrint('Adding unit: ${unit.name} (${unit.code})');
-      debugPrint('Unit data: ${unit.toMap()}');
+      debugPrint(
+          'LocalStorageService: Adding unit: ${unit.name} (${unit.code})');
 
-      // Check if unit with same code already exists
-      final existingUnits = await db.query(
-        _unitsTable,
-        where: 'code = ?',
-        whereArgs: [unit.code],
-      );
+      // Print database path for debugging
+      debugPrint('LocalStorageService: Database path: ${db.path}');
 
-      if (existingUnits.isNotEmpty) {
-        debugPrint('Unit with code ${unit.code} already exists');
-        return false;
-      }
+      // Print all tables in the database
+      final tables = await db
+          .rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
+      debugPrint(
+          'LocalStorageService: Tables in database: ${tables.map((t) => t['name']).join(', ')}');
 
-      // Insert the unit
+      // Print unit data
       final unitMap = unit.toMap();
+      debugPrint('LocalStorageService: Unit data to insert:');
+      unitMap.forEach((key, value) {
+        debugPrint('  $key: $value (${value?.runtimeType})');
+      });
 
-      // Ensure all required fields are present and have valid types
-      if (unitMap['id'] == null || unitMap['id'] == '') {
-        debugPrint('Unit ID is missing or empty');
-        return false;
-      }
-
-      if (unitMap['name'] == null || unitMap['name'] == '') {
-        debugPrint('Unit name is missing or empty');
-        return false;
-      }
-
-      if (unitMap['code'] == null || unitMap['code'] == '') {
-        debugPrint('Unit code is missing or empty');
-        return false;
-      }
-
-      // Ensure isPrimary is an integer (0 or 1)
-      if (unitMap['isPrimary'] is bool) {
-        unitMap['isPrimary'] = unitMap['isPrimary'] ? 1 : 0;
-      }
-
+      // DIRECT DATABASE APPROACH - Skip all checks and just insert/replace
       try {
-        final id = await db.insert(_unitsTable, unitMap);
-        debugPrint('Unit inserted with row ID: $id');
-        return true;
+        // Use INSERT OR REPLACE to handle both new and existing units
+        final id = await db.rawInsert('''
+          INSERT OR REPLACE INTO $_unitsTable (
+            id, name, code, location, commanderId, parentUnitId,
+            unitType, isPrimary, description, createdAt, updatedAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ''', [
+          unit.id,
+          unit.name,
+          unit.code,
+          unit.location,
+          unit.commanderId,
+          unit.parentUnitId,
+          unit.unitType.name,
+          unit.isPrimary ? 1 : 0,
+          unit.description,
+          unit.createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+          DateTime.now().toIso8601String(),
+        ]);
+
+        debugPrint(
+            'LocalStorageService: Unit inserted/replaced with row ID: $id');
+
+        // Verify the unit was added by querying it back
+        final verifyQuery = await db.query(
+          _unitsTable,
+          where: 'id = ?',
+          whereArgs: [unit.id],
+        );
+
+        if (verifyQuery.isNotEmpty) {
+          debugPrint(
+              'LocalStorageService: Verified unit was added: ${verifyQuery.first}');
+          return true;
+        } else {
+          debugPrint('LocalStorageService: Failed to verify unit was added');
+          return false;
+        }
       } catch (insertError) {
-        debugPrint('Error during insert operation: $insertError');
-        // Print the map for debugging
-        unitMap.forEach((key, value) {
-          debugPrint('  $key: $value (${value?.runtimeType})');
-        });
+        debugPrint(
+            'LocalStorageService: Error during direct insert operation: $insertError');
         return false;
       }
+
+      // This code is unreachable, but we'll keep a return statement for safety
+      return false;
     } catch (e) {
       debugPrint('Error adding unit: $e');
       return false;
     }
   }
 
-  /// Update an existing unit
+  /// Update an existing unit - DIRECT DATABASE IMPLEMENTATION
   Future<bool> updateUnit(Unit unit) async {
     try {
       final db = await _getDatabase();
 
-      // Check if unit exists
-      final existingUnit = await getUnitById(unit.id);
-      if (existingUnit == null) {
-        debugPrint('Unit not found: ${unit.id}');
+      debugPrint(
+          'LocalStorageService: Updating unit: ${unit.name} (${unit.code})');
+
+      // Print database path for debugging
+      debugPrint('LocalStorageService: Database path: ${db.path}');
+
+      // Print unit data
+      final unitMap = unit.toMap();
+      debugPrint('LocalStorageService: Unit data to update:');
+      unitMap.forEach((key, value) {
+        debugPrint('  $key: $value (${value?.runtimeType})');
+      });
+
+      // DIRECT DATABASE APPROACH - Use INSERT OR REPLACE
+      try {
+        // Use INSERT OR REPLACE to handle the update
+        final id = await db.rawInsert('''
+          INSERT OR REPLACE INTO $_unitsTable (
+            id, name, code, location, commanderId, parentUnitId,
+            unitType, isPrimary, description, createdAt, updatedAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ''', [
+          unit.id,
+          unit.name,
+          unit.code,
+          unit.location,
+          unit.commanderId,
+          unit.parentUnitId,
+          unit.unitType.name,
+          unit.isPrimary ? 1 : 0,
+          unit.description,
+          unit.createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+          DateTime.now().toIso8601String(),
+        ]);
+
+        debugPrint('LocalStorageService: Unit updated with row ID: $id');
+
+        // Verify the unit was updated by querying it back
+        final verifyQuery = await db.query(
+          _unitsTable,
+          where: 'id = ?',
+          whereArgs: [unit.id],
+        );
+
+        if (verifyQuery.isNotEmpty) {
+          debugPrint(
+              'LocalStorageService: Verified unit was updated: ${verifyQuery.first}');
+
+          // If this is the current unit, update the current unit
+          if (_currentUnitId == unit.id) {
+            _currentUnit = unit;
+          }
+
+          return true;
+        } else {
+          debugPrint('LocalStorageService: Failed to verify unit was updated');
+          return false;
+        }
+      } catch (updateError) {
+        debugPrint(
+            'LocalStorageService: Error during direct update operation: $updateError');
         return false;
       }
-
-      // Check if another unit with the same code exists
-      final existingUnits = await db.query(
-        _unitsTable,
-        where: 'code = ? AND id != ?',
-        whereArgs: [unit.code, unit.id],
-      );
-
-      if (existingUnits.isNotEmpty) {
-        debugPrint('Another unit with code ${unit.code} already exists');
-        return false;
-      }
-
-      // Update the unit
-      final count = await db.update(
-        _unitsTable,
-        unit.toMap(),
-        where: 'id = ?',
-        whereArgs: [unit.id],
-      );
-
-      // If this is the current unit, update the current unit
-      if (_currentUnitId == unit.id) {
-        _currentUnit = unit;
-      }
-
-      return count > 0;
     } catch (e) {
       debugPrint('Error updating unit: $e');
       return false;

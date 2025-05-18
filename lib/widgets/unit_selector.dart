@@ -88,45 +88,7 @@ class _UnitSelectorState extends State<UnitSelector> {
       debugPrint('UnitSelector: Loading units...');
       List<Unit> units = [];
 
-      // Create default units in memory if none exist
-      // This ensures we always have some units to display
-      final defaultUnits = [
-        Unit(
-          id: 'unit_hq_default',
-          name: 'Nigerian Army School of Signals',
-          code: 'NASS',
-          location: 'Abuja',
-          unitType: UnitType.headquarters,
-          isPrimary: true,
-          description: 'Headquarters of the Nigerian Army Signal Corps',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-        Unit(
-          id: 'unit_forward_default',
-          name: '521 Signal Regiment',
-          code: '521SR',
-          location: 'Lagos',
-          parentUnitId: 'unit_hq_default',
-          unitType: UnitType.forwardLink,
-          isPrimary: false,
-          description: 'Forward link signal regiment',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-        Unit(
-          id: 'unit_rear_default',
-          name: '522 Signal Regiment',
-          code: '522SR',
-          location: 'Port Harcourt',
-          parentUnitId: 'unit_hq_default',
-          unitType: UnitType.rearLink,
-          isPrimary: false,
-          description: 'Rear link signal regiment',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-      ];
+      // We'll use the units from the UnitService
 
       if (widget.filterByType != null) {
         debugPrint(
@@ -139,17 +101,20 @@ class _UnitSelectorState extends State<UnitSelector> {
 
       debugPrint('UnitSelector: Loaded ${units.length} units');
 
-      // If no units were loaded, use the default units
+      // If no units were loaded, let the UnitService create default units
       if (units.isEmpty) {
-        debugPrint('UnitSelector: No units found, using default units');
+        debugPrint(
+            'UnitSelector: No units found, requesting default units from UnitService');
 
-        // Add default units to database
-        for (final unit in defaultUnits) {
-          await _unitService.addUnit(unit);
+        // Request UnitService to create default units
+        await _unitService.initialize();
+
+        // Try to get units again
+        if (widget.filterByType != null) {
+          units = await _unitService.getUnitsByType(widget.filterByType!);
+        } else {
+          units = await _unitService.getAllUnits();
         }
-
-        // Use default units in memory immediately
-        units = List.from(defaultUnits);
       }
 
       // Sort units by name
@@ -205,35 +170,66 @@ class _UnitSelectorState extends State<UnitSelector> {
     } catch (e) {
       debugPrint('UnitSelector: Error loading units: $e');
       if (mounted) {
-        // Create fallback units in memory
-        final fallbackUnits = [
-          Unit(
-            id: 'unit_fallback_1',
-            name: 'Nigerian Army School of Signals',
-            code: 'NASS',
-            unitType: UnitType.headquarters,
-            isPrimary: true,
-          ),
-          Unit(
-            id: 'unit_fallback_2',
-            name: '521 Signal Regiment',
-            code: '521SR',
-            unitType: UnitType.forwardLink,
-            isPrimary: false,
-          ),
-        ];
+        // Try to get units from UnitService's in-memory cache
+        debugPrint('UnitSelector: Attempting to get units from in-memory cache');
+        try {
+          final cachedUnits = await _unitService.getAllUnits();
 
-        setState(() {
-          _isLoading = false;
-          _units = fallbackUnits;
-          _filteredUnits = List.from(fallbackUnits);
-          _selectedUnit = fallbackUnits.first;
-        });
+          if (cachedUnits.isNotEmpty) {
+            debugPrint('UnitSelector: Found ${cachedUnits.length} units in cache');
+            setState(() {
+              _isLoading = false;
+              _units = cachedUnits;
+              _filteredUnits = List.from(cachedUnits);
+              _selectedUnit = cachedUnits.firstWhere(
+                (unit) => unit.isPrimary,
+                orElse: () => cachedUnits.first,
+              );
+            });
 
-        // Notify parent of selected unit
-        widget.onUnitSelected(fallbackUnits.first);
+            // Notify parent of selected unit
+            widget.onUnitSelected(_selectedUnit!);
 
-        _showErrorSnackBar('Using fallback units due to loading error');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Using cached units due to loading error'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          } else {
+            // If still no units, show empty state
+            debugPrint('UnitSelector: No units found in cache');
+            setState(() {
+              _isLoading = false;
+              _units = [];
+              _filteredUnits = [];
+              _selectedUnit = null;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to load units. Please add a unit.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } catch (innerError) {
+          debugPrint('UnitSelector: Error getting cached units: $innerError');
+          setState(() {
+            _isLoading = false;
+            _units = [];
+            _filteredUnits = [];
+            _selectedUnit = null;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to load units. Please add a unit.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
       }
     }
   }
