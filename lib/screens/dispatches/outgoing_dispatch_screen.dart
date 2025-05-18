@@ -254,17 +254,17 @@ class _OutgoingDispatchScreenState extends State<OutgoingDispatchScreen> {
               ),
               const SizedBox(height: 8),
 
-              // Recipient info
+              // Recipient Unit info
               Row(
                 children: [
                   const Icon(
-                    FontAwesomeIcons.user,
+                    FontAwesomeIcons.buildingUser,
                     size: 14,
                     color: Colors.grey,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'To: ${dispatch.recipient}, ${dispatch.recipientUnit}',
+                    'To: ${dispatch.recipientUnit}',
                     style: TextStyle(
                       color: Colors.grey[700],
                     ),
@@ -273,17 +273,17 @@ class _OutgoingDispatchScreenState extends State<OutgoingDispatchScreen> {
               ),
               const SizedBox(height: 4),
 
-              // Sent by info
+              // Sender Unit info
               Row(
                 children: [
                   const Icon(
-                    FontAwesomeIcons.paperPlane,
+                    FontAwesomeIcons.buildingUser,
                     size: 14,
                     color: Colors.grey,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Sent by: ${dispatch.sentBy} (${dispatch.deliveryMethod})',
+                    'From: ${dispatch.sentBy}',
                     style: TextStyle(
                       color: Colors.grey[700],
                     ),

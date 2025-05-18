@@ -40,11 +40,12 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
   final _referenceController = TextEditingController();
   final _subjectController = TextEditingController();
   final _contentController = TextEditingController();
-  final _recipientController = TextEditingController(); // Person receiving
+  final _recipientController =
+      TextEditingController(); // Person receiving (legacy)
   final _recipientUnitController = TextEditingController(); // Recipient unit
   final _sentByController = TextEditingController(); // Sender unit
-  final _deliveredByController = TextEditingController(); // Person delivering
-  final _handledByController = TextEditingController(); // Person handling
+  final _handledByController =
+      TextEditingController(); // Person handling (legacy)
 
   // Unit objects for the sender and recipient units
   Unit? _senderUnit;
@@ -183,10 +184,8 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
           widget.dispatch!.recipient; // Person receiving
       _recipientUnitController.text =
           widget.dispatch!.recipientUnit; // Recipient unit
-      _sentByController.text = widget
-          .dispatch!.recipientUnit; // Sender unit (using recipientUnit for now)
-      _deliveredByController.text =
-          widget.dispatch!.sentBy; // Person delivering
+      _sentByController.text =
+          widget.dispatch!.sentBy; // Use sentBy as the sender unit
       _handledByController.text = widget.dispatch!.handledBy; // Person handling
 
       _dispatchDate = widget.dispatch!.dateTime;
@@ -230,9 +229,8 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
       _referenceController.text =
           'OUT-${DateTime.now().year}-${_generateReferenceNumber()}';
 
-      // Keep delivery details fields empty
+      // Initialize empty fields
       _handledByController.text = '';
-      _deliveredByController.text = '';
       _recipientController.text = '';
 
       // Default sender unit to "Nigerian Army School of Signals"
@@ -257,7 +255,6 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
     _recipientController.dispose();
     _recipientUnitController.dispose();
     _sentByController.dispose();
-    _deliveredByController.dispose();
     _handledByController.dispose();
     super.dispose();
   }
@@ -564,10 +561,10 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
         priority: _priority,
         securityClassification: _securityClassification,
         status: _status,
-        handledBy: _handledByController.text,
-        recipient: _recipientController.text, // Person receiving
+        handledBy: '',
+        recipient: '', // No person receiving anymore
         recipientUnit: _recipientUnit!.name, // Recipient unit name
-        sentBy: _deliveredByController.text, // Person delivering
+        sentBy: _sentByController.text, // Sender unit name
         sentDate: _sentDate,
         deliveryMethod: _deliveryMethod,
         attachments: _attachments,
@@ -1151,97 +1148,6 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
                               ),
                             ),
                           ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Delivery Details Card
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Section Title
-                        const Text(
-                          'Delivery Details',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryColor,
-                          ),
-                        ),
-                        const Divider(height: 24),
-
-                        // 8. Delivered By Person
-                        TextFormField(
-                          controller: _deliveredByController,
-                          decoration: InputDecoration(
-                            labelText: 'Delivered By (Person)',
-                            hintText: 'Enter name of person delivering',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            prefixIcon: const Icon(FontAwesomeIcons.userCheck,
-                                size: 16),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter deliverer name';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-
-                        // 9. Received By Person
-                        TextFormField(
-                          controller: _recipientController,
-                          decoration: InputDecoration(
-                            labelText: 'Received By (Person)',
-                            hintText: 'Enter name of person receiving',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            prefixIcon:
-                                const Icon(FontAwesomeIcons.user, size: 16),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter receiver name';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-
-                        // 10. Handled By (Optional)
-                        TextFormField(
-                          controller: _handledByController,
-                          decoration: InputDecoration(
-                            labelText: 'Handled By (Optional)',
-                            hintText: 'Enter handler name',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            prefixIcon:
-                                const Icon(FontAwesomeIcons.userGear, size: 16),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                          ),
-                          // No validator since it's optional
                         ),
                       ],
                     ),

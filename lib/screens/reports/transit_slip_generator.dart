@@ -52,13 +52,7 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
   String _sortBy = 'date';
   bool _sortAscending = false;
 
-  // PDF settings
-  double _pageWidth = PdfPageFormat.a4.width;
-  double _pageHeight = PdfPageFormat.a4.height;
-  double _marginTop = 50;
-  double _marginBottom = 50;
-  double _marginLeft = 50;
-  double _marginRight = 50;
+  // PDF settings are now directly used in the _generateTransitSlip method
 
   @override
   void initState() {
@@ -216,19 +210,277 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
       // Create PDF document
       final pdf = pw.Document();
 
-      // Add page
+      // Use A4 page format with specific margins to match the preview exactly
+      final pageFormat = PdfPageFormat.a4.copyWith(
+        marginTop: 50,
+        marginBottom: 50,
+        marginLeft: 50,
+        marginRight: 50,
+      );
+
+      // Add page with content that exactly matches the preview
       pdf.addPage(
         pw.Page(
-          pageFormat: PdfPageFormat(
-            _pageWidth,
-            _pageHeight,
-            marginTop: _marginTop,
-            marginBottom: _marginBottom,
-            marginLeft: _marginLeft,
-            marginRight: _marginRight,
-          ),
+          pageFormat: pageFormat,
           build: (pw.Context context) {
-            return _buildTransitSlipContent();
+            // Create a courier font
+            final courierFont = pw.Font.courier();
+
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // Title
+                pw.Center(
+                  child: pw.Text(
+                    'TRANSIT SLIP FROM ${_primaryUnit?.code ?? "NAS"} TO: ${_selectedToUnit?.code ?? ""}',
+                    style: pw.TextStyle(
+                      font: courierFont,
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+
+                // Table
+                pw.Table(
+                  border: pw.TableBorder.all(width: 1, color: PdfColors.black),
+                  columnWidths: const {
+                    0: pw.FlexColumnWidth(1), // S/N
+                    1: pw.FlexColumnWidth(2), // DATE
+                    2: pw.FlexColumnWidth(2), // FROM
+                    3: pw.FlexColumnWidth(2), // TO
+                    4: pw.FlexColumnWidth(3), // REFS NO
+                  },
+                  children: [
+                    // Header row
+                    pw.TableRow(
+                      decoration: pw.BoxDecoration(color: PdfColors.grey300),
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            'S/N',
+                            style: pw.TextStyle(
+                              font: courierFont,
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            'DATE',
+                            style: pw.TextStyle(
+                              font: courierFont,
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            'FROM',
+                            style: pw.TextStyle(
+                              font: courierFont,
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            'TO',
+                            style: pw.TextStyle(
+                              font: courierFont,
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            'REFS NO',
+                            style: pw.TextStyle(
+                              font: courierFont,
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Data rows - add actual dispatch data
+                    for (int i = 0; i < _filteredDispatches.length; i++)
+                      pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              '${i + 1}',
+                              style: pw.TextStyle(
+                                font: courierFont,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              DateFormat('dd/MM/yyyy')
+                                  .format(_filteredDispatches[i].dateTime),
+                              style: pw.TextStyle(
+                                font: courierFont,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              _getSenderUnitCode(_filteredDispatches[i]),
+                              style: pw.TextStyle(
+                                font: courierFont,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              _getRecipientUnitCode(_filteredDispatches[i]),
+                              style: pw.TextStyle(
+                                font: courierFont,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              _filteredDispatches[i].referenceNumber,
+                              style: pw.TextStyle(
+                                font: courierFont,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                    // Add empty rows to reach 50 total rows
+                    for (int i = 0; i < (50 - _filteredDispatches.length); i++)
+                      pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              '${_filteredDispatches.length + i + 1}',
+                              style: pw.TextStyle(
+                                font: courierFont,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              '',
+                              style: pw.TextStyle(
+                                font: courierFont,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              '',
+                              style: pw.TextStyle(
+                                font: courierFont,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              '',
+                              style: pw.TextStyle(
+                                font: courierFont,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(6),
+                            child: pw.Text(
+                              '',
+                              style: pw.TextStyle(
+                                font: courierFont,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+                pw.SizedBox(height: 30),
+
+                // Signature section
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    // Prepared by
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('PREPARED BY:',
+                            style: pw.TextStyle(
+                                font: courierFont,
+                                fontWeight: pw.FontWeight.bold)),
+                        pw.SizedBox(height: 5),
+                        pw.Text('RANK:_______________________',
+                            style: pw.TextStyle(font: courierFont)),
+                        pw.SizedBox(height: 10),
+                        pw.Text('NAME:_______________________',
+                            style: pw.TextStyle(font: courierFont)),
+                        pw.SizedBox(height: 10),
+                        pw.Text('DATE/SIGN:__________________',
+                            style: pw.TextStyle(font: courierFont)),
+                      ],
+                    ),
+
+                    // Received by
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('RECEIVED BY:',
+                            style: pw.TextStyle(
+                                font: courierFont,
+                                fontWeight: pw.FontWeight.bold)),
+                        pw.SizedBox(height: 5),
+                        pw.Text('RANK:_______________________',
+                            style: pw.TextStyle(font: courierFont)),
+                        pw.SizedBox(height: 10),
+                        pw.Text('NAME:_______________________',
+                            style: pw.TextStyle(font: courierFont)),
+                        pw.SizedBox(height: 10),
+                        pw.Text('DATE/SIGN:__________________',
+                            style: pw.TextStyle(font: courierFont)),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            );
           },
         ),
       );
@@ -310,109 +562,6 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
         );
       }
     }
-  }
-
-  pw.Widget _buildTransitSlipContent() {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        // Title
-        pw.Center(
-          child: pw.Text(
-            'TRANSIT SLIP FROM ${_primaryUnit?.code ?? "NAS"} TO: ${_selectedToUnit?.code ?? ""}',
-            style: pw.TextStyle(
-              fontSize: 16,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-        ),
-        pw.SizedBox(height: 20),
-
-        // Table
-        pw.Table(
-          border: pw.TableBorder.all(width: 1),
-          children: [
-            // Header row
-            pw.TableRow(
-              decoration: pw.BoxDecoration(color: PdfColors.grey300),
-              children: [
-                _buildTableCell('S/N', isHeader: true),
-                _buildTableCell('DATE', isHeader: true),
-                _buildTableCell('FROM', isHeader: true),
-                _buildTableCell('TO', isHeader: true),
-                _buildTableCell('REFS NO', isHeader: true),
-              ],
-            ),
-
-            // Data rows
-            ..._filteredDispatches.asMap().entries.map((entry) {
-              final index = entry.key;
-              final dispatch = entry.value;
-              return pw.TableRow(
-                children: [
-                  _buildTableCell('${index + 1}'),
-                  _buildTableCell(
-                      DateFormat('dd/MM/yyyy').format(dispatch.dateTime)),
-                  _buildTableCell(dispatch.sentBy),
-                  _buildTableCell(dispatch.recipientUnit),
-                  _buildTableCell(dispatch.referenceNumber),
-                ],
-              );
-            }).toList(),
-          ],
-        ),
-        pw.SizedBox(height: 30),
-
-        // Signature section
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            // Prepared by
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text('PREPARED BY:',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 5),
-                pw.Text('RANK:_______________________'),
-                pw.SizedBox(height: 10),
-                pw.Text('NAME:_______________________'),
-                pw.SizedBox(height: 10),
-                pw.Text('DATE/SIGN:__________________'),
-              ],
-            ),
-
-            // Received by
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text('RECEIVED BY:',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 5),
-                pw.Text('RANK:_______________________'),
-                pw.SizedBox(height: 10),
-                pw.Text('NAME:_______________________'),
-                pw.SizedBox(height: 10),
-                pw.Text('DATE/SIGN:__________________'),
-              ],
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  pw.Widget _buildTableCell(String text, {bool isHeader = false}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.all(8),
-      child: pw.Text(
-        text,
-        style: pw.TextStyle(
-          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
-        ),
-      ),
-    );
   }
 
   Future<void> _viewPdf(String filePath) async {
@@ -736,18 +885,7 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
             ),
           ],
           onChanged: (value) {
-            // Update page size
-            if (value == 'A4') {
-              setState(() {
-                _pageWidth = PdfPageFormat.a4.width;
-                _pageHeight = PdfPageFormat.a4.height;
-              });
-            } else if (value == 'Letter') {
-              setState(() {
-                _pageWidth = PdfPageFormat.letter.width;
-                _pageHeight = PdfPageFormat.letter.height;
-              });
-            }
+            // We now use A4 format directly in the _generateTransitSlip method
           },
         ),
 
@@ -774,13 +912,7 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (value) {
-                  final margin = double.tryParse(value) ?? 50;
-                  setState(() {
-                    _marginTop = margin;
-                    _marginBottom = margin;
-                    _marginLeft = margin;
-                    _marginRight = margin;
-                  });
+                  // We now use fixed margins in the _generateTransitSlip method
                 },
               ),
             ),
@@ -906,12 +1038,10 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
                       value: null,
                       child: Text('All Units'),
                     ),
-                    ..._allUnits
-                        .map((unit) => DropdownMenuItem<String>(
-                              value: unit.code,
-                              child: Text(unit.code),
-                            ))
-                        .toList(),
+                    ..._allUnits.map((unit) => DropdownMenuItem<String>(
+                          value: unit.code,
+                          child: Text(unit.code),
+                        )),
                   ],
                   onChanged: (value) {
                     setState(() {
@@ -944,12 +1074,10 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
                       value: null,
                       child: Text('All Units'),
                     ),
-                    ..._allUnits
-                        .map((unit) => DropdownMenuItem<String>(
-                              value: unit.code,
-                              child: Text(unit.code),
-                            ))
-                        .toList(),
+                    ..._allUnits.map((unit) => DropdownMenuItem<String>(
+                          value: unit.code,
+                          child: Text(unit.code),
+                        )),
                   ],
                   onChanged: (value) {
                     setState(() {
@@ -1075,16 +1203,18 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
           child: Text(
             'TRANSIT SLIP FROM ${_primaryUnit?.code ?? "NAS"} TO: ${_selectedToUnit?.code ?? ""}',
             style: const TextStyle(
+              fontFamily: 'monospace',
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 10),
 
         // Table
         Table(
-          border: TableBorder.all(color: Colors.black),
+          border: TableBorder.all(color: Colors.black, width: 1),
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
           columnWidths: const {
             0: FlexColumnWidth(1), // S/N
             1: FlexColumnWidth(2), // DATE
@@ -1105,24 +1235,11 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
               ],
             ),
 
-            // Data rows
-            ..._filteredDispatches.asMap().entries.map((entry) {
-              final index = entry.key;
-              final dispatch = entry.value;
-              return TableRow(
-                children: [
-                  _buildTableCellPreview('${index + 1}'),
-                  _buildTableCellPreview(
-                      DateFormat('dd/MM/yyyy').format(dispatch.dateTime)),
-                  _buildTableCellPreview(dispatch.sentBy),
-                  _buildTableCellPreview(dispatch.recipientUnit),
-                  _buildTableCellPreview(dispatch.referenceNumber),
-                ],
-              );
-            }).toList(),
+            // Data rows - generate 50 rows if needed
+            ..._generatePreviewTableRows(),
           ],
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 20),
 
         // Signature section
         Row(
@@ -1134,13 +1251,19 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Text('PREPARED BY:',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                SizedBox(height: 5),
-                Text('RANK:_______________________'),
-                SizedBox(height: 10),
-                Text('NAME:_______________________'),
-                SizedBox(height: 10),
-                Text('DATE/SIGN:__________________'),
+                    style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
+                SizedBox(height: 3),
+                Text('RANK:_______________________',
+                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                SizedBox(height: 6),
+                Text('NAME:_______________________',
+                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                SizedBox(height: 6),
+                Text('DATE/SIGN:__________________',
+                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
               ],
             ),
 
@@ -1149,13 +1272,19 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Text('RECEIVED BY:',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                SizedBox(height: 5),
-                Text('RANK:_______________________'),
-                SizedBox(height: 10),
-                Text('NAME:_______________________'),
-                SizedBox(height: 10),
-                Text('DATE/SIGN:__________________'),
+                    style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
+                SizedBox(height: 3),
+                Text('RANK:_______________________',
+                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                SizedBox(height: 6),
+                Text('NAME:_______________________',
+                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                SizedBox(height: 6),
+                Text('DATE/SIGN:__________________',
+                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
               ],
             ),
           ],
@@ -1164,12 +1293,57 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
     );
   }
 
+  // Helper method to generate preview table rows, ensuring we have up to 50 rows
+  List<TableRow> _generatePreviewTableRows() {
+    final rows = <TableRow>[];
+
+    // Add actual dispatch data rows
+    for (int i = 0; i < _filteredDispatches.length; i++) {
+      final dispatch = _filteredDispatches[i];
+      rows.add(
+        TableRow(
+          children: [
+            _buildTableCellPreview('${i + 1}'),
+            _buildTableCellPreview(
+                DateFormat('dd/MM/yyyy').format(dispatch.dateTime)),
+            _buildTableCellPreview(_getSenderUnitCode(dispatch)),
+            _buildTableCellPreview(_getRecipientUnitCode(dispatch)),
+            _buildTableCellPreview(dispatch.referenceNumber),
+          ],
+        ),
+      );
+    }
+
+    // Add empty rows to reach 50 total rows
+    final emptyRowsNeeded = 50 - _filteredDispatches.length;
+    if (emptyRowsNeeded > 0) {
+      for (int i = 0; i < emptyRowsNeeded; i++) {
+        rows.add(
+          TableRow(
+            children: [
+              _buildTableCellPreview('${_filteredDispatches.length + i + 1}'),
+              _buildTableCellPreview(''),
+              _buildTableCellPreview(''),
+              _buildTableCellPreview(''),
+              _buildTableCellPreview(''),
+            ],
+          ),
+        );
+      }
+    }
+
+    return rows;
+  }
+
   Widget _buildTableCellPreview(String text, {bool isHeader = false}) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(6.0), // Slightly larger padding
       child: Text(
         text,
         style: TextStyle(
+          fontFamily:
+              'monospace', // Use monospace font which is more widely available
+          fontSize: 10, // Slightly larger font size
           fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
         ),
       ),
@@ -1197,6 +1371,60 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
         ),
       ),
     );
+  }
+
+  // Helper method to get the sender unit code from a dispatch
+  String _getSenderUnitCode(OutgoingDispatch dispatch) {
+    // The FROM column should show the sender unit code from the transit form
+    // This is similar to how the TO column shows the recipient unit
+
+    // In the OutgoingDispatch class, sentBy field contains the sender unit name
+    // We need to extract the unit code from this name
+
+    // First, try to find a unit with a matching name in our units list
+    for (var unit in _allUnits) {
+      if (unit.name.toLowerCase() == dispatch.sentBy.toLowerCase()) {
+        return unit.code;
+      }
+    }
+
+    // If we couldn't find a matching unit, create a code from the first 3 characters
+    // of the sentBy field (which should be the sender unit name)
+    if (dispatch.sentBy.isNotEmpty) {
+      return dispatch.sentBy
+          .substring(0, dispatch.sentBy.length > 3 ? 3 : dispatch.sentBy.length)
+          .toUpperCase();
+    }
+
+    // If all else fails, use the primary unit code as fallback
+    return _primaryUnit?.code ?? "NAS";
+  }
+
+  // Helper method to get the recipient unit code from a dispatch
+  String _getRecipientUnitCode(OutgoingDispatch dispatch) {
+    // The TO column should show the recipient unit code from the transit form
+
+    // First, try to find a unit with a matching name
+    for (var unit in _allUnits) {
+      // Check if this unit's name matches the recipient unit name
+      if (unit.name.toLowerCase() == dispatch.recipientUnit.toLowerCase()) {
+        return unit.code;
+      }
+    }
+
+    // If we couldn't find a matching unit, create a code from the first 3 characters
+    if (dispatch.recipientUnit.isNotEmpty) {
+      return dispatch.recipientUnit
+          .substring(
+              0,
+              dispatch.recipientUnit.length > 3
+                  ? 3
+                  : dispatch.recipientUnit.length)
+          .toUpperCase();
+    }
+
+    // If all else fails, use the selected TO unit code as fallback
+    return _selectedToUnit?.code ?? "REC";
   }
 
   Widget _buildSavedSlipCard(Map<String, dynamic> slip) {

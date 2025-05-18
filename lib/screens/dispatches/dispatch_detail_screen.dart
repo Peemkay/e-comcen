@@ -620,9 +620,8 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
   List<Widget> _buildOutgoingDetails() {
     final outgoingDispatch = _dispatch as OutgoingDispatch;
     return [
-      _buildDetailRow('Recipient', outgoingDispatch.recipient),
+      _buildDetailRow('Sender Unit', outgoingDispatch.sentBy),
       _buildDetailRow('Recipient Unit', outgoingDispatch.recipientUnit),
-      _buildDetailRow('Sent By', outgoingDispatch.sentBy),
       _buildDetailRow(
         'Sent Date',
         DateFormat('dd MMM yyyy').format(outgoingDispatch.sentDate),
