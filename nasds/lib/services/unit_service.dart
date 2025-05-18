@@ -272,9 +272,9 @@ class UnitService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final unitMaps = _unitsCache.map((unit) => unit.toMap()).toList();
-      final success = await prefs.setStringList(_unitsKey, 
-          unitMaps.map((map) => map.toString()).toList());
-      
+      final success = await prefs.setStringList(
+          _unitsKey, unitMaps.map((map) => map.toString()).toList());
+
       debugPrint('Saved ${_unitsCache.length} units to storage: $success');
       return success;
     } catch (e) {
@@ -344,12 +344,22 @@ class UnitService {
 
       debugPrint('Adding unit: ${newUnit.name} (${newUnit.code})');
 
+      // If this unit is marked as primary, update all other units to not be primary
+      if (newUnit.isPrimary) {
+        debugPrint('New unit is marked as primary, updating other units');
+        for (int i = 0; i < _unitsCache.length; i++) {
+          if (_unitsCache[i].isPrimary) {
+            _unitsCache[i] = _unitsCache[i].copyWith(isPrimary: false);
+          }
+        }
+      }
+
       // Add to cache
       _unitsCache.add(newUnit);
-      
+
       // Save to storage
       final success = await _saveUnitsToStorage();
-      
+
       if (!success) {
         debugPrint('Failed to save unit to storage');
         // Remove from cache if save failed
@@ -362,6 +372,15 @@ class UnitService {
       // If this is the first unit, set it as primary
       if (_unitsCache.length == 1) {
         await setPrimaryUnit(newUnit.id);
+      } else if (newUnit.isPrimary) {
+        // Update the primary unit reference
+        _primaryUnit = newUnit;
+
+        // Save primary unit ID to preferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_primaryUnitIdKey, newUnit.id);
+
+        debugPrint('Set ${newUnit.name} as primary unit');
       }
 
       return newUnit;
@@ -390,10 +409,10 @@ class UnitService {
 
       // Update the cache
       _unitsCache[index] = updatedUnit;
-      
+
       // Save to storage
       final success = await _saveUnitsToStorage();
-      
+
       if (!success) {
         debugPrint('Failed to save updated unit to storage');
         // Revert cache update if save failed
@@ -434,10 +453,10 @@ class UnitService {
 
       // Remove from cache
       _unitsCache.removeAt(index);
-      
+
       // Save to storage
       final success = await _saveUnitsToStorage();
-      
+
       if (!success) {
         debugPrint('Failed to save after deleting unit');
         // Revert cache update if save failed
@@ -478,7 +497,7 @@ class UnitService {
 
       // Save to storage
       final success = await _saveUnitsToStorage();
-      
+
       if (!success) {
         debugPrint('Failed to save primary unit to storage');
         // Revert cache update if save failed

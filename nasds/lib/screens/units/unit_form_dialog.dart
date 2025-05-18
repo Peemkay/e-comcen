@@ -29,6 +29,7 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
   bool _isLoading = false;
   bool _isCheckingCode = false;
   bool _codeExists = false;
+  bool _isPrimary = false;
   final UnitService _unitService = UnitService();
 
   @override
@@ -44,6 +45,7 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
       _locationController.text = widget.unit!.location ?? '';
       _descriptionController.text = widget.unit!.description ?? '';
       _selectedUnitType = widget.unit!.unitType;
+      _isPrimary = widget.unit!.isPrimary;
     }
   }
 
@@ -58,7 +60,7 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
 
   Future<void> _checkCodeExists(String code) async {
     if (code.isEmpty) return;
-    
+
     // Skip check if editing and code hasn't changed
     if (widget.unit != null && widget.unit!.code == code) {
       setState(() {
@@ -74,7 +76,7 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
 
     try {
       final existingUnit = await _unitService.findUnitByCode(code);
-      
+
       if (mounted) {
         setState(() {
           _codeExists = existingUnit != null;
@@ -99,7 +101,7 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
 
     try {
       final isNew = widget.unit == null;
-      
+
       final unit = Unit(
         id: widget.unit?.id ?? '',
         name: _nameController.text.trim(),
@@ -107,13 +109,13 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
         location: _locationController.text.trim(),
         unitType: _selectedUnitType,
         description: _descriptionController.text.trim(),
-        isPrimary: widget.unit?.isPrimary ?? false,
+        isPrimary: _isPrimary,
         createdAt: widget.unit?.createdAt,
         updatedAt: DateTime.now(),
       );
 
       await widget.onUnitSaved(unit, isNew);
-      
+
       if (mounted) {
         Navigator.of(context).pop();
       }
@@ -135,7 +137,7 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.unit != null;
-    
+
     return AlertDialog(
       title: Text(
         isEditing ? 'Edit Unit' : 'Add New Unit',
@@ -220,7 +222,7 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
                   items: UnitType.values.map((type) {
                     String label;
                     IconData icon;
-                    
+
                     switch (type) {
                       case UnitType.forwardLink:
                         label = 'Forward Link';
@@ -239,7 +241,7 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
                         icon = Icons.more_horiz;
                         break;
                     }
-                    
+
                     return DropdownMenuItem<UnitType>(
                       value: type,
                       child: Row(
@@ -281,6 +283,34 @@ class _UnitFormDialogState extends State<UnitFormDialog> {
                     prefixIcon: Icon(Icons.description),
                   ),
                   maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+
+                // Primary unit toggle
+                SwitchListTile(
+                  title: const Text(
+                    'Set as Primary Unit',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Primary unit will be used as the default unit on reports',
+                    style: TextStyle(
+                      fontSize: 12,
+                    ),
+                  ),
+                  secondary: const Icon(
+                    Icons.star,
+                    color: Colors.amber,
+                  ),
+                  value: _isPrimary,
+                  onChanged: (value) {
+                    setState(() {
+                      _isPrimary = value;
+                    });
+                  },
+                  activeColor: AppTheme.primaryColor,
                 ),
               ],
             ),
