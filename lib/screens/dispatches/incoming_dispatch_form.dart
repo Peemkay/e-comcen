@@ -902,7 +902,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
 
               // Sender Information Card
               EnhancedCard(
-                title: 'Sender Information',
+                title: 'Delivery Information',
                 icon: FontAwesomeIcons.userLarge,
                 child: Column(
                   children: [
@@ -910,31 +910,11 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Delivered By (Sender)
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: TextFormField(
-                                controller: _senderController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Delivered By *',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon:
-                                      Icon(FontAwesomeIcons.user, size: 16),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter deliverer name';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ),
                           // Sender Unit (ADDR FROM)
                           Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.only(left: 8.0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8.0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -1045,20 +1025,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                                     ),
                                   ),
 
-                                  // Add New Unit Button
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: TextButton.icon(
-                                      icon: const Icon(
-                                          FontAwesomeIcons.circlePlus,
-                                          size: 16),
-                                      label: const Text('Add New Unit'),
-                                      onPressed: () => _showAddUnitDialog(),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: AppTheme.primaryColor,
-                                      ),
-                                    ),
-                                  ),
+                                  // Add New Unit Button moved to ADDR TO section
                                 ],
                               ),
                             ),
@@ -1068,21 +1035,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                     else // Single column for mobile
                       Column(
                         children: [
-                          TextFormField(
-                            controller: _senderController,
-                            decoration: const InputDecoration(
-                              labelText: 'Delivered By *',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(FontAwesomeIcons.user, size: 16),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter deliverer name';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
+                          // Delivered By field moved to Receiving Information section
 
                           // ADDR FROM (Sender Unit)
                           Column(
@@ -1190,19 +1143,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                                 ),
                               ),
 
-                              // Add New Unit Button
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: TextButton.icon(
-                                  icon: const Icon(FontAwesomeIcons.circlePlus,
-                                      size: 16),
-                                  label: const Text('Add New Unit'),
-                                  onPressed: () => _showAddUnitDialog(),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: AppTheme.primaryColor,
-                                  ),
-                                ),
-                              ),
+                              // Add New Unit Button moved to ADDR TO section
                             ],
                           ),
                         ],
@@ -1545,6 +1486,24 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
 
                     const SizedBox(height: 16),
 
+                    // Delivered By (moved from Delivery Information section)
+                    TextFormField(
+                      controller: _senderController,
+                      decoration: const InputDecoration(
+                        labelText: 'Delivered By *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(FontAwesomeIcons.user, size: 16),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter deliverer name';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
                     // Handled By
                     TextFormField(
                       controller: _handledByController,
@@ -1636,9 +1595,23 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
   void _showAddUnitDialog() {
     showDialog(
       context: context,
-      builder: (context) => UnitFormDialog(
+      builder: (dialogContext) => UnitFormDialog(
         onUnitSaved: (unit, isNew) {
           // Just reload all units after a unit is saved
+          setState(() {
+            _isLoadingUnits = true;
+          });
+
+          // Show a temporary success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unit saved, refreshing unit list...'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 1),
+            ),
+          );
+
+          // Reload units
           _loadUnits();
         },
       ),
