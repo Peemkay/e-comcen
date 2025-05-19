@@ -204,43 +204,53 @@ class SecurityService {
   // Authenticate user with biometrics or PIN
   Future<bool> authenticateUser({bool biometricOnly = false}) async {
     try {
-      final canCheckBiometrics = await _localAuth.canCheckBiometrics;
-      final isBiometricSupported =
-          canCheckBiometrics && await _localAuth.isDeviceSupported();
+      // Check if biometric authentication is enabled in security constants
+      if (SecurityConstants.biometricAuthEnabled) {
+        final canCheckBiometrics = await _localAuth.canCheckBiometrics;
+        final isBiometricSupported =
+            canCheckBiometrics && await _localAuth.isDeviceSupported();
 
-      if (isBiometricSupported) {
-        final availableBiometrics = await _localAuth.getAvailableBiometrics();
+        if (isBiometricSupported) {
+          final availableBiometrics = await _localAuth.getAvailableBiometrics();
 
-        if (availableBiometrics.isNotEmpty) {
-          final didAuthenticate = await _localAuth.authenticate(
-            localizedReason: 'Please authenticate to access E-COMCEN',
-            options: const AuthenticationOptions(
-              stickyAuth: true,
-              biometricOnly: false,
-            ),
-          );
-
-          if (didAuthenticate) {
-            _logSecurityEvent(
-              SecurityEventType.loginSuccess,
-              'User authenticated with biometrics',
+          if (availableBiometrics.isNotEmpty) {
+            final didAuthenticate = await _localAuth.authenticate(
+              localizedReason: 'Please authenticate to access E-COMCEN',
+              options: const AuthenticationOptions(
+                stickyAuth: true,
+                biometricOnly: false,
+              ),
             );
-            _startSessionTimer();
-            return true;
-          } else {
-            _logSecurityEvent(
-              SecurityEventType.loginFailed,
-              'Biometric authentication failed',
-            );
-            return false;
+
+            if (didAuthenticate) {
+              _logSecurityEvent(
+                SecurityEventType.loginSuccess,
+                'User authenticated with biometrics',
+              );
+              _startSessionTimer();
+              return true;
+            } else {
+              _logSecurityEvent(
+                SecurityEventType.loginFailed,
+                'Biometric authentication failed',
+              );
+              return false;
+            }
           }
         }
-      }
 
-      if (biometricOnly) {
+        if (biometricOnly) {
+          _logSecurityEvent(
+            SecurityEventType.loginFailed,
+            'Biometric authentication not available',
+          );
+          return false;
+        }
+      } else if (biometricOnly) {
+        // Biometric authentication is disabled in security constants
         _logSecurityEvent(
           SecurityEventType.loginFailed,
-          'Biometric authentication not available',
+          'Biometric authentication is disabled',
         );
         return false;
       }

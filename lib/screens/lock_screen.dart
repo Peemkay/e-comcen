@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screen_lock/flutter_screen_lock.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
 import '../extensions/string_extensions.dart';
@@ -15,62 +14,9 @@ class LockScreen extends StatefulWidget {
 }
 
 class _LockScreenState extends State<LockScreen> {
-  final LocalAuthentication _localAuth = LocalAuthentication();
-  bool _canCheckBiometrics = false;
-  bool _isBiometricSupported = false;
-  List<BiometricType> _availableBiometrics = [];
-  bool _isAuthenticating = false;
-
   @override
   void initState() {
     super.initState();
-    _checkBiometrics();
-  }
-
-  Future<void> _checkBiometrics() async {
-    try {
-      _canCheckBiometrics = await _localAuth.canCheckBiometrics;
-      _isBiometricSupported = await _localAuth.isDeviceSupported();
-
-      if (_canCheckBiometrics && _isBiometricSupported) {
-        _availableBiometrics = await _localAuth.getAvailableBiometrics();
-
-        if (_availableBiometrics.isNotEmpty) {
-          _authenticateWithBiometrics();
-        }
-      }
-    } on PlatformException catch (e) {
-      debugPrint('Error checking biometrics: $e');
-    }
-  }
-
-  Future<void> _authenticateWithBiometrics() async {
-    if (_isAuthenticating) return;
-
-    setState(() {
-      _isAuthenticating = true;
-    });
-
-    try {
-      final securityProvider =
-          Provider.of<SecurityProvider>(context, listen: false);
-      final authenticated =
-          await securityProvider.authenticateUser(biometricOnly: true);
-
-      if (authenticated) {
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
-        }
-      }
-    } catch (e) {
-      debugPrint('Error authenticating with biometrics: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isAuthenticating = false;
-        });
-      }
-    }
   }
 
   @override
@@ -155,30 +101,6 @@ class _LockScreenState extends State<LockScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-
-                    // Biometric authentication button
-                    if (_canCheckBiometrics &&
-                        _isBiometricSupported &&
-                        _availableBiometrics.isNotEmpty)
-                      TextButton.icon(
-                        onPressed: _authenticateWithBiometrics,
-                        icon: Icon(
-                          _availableBiometrics.contains(BiometricType.face)
-                              ? Icons.face
-                              : _availableBiometrics
-                                      .contains(BiometricType.fingerprint)
-                                  ? Icons.fingerprint
-                                  : Icons.security,
-                          color: Colors.white,
-                        ),
-                        label: Text(
-                          'use_biometrics'.tr(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
                     const SizedBox(height: 32),
 
                     // Logout button
@@ -214,35 +136,7 @@ class _LockScreenState extends State<LockScreen> {
     screenLock(
       context: context,
       title: Text('enter_pin'.tr()),
-      customizedButtonChild: const Icon(
-        Icons.fingerprint,
-        color: Colors.white,
-      ),
-      customizedButtonTap: _canCheckBiometrics && _isBiometricSupported
-          ? () async {
-              final authenticated =
-                  await securityProvider.authenticateUser(biometricOnly: true);
-              if (authenticated && mounted) {
-                // Update activity time and resume session
-                securityProvider.updateActivity();
-
-                // Close the screen lock dialog
-                Navigator.pop(context);
-
-                // Resume the application where it was left off
-                Navigator.pushReplacementNamed(context, '/home');
-
-                // Show success message
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Session resumed successfully'),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            }
-          : null,
+      // Removed biometric authentication button
       correctString: '000000', // Simple default PIN for easier testing
       onUnlocked: () {
         // Update activity time and resume session
@@ -296,7 +190,7 @@ class _LockScreenState extends State<LockScreen> {
                 ),
               );
 
-              // Perform logout
+              // Perform logout and navigate to login screen
               Future.delayed(const Duration(milliseconds: 500), () async {
                 await securityProvider.logout();
 

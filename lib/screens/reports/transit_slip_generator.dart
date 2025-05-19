@@ -1,23 +1,24 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:open_file/open_file.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as path;
+import 'package:open_file/open_file.dart';
 
 import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
 import '../../models/unit.dart';
 import '../../services/dispatch_service.dart';
-import '../../services/unit_service.dart';
 import '../../services/unit_manager.dart';
 
 class TransitSlipGenerator extends StatefulWidget {
-  const TransitSlipGenerator({Key? key}) : super(key: key);
+  const TransitSlipGenerator({super.key});
 
   @override
   State<TransitSlipGenerator> createState() => _TransitSlipGeneratorState();
@@ -25,8 +26,10 @@ class TransitSlipGenerator extends StatefulWidget {
 
 class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
   final DispatchService _dispatchService = DispatchService();
-  final UnitService _unitService = UnitService();
   final UnitManager _unitManager = UnitManager();
+
+  // Key for capturing the preview section
+  final GlobalKey _previewKey = GlobalKey();
 
   // List of all dispatches and units
   List<OutgoingDispatch> _allDispatches = [];
@@ -41,6 +44,8 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
   // Loading states
   bool _isLoading = true;
   bool _isGenerating = false;
+
+  // Global key for the preview widget is defined above
 
   // Filter options
   DateTime? _startDate;
@@ -191,6 +196,7 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
     });
   }
 
+  // New implementation to capture and save the A4 display as PDF
   Future<void> _generateTransitSlip() async {
     if (_primaryUnit == null || _selectedToUnit == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -207,279 +213,38 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
     });
 
     try {
+      // Capture the preview section using RepaintBoundary
+      RenderRepaintBoundary? boundary = _previewKey.currentContext
+          ?.findRenderObject() as RenderRepaintBoundary?;
+
+      if (boundary == null) {
+        throw Exception('Could not find the preview section to capture');
+      }
+
+      // Capture the image
+      ui.Image image = await boundary.toImage(
+          pixelRatio: 3.0); // Higher pixel ratio for better quality
+      ByteData? byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+
+      if (byteData == null) {
+        throw Exception('Failed to convert the preview to image data');
+      }
+
+      Uint8List pngBytes = byteData.buffer.asUint8List();
+
       // Create PDF document
       final pdf = pw.Document();
 
-      // Use A4 page format with specific margins to match the preview exactly
-      final pageFormat = PdfPageFormat.a4.copyWith(
-        marginTop: 50,
-        marginBottom: 50,
-        marginLeft: 50,
-        marginRight: 50,
-      );
+      // Add the captured image to the PDF with A4 size
+      final pdfImage = pw.MemoryImage(pngBytes);
 
-      // Add page with content that exactly matches the preview
       pdf.addPage(
         pw.Page(
-          pageFormat: pageFormat,
+          pageFormat: PdfPageFormat.a4,
           build: (pw.Context context) {
-            // Create a courier font
-            final courierFont = pw.Font.courier();
-
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                // Title
-                pw.Center(
-                  child: pw.Text(
-                    'TRANSIT SLIP FROM ${_primaryUnit?.code ?? "NAS"} TO: ${_selectedToUnit?.code ?? ""}',
-                    style: pw.TextStyle(
-                      font: courierFont,
-                      fontSize: 16,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ),
-                pw.SizedBox(height: 20),
-
-                // Table
-                pw.Table(
-                  border: pw.TableBorder.all(width: 1, color: PdfColors.black),
-                  columnWidths: const {
-                    0: pw.FlexColumnWidth(1), // S/N
-                    1: pw.FlexColumnWidth(2), // DATE
-                    2: pw.FlexColumnWidth(2), // FROM
-                    3: pw.FlexColumnWidth(2), // TO
-                    4: pw.FlexColumnWidth(3), // REFS NO
-                  },
-                  children: [
-                    // Header row
-                    pw.TableRow(
-                      decoration: pw.BoxDecoration(color: PdfColors.grey300),
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            'S/N',
-                            style: pw.TextStyle(
-                              font: courierFont,
-                              fontSize: 10,
-                              fontWeight: pw.FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            'DATE',
-                            style: pw.TextStyle(
-                              font: courierFont,
-                              fontSize: 10,
-                              fontWeight: pw.FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            'FROM',
-                            style: pw.TextStyle(
-                              font: courierFont,
-                              fontSize: 10,
-                              fontWeight: pw.FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            'TO',
-                            style: pw.TextStyle(
-                              font: courierFont,
-                              fontSize: 10,
-                              fontWeight: pw.FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(
-                            'REFS NO',
-                            style: pw.TextStyle(
-                              font: courierFont,
-                              fontSize: 10,
-                              fontWeight: pw.FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Data rows - add actual dispatch data
-                    for (int i = 0; i < _filteredDispatches.length; i++)
-                      pw.TableRow(
-                        children: [
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              '${i + 1}',
-                              style: pw.TextStyle(
-                                font: courierFont,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              DateFormat('dd/MM/yyyy')
-                                  .format(_filteredDispatches[i].dateTime),
-                              style: pw.TextStyle(
-                                font: courierFont,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              _getSenderUnitCode(_filteredDispatches[i]),
-                              style: pw.TextStyle(
-                                font: courierFont,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              _getRecipientUnitCode(_filteredDispatches[i]),
-                              style: pw.TextStyle(
-                                font: courierFont,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              _filteredDispatches[i].referenceNumber,
-                              style: pw.TextStyle(
-                                font: courierFont,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                    // Add empty rows to reach 50 total rows
-                    for (int i = 0; i < (50 - _filteredDispatches.length); i++)
-                      pw.TableRow(
-                        children: [
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              '${_filteredDispatches.length + i + 1}',
-                              style: pw.TextStyle(
-                                font: courierFont,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              '',
-                              style: pw.TextStyle(
-                                font: courierFont,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              '',
-                              style: pw.TextStyle(
-                                font: courierFont,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              '',
-                              style: pw.TextStyle(
-                                font: courierFont,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(6),
-                            child: pw.Text(
-                              '',
-                              style: pw.TextStyle(
-                                font: courierFont,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-                pw.SizedBox(height: 30),
-
-                // Signature section
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    // Prepared by
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('PREPARED BY:',
-                            style: pw.TextStyle(
-                                font: courierFont,
-                                fontWeight: pw.FontWeight.bold)),
-                        pw.SizedBox(height: 5),
-                        pw.Text('RANK:_______________________',
-                            style: pw.TextStyle(font: courierFont)),
-                        pw.SizedBox(height: 10),
-                        pw.Text('NAME:_______________________',
-                            style: pw.TextStyle(font: courierFont)),
-                        pw.SizedBox(height: 10),
-                        pw.Text('DATE/SIGN:__________________',
-                            style: pw.TextStyle(font: courierFont)),
-                      ],
-                    ),
-
-                    // Received by
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('RECEIVED BY:',
-                            style: pw.TextStyle(
-                                font: courierFont,
-                                fontWeight: pw.FontWeight.bold)),
-                        pw.SizedBox(height: 5),
-                        pw.Text('RANK:_______________________',
-                            style: pw.TextStyle(font: courierFont)),
-                        pw.SizedBox(height: 10),
-                        pw.Text('NAME:_______________________',
-                            style: pw.TextStyle(font: courierFont)),
-                        pw.SizedBox(height: 10),
-                        pw.Text('DATE/SIGN:__________________',
-                            style: pw.TextStyle(font: courierFont)),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
+            return pw.Center(
+              child: pw.Image(pdfImage, fit: pw.BoxFit.contain),
             );
           },
         ),
@@ -527,6 +292,14 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
         'date': DateTime.now(),
         'fromUnit': _primaryUnit!.code,
         'toUnit': _selectedToUnit!.code,
+        'dispatches': _filteredDispatches
+            .map((dispatch) => {
+                  'referenceNumber': dispatch.referenceNumber,
+                  'date': DateFormat('dd/MM/yyyy').format(dispatch.dateTime),
+                  'from': _getSenderUnitCode(dispatch),
+                  'to': _getRecipientUnitCode(dispatch),
+                })
+            .toList(),
       };
 
       setState(() {
@@ -534,7 +307,7 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
         _isGenerating = false;
       });
 
-      // Show success message
+      // Show success message with option to view the PDF
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -549,6 +322,7 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
         );
       }
     } catch (e) {
+      debugPrint('Error generating transit slip: $e');
       setState(() {
         _isGenerating = false;
       });
@@ -564,23 +338,61 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
     }
   }
 
+  // Method to view the generated PDF
   Future<void> _viewPdf(String filePath) async {
     try {
+      // First check if the file exists
+      final file = File(filePath);
+      if (!await file.exists()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('File not found: $filePath'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Check if the file has content
+      if (await file.length() == 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('PDF file is empty'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Try to open the file
       final result = await OpenFile.open(filePath);
       if (result.type != ResultType.done && mounted) {
+        // If opening fails, show detailed error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error opening file: ${result.message}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _viewPdf(filePath),
+            ),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
+        // Show error with stack trace for debugging
+        debugPrint('Error viewing PDF: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error viewing PDF: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -857,105 +669,123 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
 
         const SizedBox(height: 24),
 
-        // Page Size Settings
+        // Page Size Settings - Fixed to A4
         const Text(
           'Page Size:',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: 'A4',
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
           ),
-          items: const [
-            DropdownMenuItem(
-              value: 'A4',
-              child: Text('A4'),
-            ),
-            DropdownMenuItem(
-              value: 'Letter',
-              child: Text('Letter'),
-            ),
-          ],
-          onChanged: (value) {
-            // We now use A4 format directly in the _generateTransitSlip method
-          },
+          child: const Row(
+            children: [
+              Icon(Icons.description, size: 18, color: AppTheme.primaryColor),
+              SizedBox(width: 8),
+              Text('A4 (210 × 297 mm)'),
+            ],
+          ),
         ),
 
         const SizedBox(height: 24),
 
-        // Margins
+        // Margins - Fixed at 50
         const Text(
           'Margins:',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                initialValue: '50',
-                decoration: const InputDecoration(
-                  labelText: 'All',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  // We now use fixed margins in the _generateTransitSlip method
-                },
-              ),
-            ),
-          ],
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.margin, size: 18, color: AppTheme.primaryColor),
+              SizedBox(width: 8),
+              Text('50 pixels on all sides'),
+            ],
+          ),
         ),
 
         const SizedBox(height: 24),
 
-        // Action Buttons
-        SizedBox(
+        // New Generate & Save Button
+        Container(
           width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            gradient: const LinearGradient(
+              colors: [AppTheme.primaryColor, Color(0xFF2E7D32)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withAlpha(76), // 0.3 * 255 = 76
+                spreadRadius: 1,
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
           child: ElevatedButton.icon(
-            icon: const Icon(Icons.save),
-            label: const Text('Generate & Save'),
+            icon: const Icon(Icons.picture_as_pdf, size: 24),
+            label: const Text(
+              'Generate & Save A4 PDF',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: _isGenerating ? null : _generateTransitSlip,
           ),
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
 
-        SizedBox(
+        // View PDF Button
+        Container(
           width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppTheme.primaryColor),
+          ),
           child: OutlinedButton.icon(
-            icon: const Icon(Icons.visibility),
-            label: const Text('View PDF'),
+            icon: const Icon(Icons.visibility, size: 24),
+            label: const Text(
+              'Preview Generated PDF',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              foregroundColor: AppTheme.primaryColor,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: _isGenerating
                 ? null
                 : () async {
-                    // First generate the PDF
+                    // Generate the transit slip
                     await _generateTransitSlip();
-
-                    // Then open the last saved slip
-                    if (_savedSlips.isNotEmpty) {
-                      final lastSlip = _savedSlips.last;
-                      await _viewPdf(lastSlip['path']);
-                    }
                   },
           ),
         ),
@@ -1195,101 +1025,104 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
   }
 
   Widget _buildTransitSlipPreview() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Title
-        Center(
-          child: Text(
-            'TRANSIT SLIP FROM ${_primaryUnit?.code ?? "NAS"} TO: ${_selectedToUnit?.code ?? ""}',
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+    return RepaintBoundary(
+      key: _previewKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          Center(
+            child: Text(
+              'TRANSIT SLIP FROM ${_primaryUnit?.code ?? "NAS"} TO: ${_selectedToUnit?.code ?? ""}',
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 10),
+          const SizedBox(height: 10),
 
-        // Table
-        Table(
-          border: TableBorder.all(color: Colors.black, width: 1),
-          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          columnWidths: const {
-            0: FlexColumnWidth(1), // S/N
-            1: FlexColumnWidth(2), // DATE
-            2: FlexColumnWidth(2), // FROM
-            3: FlexColumnWidth(2), // TO
-            4: FlexColumnWidth(3), // REFS NO
-          },
-          children: [
-            // Header row
-            TableRow(
-              decoration: BoxDecoration(color: Colors.grey.shade200),
-              children: [
-                _buildTableCellPreview('S/N', isHeader: true),
-                _buildTableCellPreview('DATE', isHeader: true),
-                _buildTableCellPreview('FROM', isHeader: true),
-                _buildTableCellPreview('TO', isHeader: true),
-                _buildTableCellPreview('REFS NO', isHeader: true),
-              ],
-            ),
+          // Table
+          Table(
+            border: TableBorder.all(color: Colors.black, width: 1),
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            columnWidths: const {
+              0: FlexColumnWidth(1), // S/N
+              1: FlexColumnWidth(2), // DATE
+              2: FlexColumnWidth(2), // FROM
+              3: FlexColumnWidth(2), // TO
+              4: FlexColumnWidth(3), // REFS NO
+            },
+            children: [
+              // Header row
+              TableRow(
+                decoration: BoxDecoration(color: Colors.grey.shade200),
+                children: [
+                  _buildTableCellPreview('S/N', isHeader: true),
+                  _buildTableCellPreview('DATE', isHeader: true),
+                  _buildTableCellPreview('FROM', isHeader: true),
+                  _buildTableCellPreview('TO', isHeader: true),
+                  _buildTableCellPreview('REFS NO', isHeader: true),
+                ],
+              ),
 
-            // Data rows - generate 50 rows if needed
-            ..._generatePreviewTableRows(),
-          ],
-        ),
-        const SizedBox(height: 20),
+              // Data rows - generate 50 rows if needed
+              ..._generatePreviewTableRows(),
+            ],
+          ),
+          const SizedBox(height: 20),
 
-        // Signature section
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Prepared by
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('PREPARED BY:',
-                    style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold)),
-                SizedBox(height: 3),
-                Text('RANK:_______________________',
-                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
-                SizedBox(height: 6),
-                Text('NAME:_______________________',
-                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
-                SizedBox(height: 6),
-                Text('DATE/SIGN:__________________',
-                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
-              ],
-            ),
+          // Signature section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Prepared by
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('PREPARED BY:',
+                      style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold)),
+                  SizedBox(height: 3),
+                  Text('RANK:_______________________',
+                      style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                  SizedBox(height: 6),
+                  Text('NAME:_______________________',
+                      style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                  SizedBox(height: 6),
+                  Text('DATE/SIGN:__________________',
+                      style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                ],
+              ),
 
-            // Received by
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('RECEIVED BY:',
-                    style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold)),
-                SizedBox(height: 3),
-                Text('RANK:_______________________',
-                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
-                SizedBox(height: 6),
-                Text('NAME:_______________________',
-                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
-                SizedBox(height: 6),
-                Text('DATE/SIGN:__________________',
-                    style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
-              ],
-            ),
-          ],
-        ),
-      ],
+              // Received by
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('RECEIVED BY:',
+                      style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold)),
+                  SizedBox(height: 3),
+                  Text('RANK:_______________________',
+                      style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                  SizedBox(height: 6),
+                  Text('NAME:_______________________',
+                      style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                  SizedBox(height: 6),
+                  Text('DATE/SIGN:__________________',
+                      style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -1463,6 +1296,25 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
                 ),
               ),
 
+              // Units info
+              Text(
+                'From: ${slip['fromUnit']} To: ${slip['toUnit']}',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 12,
+                ),
+              ),
+
+              // Dispatches count
+              if (slip.containsKey('dispatches') && slip['dispatches'] is List)
+                Text(
+                  'Dispatches: ${(slip['dispatches'] as List).length}',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                  ),
+                ),
+
               const Spacer(),
 
               // Actions
@@ -1479,10 +1331,8 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.download, size: 18),
-                    onPressed: () {
-                      // Download functionality
-                    },
-                    tooltip: 'Download',
+                    onPressed: () => _viewPdf(slip['path']),
+                    tooltip: 'Open',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),

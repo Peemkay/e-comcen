@@ -26,7 +26,7 @@ class SecurityConstants {
   static const int passwordExpiryDays = 90;
 
   // Biometric authentication settings
-  static const bool biometricAuthEnabled = true;
+  static const bool biometricAuthEnabled = false;
 
   // Encryption settings
   static const String encryptionAlgorithm = 'AES-256';
