@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_theme.dart';
@@ -9,10 +10,11 @@ import '../../models/unit.dart';
 import '../../services/dispatch_service.dart';
 import '../../services/attachment_service.dart';
 import '../../services/unit_service.dart';
+import '../../services/unit_manager.dart';
 import '../../utils/responsive_layout_util.dart';
 import '../../widgets/attachment_list.dart';
 import '../../widgets/enhanced_card.dart';
-import '../../widgets/unit_selector_updated.dart';
+import '../../screens/units/unit_form_dialog.dart';
 
 class IncomingDispatchForm extends StatefulWidget {
   final IncomingDispatch? dispatch;
@@ -27,6 +29,18 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
   final _formKey = GlobalKey<FormState>();
   final DispatchService _dispatchService = DispatchService();
   final UnitService _unitService = UnitService();
+  final UnitManager _unitManager = UnitManager();
+
+  // For unit changes subscription
+  StreamSubscription? _unitChangesSubscription;
+
+  // For loading state
+  bool _isLoadingUnits = false;
+  List<Unit> _allUnits = [];
+
+  // Unit variables
+  Unit? _senderUnit;
+  Unit? _recipientUnit;
 
   // Form controllers
   final _referenceController = TextEditingController();
@@ -39,9 +53,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
   final _receivedByController = TextEditingController();
   final _handledByController = TextEditingController();
 
-  // Unit selection
-  Unit? _senderUnit;
-  Unit? _recipientUnit;
+  // Unit selection (moved to above)
 
   // Time controllers
   DateTime? _timeHandedIn; // THI
@@ -80,7 +92,19 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
     super.initState();
     _isEditing = widget.dispatch != null;
 
-    // Initialize unit service
+    // Initialize UnitManager
+    _unitManager.initialize().then((_) {
+      // Subscribe to unit changes
+      _unitChangesSubscription = _unitManager.unitChanges.listen((_) {
+        debugPrint('IncomingDispatchForm: Received unit change notification');
+        _loadUnits();
+      });
+
+      // Load units
+      _loadUnits();
+    });
+
+    // Initialize unit service for backward compatibility
     _unitService.initialize();
 
     if (_isEditing) {
@@ -111,9 +135,6 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
         // Convert legacy attachment paths to FileAttachment objects
         _loadAttachmentsFromPaths();
       }
-
-      // Load units asynchronously
-      _loadUnits();
     } else {
       // Set default values for new dispatch
       _referenceController.text =
@@ -129,39 +150,123 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
     }
   }
 
-  // Load units for editing
+  // Load units from the UnitManager
   Future<void> _loadUnits() async {
+    if (_isLoadingUnits) return;
+
+    setState(() {
+      _isLoadingUnits = true;
+    });
+
     try {
-      // Try to find sender unit by name
-      final units = await _unitService.getAllUnits();
+      debugPrint('IncomingDispatchForm: Loading units from UnitManager');
 
-      // Find sender unit
-      if (_senderUnitController.text.isNotEmpty) {
-        for (final unit in units) {
-          if (unit.name == _senderUnitController.text ||
-              unit.code == _senderUnitController.text) {
-            setState(() {
-              _senderUnit = unit;
-            });
-            break;
-          }
-        }
+      // Initialize UnitManager if not already initialized
+      if (!_unitManager.isInitialized) {
+        await _unitManager.initialize();
       }
 
-      // Find recipient unit
-      if (_addrToController.text.isNotEmpty) {
-        for (final unit in units) {
-          if (unit.name == _addrToController.text ||
-              unit.code == _addrToController.text) {
-            setState(() {
-              _recipientUnit = unit;
-            });
-            break;
-          }
+      // Load all units directly from the database
+      final units = await _unitManager.getAllUnits();
+
+      debugPrint(
+          'IncomingDispatchForm: Loaded ${units.length} units from UnitManager');
+
+      // Print all units for debugging
+      if (units.isNotEmpty) {
+        debugPrint('IncomingDispatchForm: Units loaded:');
+        for (var i = 0; i < units.length; i++) {
+          final unit = units[i];
+          debugPrint(
+              '  Unit ${i + 1}: ID=${unit.id}, Name=${unit.name}, Code=${unit.code}');
         }
+      } else {
+        debugPrint('IncomingDispatchForm: NO UNITS LOADED FROM DATABASE!');
       }
+
+      // Update state with new units
+      if (mounted) {
+        setState(() {
+          _allUnits = units;
+
+          // Find sender unit if editing
+          if (_isEditing && _senderUnitController.text.isNotEmpty) {
+            for (final unit in units) {
+              if (unit.name.toLowerCase() ==
+                      _senderUnitController.text.toLowerCase() ||
+                  unit.code.toLowerCase() ==
+                      _senderUnitController.text.toLowerCase()) {
+                _senderUnit = unit;
+                break;
+              }
+            }
+          }
+
+          // Find recipient unit if editing
+          if (_isEditing && _addrToController.text.isNotEmpty) {
+            for (final unit in units) {
+              if (unit.name.toLowerCase() ==
+                      _addrToController.text.toLowerCase() ||
+                  unit.code.toLowerCase() ==
+                      _addrToController.text.toLowerCase()) {
+                _recipientUnit = unit;
+                break;
+              }
+            }
+          }
+
+          // If not editing, set primary unit as default recipient
+          if (!_isEditing) {
+            // Find primary unit if available
+            Unit? primaryUnit;
+            try {
+              primaryUnit = units.firstWhere(
+                (unit) => unit.isPrimary,
+              );
+            } catch (e) {
+              // No primary unit found, use first unit if available
+              if (units.isNotEmpty) {
+                primaryUnit = units.first;
+              }
+            }
+
+            // Set recipient unit if we found a primary unit
+            if (primaryUnit != null) {
+              _recipientUnit = primaryUnit;
+              _addrToController.text = primaryUnit.name;
+            }
+          }
+
+          _isLoadingUnits = false;
+        });
+      }
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Units refreshed (${units.length} units)'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      debugPrint('IncomingDispatchForm: Units loaded and state updated');
     } catch (e) {
-      debugPrint('Error loading units: $e');
+      debugPrint('IncomingDispatchForm: Error loading units: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingUnits = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading units: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -193,6 +298,10 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
 
   @override
   void dispose() {
+    // Cancel subscription
+    _unitChangesSubscription?.cancel();
+
+    // Dispose controllers
     _referenceController.dispose();
     _originatorsNumberController.dispose();
     _subjectController.dispose();
@@ -826,16 +935,131 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.only(left: 8.0),
-                              child: UnitSelectorUpdated(
-                                selectedUnitId: _senderUnit?.id,
-                                label: 'ADDR FROM *',
-                                isRequired: true,
-                                onUnitSelected: (unit) {
-                                  setState(() {
-                                    _senderUnit = unit;
-                                    _senderUnitController.text = unit.name;
-                                  });
-                                },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'ADDR FROM (Sender Unit) *',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      if (_isLoadingUnits)
+                                        const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      border:
+                                          Border.all(color: Colors.grey[300]!),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: DropdownButtonHideUnderline(
+                                      child: DropdownButtonFormField<Unit>(
+                                        value: _senderUnit,
+                                        isExpanded: true,
+                                        decoration: InputDecoration(
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                  horizontal: 12, vertical: 8),
+                                          border: InputBorder.none,
+                                          prefixIcon: const Icon(
+                                              FontAwesomeIcons.buildingUser,
+                                              size: 16),
+                                          filled: true,
+                                          fillColor: Colors.grey.shade50,
+                                        ),
+                                        hint: const Text('Select sender unit'),
+                                        items: _allUnits.map((Unit unit) {
+                                          return DropdownMenuItem<Unit>(
+                                            value: unit,
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.grey[200],
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            4),
+                                                  ),
+                                                  child: Text(
+                                                    unit.code,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 12,
+                                                      color: Colors.grey[800],
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(
+                                                    unit.name,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                if (unit.isPrimary) ...[
+                                                  const SizedBox(width: 4),
+                                                  const Icon(
+                                                    Icons.star,
+                                                    color: Colors.amber,
+                                                    size: 16,
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                        validator: (value) {
+                                          if (value == null) {
+                                            return 'Please select a sender unit';
+                                          }
+                                          return null;
+                                        },
+                                        onChanged: (Unit? newValue) {
+                                          if (newValue != null) {
+                                            setState(() {
+                                              _senderUnit = newValue;
+                                              _senderUnitController.text =
+                                                  newValue.name;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ),
+
+                                  // Add New Unit Button
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: TextButton.icon(
+                                      icon: const Icon(
+                                          FontAwesomeIcons.circlePlus,
+                                          size: 16),
+                                      label: const Text('Add New Unit'),
+                                      onPressed: () => _showAddUnitDialog(),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: AppTheme.primaryColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -859,35 +1083,273 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                             },
                           ),
                           const SizedBox(height: 16),
-                          UnitSelectorUpdated(
-                            selectedUnitId: _senderUnit?.id,
-                            label: 'ADDR FROM *',
-                            isRequired: true,
-                            onUnitSelected: (unit) {
-                              setState(() {
-                                _senderUnit = unit;
-                                _senderUnitController.text = unit.name;
-                              });
-                            },
+
+                          // ADDR FROM (Sender Unit)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'ADDR FROM (Sender Unit) *',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  if (_isLoadingUnits)
+                                    const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey[300]!),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButtonFormField<Unit>(
+                                    value: _senderUnit,
+                                    isExpanded: true,
+                                    decoration: InputDecoration(
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 8),
+                                      border: InputBorder.none,
+                                      prefixIcon: const Icon(
+                                          FontAwesomeIcons.buildingUser,
+                                          size: 16),
+                                      filled: true,
+                                      fillColor: Colors.grey.shade50,
+                                    ),
+                                    hint: const Text('Select sender unit'),
+                                    items: _allUnits.map((Unit unit) {
+                                      return DropdownMenuItem<Unit>(
+                                        value: unit,
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[200],
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                unit.code,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                  color: Colors.grey[800],
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                unit.name,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (unit.isPrimary) ...[
+                                              const SizedBox(width: 4),
+                                              const Icon(
+                                                Icons.star,
+                                                color: Colors.amber,
+                                                size: 16,
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                    validator: (value) {
+                                      if (value == null) {
+                                        return 'Please select a sender unit';
+                                      }
+                                      return null;
+                                    },
+                                    onChanged: (Unit? newValue) {
+                                      if (newValue != null) {
+                                        setState(() {
+                                          _senderUnit = newValue;
+                                          _senderUnitController.text =
+                                              newValue.name;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+
+                              // Add New Unit Button
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: TextButton.icon(
+                                  icon: const Icon(FontAwesomeIcons.circlePlus,
+                                      size: 16),
+                                  label: const Text('Add New Unit'),
+                                  onPressed: () => _showAddUnitDialog(),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppTheme.primaryColor,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
 
                     const SizedBox(height: 16),
 
-                    // ADDR TO
-                    UnitSelectorUpdated(
-                      selectedUnitId: _recipientUnit?.id,
-                      label: 'ADDR TO *',
-                      isRequired: true,
-                      filterByType: UnitType
-                          .headquarters, // Filter to show only headquarters units
-                      onUnitSelected: (unit) {
-                        setState(() {
-                          _recipientUnit = unit;
-                          _addrToController.text = unit.name;
-                        });
-                      },
+                    // ADDR TO (Recipient Unit)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'ADDR TO (Recipient Unit) *',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            if (_isLoadingUnits)
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButtonFormField<Unit>(
+                              value: _recipientUnit,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                border: InputBorder.none,
+                                prefixIcon: const Icon(
+                                    FontAwesomeIcons.buildingUser,
+                                    size: 16),
+                                filled: true,
+                                fillColor: Colors.grey.shade50,
+                              ),
+                              hint: const Text('Select recipient unit'),
+                              items: _allUnits.map((Unit unit) {
+                                return DropdownMenuItem<Unit>(
+                                  value: unit,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[200],
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          unit.code,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            color: Colors.grey[800],
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          unit.name,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (unit.isPrimary) ...[
+                                        const SizedBox(width: 4),
+                                        const Icon(
+                                          Icons.star,
+                                          color: Colors.amber,
+                                          size: 16,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Please select a recipient unit';
+                                }
+                                return null;
+                              },
+                              onChanged: (Unit? newValue) {
+                                if (newValue != null) {
+                                  setState(() {
+                                    _recipientUnit = newValue;
+                                    _addrToController.text = newValue.name;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+
+                        // Add New Unit Button
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              TextButton.icon(
+                                icon: const Icon(FontAwesomeIcons.circlePlus,
+                                    size: 16),
+                                label: const Text('Add New Unit'),
+                                onPressed: () => _showAddUnitDialog(),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppTheme.primaryColor,
+                                ),
+                              ),
+
+                              // Refresh Button
+                              TextButton.icon(
+                                icon: const Icon(Icons.refresh, size: 16),
+                                label: const Text('Refresh Units'),
+                                onPressed: () {
+                                  // Show loading indicator
+                                  setState(() {
+                                    _isLoadingUnits = true;
+                                  });
+
+                                  // Reload units
+                                  _loadUnits();
+                                },
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppTheme.primaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1166,6 +1628,19 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // Show dialog to add a new unit
+  void _showAddUnitDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => UnitFormDialog(
+        onUnitSaved: (unit, isNew) {
+          // Just reload all units after a unit is saved
+          _loadUnits();
+        },
       ),
     );
   }
