@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../constants/app_constants.dart';
 import '../constants/app_theme.dart';
 import '../models/user.dart';
@@ -132,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               child: ClipOval(
-                child: Image.asset(
+                child: SvgPicture.asset(
                   AppConstants.logoPath,
                   fit: BoxFit.cover,
                 ),
@@ -621,6 +622,24 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.orange,
         onTap: () {
           Navigator.pushNamed(context, AppConstants.transitSlipGeneratorRoute);
+        },
+      ),
+      _buildDashboardCard(
+        icon: FontAwesomeIcons.fileImport,
+        title: 'IN FILE Slips',
+        subtitle: 'Generate IN FILE slips',
+        color: Colors.blue,
+        onTap: () {
+          Navigator.pushNamed(context, AppConstants.inFileSlipGeneratorRoute);
+        },
+      ),
+      _buildDashboardCard(
+        icon: FontAwesomeIcons.fileExport,
+        title: 'OUT FILE Slips',
+        subtitle: 'Generate OUT FILE slips',
+        color: Colors.green,
+        onTap: () {
+          Navigator.pushNamed(context, AppConstants.outFileSlipGeneratorRoute);
         },
       ),
       _buildDashboardCard(

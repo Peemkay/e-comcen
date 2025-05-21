@@ -42,8 +42,9 @@ class _UnitFormDialogImprovedState extends State<UnitFormDialogImproved> {
   @override
   void initState() {
     super.initState();
-    _unitService.initialize();
-    _unitManager.initialize();
+
+    // Initialize services with proper error handling
+    _initializeServices();
 
     if (widget.unit != null) {
       _nameController.text = widget.unit!.name;
@@ -56,6 +57,22 @@ class _UnitFormDialogImprovedState extends State<UnitFormDialogImproved> {
 
     // Add listener to check for existing units when code changes
     _codeController.addListener(_checkExistingUnit);
+  }
+
+  // Initialize services with proper error handling
+  Future<void> _initializeServices() async {
+    try {
+      debugPrint('UnitFormDialogImproved: Initializing services...');
+
+      // Initialize both services
+      await _unitService.initialize();
+      await _unitManager.initialize();
+
+      debugPrint('UnitFormDialogImproved: Services initialized successfully');
+    } catch (e) {
+      debugPrint('UnitFormDialogImproved: Error initializing services: $e');
+      // We'll continue anyway and handle errors during save
+    }
   }
 
   // Check if a unit with the same code already exists
@@ -134,7 +151,7 @@ class _UnitFormDialogImprovedState extends State<UnitFormDialogImproved> {
     }
   }
 
-  // Handle save with new unit - SIMPLE DIRECT APPROACH
+  // Handle save with new unit - IMPROVED APPROACH
   Future<void> _handleSave() async {
     // Check if there's an existing unit with the same code
     if (_existingUnit != null && widget.unit == null) {
@@ -185,6 +202,15 @@ class _UnitFormDialogImprovedState extends State<UnitFormDialogImproved> {
       });
 
       try {
+        // Make sure services are initialized
+        if (!_unitService.isInitialized) {
+          await _unitService.initialize();
+        }
+
+        if (!_unitManager.isInitialized) {
+          await _unitManager.initialize();
+        }
+
         // Generate a unique ID for new units
         final unitId =
             widget.unit?.id ?? 'unit_${DateTime.now().millisecondsSinceEpoch}';
@@ -205,39 +231,120 @@ class _UnitFormDialogImprovedState extends State<UnitFormDialogImproved> {
           updatedAt: DateTime.now(),
         );
 
-        // SIMPLE DIRECT APPROACH - Just save and close
+        debugPrint(
+            'UnitFormDialogImproved: Saving unit: ${unit.name} (${unit.code}) with ID ${unit.id}');
+
+        bool success = false;
+
+        // IMPROVED APPROACH - Try to save to both services with better error handling
         if (widget.unit == null) {
           // Adding new unit - try both services
-          await _unitService.addUnit(unit);
-          await _unitManager.addUnit(unit);
+          try {
+            // Try UnitService first
+            final unitServiceResult = await _unitService.addUnit(unit);
+            debugPrint(
+                'UnitFormDialogImproved: UnitService result: ${unitServiceResult != null ? 'Success' : 'Failed'}');
+
+            // Then try UnitManager
+            final unitManagerResult = await _unitManager.addUnit(unit);
+            debugPrint(
+                'UnitFormDialogImproved: UnitManager result: ${unitManagerResult != null ? 'Success' : 'Failed'}');
+
+            // Consider it a success if either service worked
+            success = unitServiceResult != null || unitManagerResult != null;
+          } catch (serviceError) {
+            debugPrint(
+                'UnitFormDialogImproved: Error saving to services: $serviceError');
+            // We'll handle this in the outer catch block
+            rethrow;
+          }
         } else {
           // Updating existing unit - try both services
-          await _unitService.updateUnit(unit);
-          await _unitManager.updateUnit(unit);
+          try {
+            // Try UnitService first
+            final unitServiceResult = await _unitService.updateUnit(unit);
+            debugPrint(
+                'UnitFormDialogImproved: UnitService update result: $unitServiceResult');
+
+            // Then try UnitManager
+            final unitManagerResult = await _unitManager.updateUnit(unit);
+            debugPrint(
+                'UnitFormDialogImproved: UnitManager update result: $unitManagerResult');
+
+            // Consider it a success if either service worked
+            success = unitServiceResult || unitManagerResult;
+          } catch (serviceError) {
+            debugPrint(
+                'UnitFormDialogImproved: Error updating in services: $serviceError');
+            // We'll handle this in the outer catch block
+            rethrow;
+          }
         }
 
-        // Always consider it a success and close the dialog
-        widget.onUnitSaved(unit, widget.unit == null, true);
-
-        // Close the dialog immediately
+        // Always reset the saving state, regardless of the outcome
         if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+        }
+
+        // Notify the caller about the result
+        if (mounted) {
+          widget.onUnitSaved(unit, widget.unit == null, success);
+
+          // Show a snackbar with the result
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(success
+                  ? (widget.unit == null
+                      ? 'Unit added successfully'
+                      : 'Unit updated successfully')
+                  : (widget.unit == null
+                      ? 'Failed to add unit'
+                      : 'Failed to update unit')),
+              backgroundColor: success ? Colors.green : Colors.red,
+            ),
+          );
+
+          // Close the dialog
           Navigator.pop(context);
         }
       } catch (e) {
         debugPrint('UnitFormDialogImproved: Error saving unit: $e');
 
-        // Create a basic unit to return
-        final unit = Unit(
-          id: 'unit_${DateTime.now().millisecondsSinceEpoch}',
-          name: _nameController.text.trim(),
-          code: _codeController.text.trim().toUpperCase(),
-        );
-
-        // Still notify the caller and close the dialog
-        widget.onUnitSaved(unit, widget.unit == null, true);
-
+        // Always reset the saving state, even on error
         if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+
+          // Create a basic unit to return as fallback
+          final unit = Unit(
+            id: 'unit_${DateTime.now().millisecondsSinceEpoch}',
+            name: _nameController.text.trim(),
+            code: _codeController.text.trim().toUpperCase(),
+          );
+
+          // Still notify the caller but indicate failure
+          widget.onUnitSaved(unit, widget.unit == null, false);
+
+          // Close the dialog
           Navigator.pop(context);
+        }
+      } finally {
+        // Ensure the saving state is reset even if there's an unexpected error
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
         }
       }
     }

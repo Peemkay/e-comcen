@@ -1,0 +1,6 @@
+Fix TCL column time not updating on generated slips
+
+- Fixed TCL column time not updating on IN FILE slip generator
+- Fixed TCL column time not updating on OUT FILE slip generator
+- Updated app icons and logos with new image
+- Improved date formatting for time fields in slip generators

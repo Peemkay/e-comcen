@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nigerian Army Signals Logo Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #00205B;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .step {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #00205B;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #003080;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            max-width: 100%;
+            display: none;
+        }
+        #preview {
+            max-width: 300px;
+            max-height: 300px;
+            border: 1px dashed #ccc;
+            margin: 10px 0;
+        }
+        .output {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nigerian Army Signals Logo Converter</h1>
+    <p>This tool will help you convert the Nigerian Army Signals logo to PNG format for use in the NASDS application.</p>
+    
+    <div class="container">
+        <div class="step">
+            <h2>Step 1: Select the Logo Image</h2>
+            <input type="file" id="imageInput" accept="image/*">
+            <div>
+                <img id="preview" src="#" alt="Preview" style="display: none;">
+            </div>
+        </div>
+        
+        <div class="step">
+            <h2>Step 2: Convert and Save</h2>
+            <button id="convertBtn" disabled>Convert to PNG</button>
+            <p>Click the button above to convert the image to PNG format.</p>
+            <canvas id="canvas"></canvas>
+            <div class="output">
+                <a id="downloadLink" style="display: none;" download="nas_logo.png">
+                    <button>Download PNG</button>
+                </a>
+            </div>
+        </div>
+        
+        <div class="step">
+            <h2>Step 3: Save the Files</h2>
+            <p>Save the downloaded PNG file to the following locations:</p>
+            <ol>
+                <li><code>C:\Users\chaki\Documents\Projects Augment\NASDS\assets\images\nas_logo.png</code></li>
+                <li><code>C:\Users\chaki\Documents\Projects Augment\NASDS\assets\images\nas_icon.png</code></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const preview = document.getElementById('preview');
+        const convertBtn = document.getElementById('convertBtn');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const downloadLink = document.getElementById('downloadLink');
+        
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    preview.src = event.target.result;
+                    preview.style.display = 'block';
+                    convertBtn.disabled = false;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        convertBtn.addEventListener('click', function() {
+            const img = new Image();
+            img.onload = function() {
+                // Set canvas dimensions to match the image
+                canvas.width = img.width;
+                canvas.height = img.height;
+                
+                // Draw image on canvas
+                ctx.drawImage(img, 0, 0);
+                
+                // Convert canvas to PNG
+                const pngDataUrl = canvas.toDataURL('image/png');
+                
+                // Set download link
+                downloadLink.href = pngDataUrl;
+                downloadLink.style.display = 'inline-block';
+            }
+            img.src = preview.src;
+        });
+    </script>
+</body>
+</html>

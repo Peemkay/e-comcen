@@ -781,45 +781,99 @@ class DispatchService {
         Random().nextInt(10000).toString();
   }
 
-  // Find a dispatch by its reference number
-  Future<Dispatch?> findDispatchByReference(String referenceNumber) async {
+  // Find a dispatch by its reference number or originator's number
+  Future<Dispatch?> findDispatchByReference(String searchNumber) async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // Search in all dispatch types
+    // Search in all dispatch types by reference number
     try {
-      // Check incoming dispatches
+      // Check incoming dispatches by reference number
       final incomingDispatch = _incomingDispatches.firstWhere(
-        (d) => d.referenceNumber.toLowerCase() == referenceNumber.toLowerCase(),
+        (d) => d.referenceNumber.toLowerCase() == searchNumber.toLowerCase(),
       );
       return incomingDispatch;
     } catch (_) {}
 
     try {
-      // Check outgoing dispatches
+      // Check outgoing dispatches by reference number
       final outgoingDispatch = _outgoingDispatches.firstWhere(
-        (d) => d.referenceNumber.toLowerCase() == referenceNumber.toLowerCase(),
+        (d) => d.referenceNumber.toLowerCase() == searchNumber.toLowerCase(),
       );
       return outgoingDispatch;
     } catch (_) {}
 
     try {
-      // Check local dispatches
+      // Check local dispatches by reference number
       final localDispatch = _localDispatches.firstWhere(
-        (d) => d.referenceNumber.toLowerCase() == referenceNumber.toLowerCase(),
+        (d) => d.referenceNumber.toLowerCase() == searchNumber.toLowerCase(),
       );
       return localDispatch;
     } catch (_) {}
 
     try {
-      // Check external dispatches
+      // Check external dispatches by reference number
       final externalDispatch = _externalDispatches.firstWhere(
-        (d) => d.referenceNumber.toLowerCase() == referenceNumber.toLowerCase(),
+        (d) => d.referenceNumber.toLowerCase() == searchNumber.toLowerCase(),
       );
       return externalDispatch;
     } catch (_) {}
 
+    // If not found by reference number, search by originator's number
+    try {
+      // Check incoming dispatches by originator's number
+      final incomingDispatch = _incomingDispatches.firstWhere(
+        (d) =>
+            d.originatorsNumber.toLowerCase() == searchNumber.toLowerCase() &&
+            d.originatorsNumber.isNotEmpty,
+      );
+      return incomingDispatch;
+    } catch (_) {}
+
+    try {
+      // Check outgoing dispatches by originator's number (if applicable)
+      final outgoingDispatch = _outgoingDispatches.firstWhere(
+        (d) =>
+            d is IncomingDispatch &&
+            (d as IncomingDispatch).originatorsNumber.toLowerCase() ==
+                searchNumber.toLowerCase() &&
+            (d as IncomingDispatch).originatorsNumber.isNotEmpty,
+      );
+      return outgoingDispatch;
+    } catch (_) {}
+
     // If no dispatch found, return null
     return null;
+  }
+
+  // Find dispatches by reference number or originator's number (returns multiple matches)
+  Future<List<Dispatch>> findDispatchesByReference(String searchNumber) async {
+    // Simulate network delay
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    List<Dispatch> results = [];
+
+    // Search in all dispatch types
+    // Add incoming dispatches that match
+    results.addAll(_incomingDispatches.where((d) =>
+        d.referenceNumber.toLowerCase().contains(searchNumber.toLowerCase()) ||
+        (d.originatorsNumber.isNotEmpty &&
+            d.originatorsNumber
+                .toLowerCase()
+                .contains(searchNumber.toLowerCase()))));
+
+    // Add outgoing dispatches that match
+    results.addAll(_outgoingDispatches.where((d) =>
+        d.referenceNumber.toLowerCase().contains(searchNumber.toLowerCase())));
+
+    // Add local dispatches that match
+    results.addAll(_localDispatches.where((d) =>
+        d.referenceNumber.toLowerCase().contains(searchNumber.toLowerCase())));
+
+    // Add external dispatches that match
+    results.addAll(_externalDispatches.where((d) =>
+        d.referenceNumber.toLowerCase().contains(searchNumber.toLowerCase())));
+
+    return results;
   }
 }

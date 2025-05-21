@@ -304,6 +304,12 @@ class UnitManager {
     }
   }
 
+  /// Manually notify listeners about unit changes
+  void notifyUnitChanges() {
+    debugPrint('UnitManager: Manually notifying about unit changes');
+    _unitChangesController.add(true);
+  }
+
   /// Dispose the unit manager
   void dispose() {
     _unitChangesController.close();

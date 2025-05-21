@@ -148,5 +148,14 @@
   "is_required": "is required",
   "invalid_army_number": "Invalid Army Number format",
 
+  "session_timeout": "Session Timeout",
+  "session_timeout_message": "Your session has been locked due to inactivity for security reasons.",
+  "session_timeout_details": "Your session was inactive for {minutes} minutes. For your security, we've locked your session.",
+  "session_locked_at": "Session locked at: {time}",
+  "unlock": "Unlock Session",
+  "unlock_description": "Enter your PIN to continue where you left off",
+  "logout_confirmation_title": "Confirm Logout",
+  "logout_confirmation_message": "Are you sure you want to log out? You will need to log in again to access the system.",
+
   "copyright": "© {year} Nigerian Army Signal"
 }

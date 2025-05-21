@@ -7,9 +7,21 @@ import 'package:mime/mime.dart';
 class FileUtils {
   /// Opens a file using the default application
   static Future<void> openFile(String filePath) async {
-    final result = await OpenFile.open(filePath);
-    if (result.type != ResultType.done) {
-      throw Exception(result.message);
+    try {
+      // Normalize file path for Windows
+      String normalizedPath = filePath;
+      if (Platform.isWindows) {
+        normalizedPath = normalizedPath.replaceAll('/', '\\');
+      }
+
+      final result = await OpenFile.open(normalizedPath);
+      if (result.type != ResultType.done) {
+        debugPrint('Error opening file: ${result.message}');
+        throw Exception(result.message);
+      }
+    } catch (e) {
+      debugPrint('Error in openFile: $e');
+      throw Exception('Failed to open file: $e');
     }
   }
 
@@ -24,12 +36,12 @@ class FileUtils {
     const suffixes = ['B', 'KB', 'MB', 'GB', 'TB'];
     var i = 0;
     double size = bytes.toDouble();
-    
+
     while (size >= 1024 && i < suffixes.length - 1) {
       size /= 1024;
       i++;
     }
-    
+
     return '${size.toStringAsFixed(1)} ${suffixes[i]}';
   }
 
@@ -54,14 +66,15 @@ class FileUtils {
   }
 
   /// Creates a temporary file with the given content
-  static Future<File> createTempFile(Uint8List content, String extension) async {
+  static Future<File> createTempFile(
+      Uint8List content, String extension) async {
     final tempDir = Directory.systemTemp;
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final filePath = '${tempDir.path}/temp_$timestamp$extension';
-    
+
     final file = File(filePath);
     await file.writeAsBytes(content);
-    
+
     return file;
   }
 }

@@ -333,6 +333,7 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
+                          // Reference number for all dispatch types
                           Text(
                             'Reference: ${_dispatch.referenceNumber}',
                             style: const TextStyle(
@@ -341,6 +342,8 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
                             ),
                           ),
                           const SizedBox(height: 4),
+
+                          // Date for all dispatch types
                           Text(
                             'Date: ${DateFormat('dd MMM yyyy').format(_dispatch.dateTime)}',
                             style: const TextStyle(
@@ -348,6 +351,61 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
                               color: Colors.grey,
                             ),
                           ),
+
+                          // Additional info for incoming dispatches
+                          if (widget.dispatchType == 'incoming') ...[
+                            const SizedBox(height: 4),
+                            Builder(
+                              builder: (context) {
+                                final incomingDispatch =
+                                    _dispatch as IncomingDispatch;
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Originator\'s No: ${incomingDispatch.originatorsNumber}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'ADDR FROM: ${incomingDispatch.senderUnit}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'ADDR TO: ${incomingDispatch.addrTo}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'THI: ${incomingDispatch.timeHandedIn != null ? DateFormat('HH:mm').format(incomingDispatch.timeHandedIn!) : 'Not set'}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'TCL: ${incomingDispatch.timeCleared != null ? DateFormat('HH:mm').format(incomingDispatch.timeCleared!) : 'Not set'}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
                           const SizedBox(height: 8),
                           Row(
                             children: [
@@ -607,8 +665,25 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
   List<Widget> _buildIncomingDetails() {
     final incomingDispatch = _dispatch as IncomingDispatch;
     return [
-      _buildDetailRow('Sender', incomingDispatch.sender),
-      _buildDetailRow('Sender Unit', incomingDispatch.senderUnit),
+      _buildDetailRow('Reference Number', incomingDispatch.referenceNumber),
+      _buildDetailRow(
+          'Originator\'s Number', incomingDispatch.originatorsNumber),
+      _buildDetailRow('P/ACTION', incomingDispatch.priority),
+      _buildDetailRow('ADDR FROM', incomingDispatch.senderUnit),
+      _buildDetailRow('ADDR TO', incomingDispatch.addrTo),
+      _buildDetailRow(
+        'THI',
+        incomingDispatch.timeHandedIn != null
+            ? DateFormat('HH:mm').format(incomingDispatch.timeHandedIn!)
+            : 'Not set',
+      ),
+      _buildDetailRow(
+        'TCL',
+        incomingDispatch.timeCleared != null
+            ? DateFormat('HH:mm').format(incomingDispatch.timeCleared!)
+            : 'Not set',
+      ),
+      _buildDetailRow('Delivered By', incomingDispatch.sender),
       _buildDetailRow('Received By', incomingDispatch.receivedBy),
       _buildDetailRow(
         'Received Date',

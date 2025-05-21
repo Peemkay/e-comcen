@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Signal Logo Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .logo-preview {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+        }
+        .controls {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .color-picker {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .color-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        button {
+            background-color: #00205B;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #003080;
+        }
+        h1, h2 {
+            color: #00205B;
+        }
+        .instructions {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .style-options {
+            margin-bottom: 15px;
+        }
+        select, input {
+            padding: 5px;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple Signal Logo Generator</h1>
+    <p>Create a simple, clean signal logo for your application.</p>
+    
+    <div class="container">
+        <div class="logo-preview">
+            <h2>Logo Preview</h2>
+            <canvas id="canvas" width="512" height="512"></canvas>
+        </div>
+        
+        <div class="controls">
+            <h2>Customize Logo</h2>
+            
+            <div class="style-options">
+                <label for="logoStyle">Logo Style:</label>
+                <select id="logoStyle">
+                    <option value="circle">Circle</option>
+                    <option value="square">Square</option>
+                </select>
+            </div>
+            
+            <div class="color-picker">
+                <div class="color-option">
+                    <label for="backgroundColor">Background</label>
+                    <input type="color" id="backgroundColor" value="#00205B">
+                </div>
+                <div class="color-option">
+                    <label for="signalColor">Signal</label>
+                    <input type="color" id="signalColor" value="#FFFF00">
+                </div>
+            </div>
+            
+            <button id="regenerateBtn">Regenerate Logo</button>
+            <button id="downloadBtn">Download Logo Files</button>
+        </div>
+        
+        <div class="instructions">
+            <h2>Instructions</h2>
+            <ol>
+                <li>Customize the logo style and colors if desired</li>
+                <li>Click "Regenerate Logo" to apply changes</li>
+                <li>Click "Download Logo Files" to save both the logo and icon</li>
+                <li>Move the downloaded files to these exact locations:
+                    <ul>
+                        <li><code>C:\Users\chaki\Documents\Projects Augment\NASDS\assets\images\nas_logo.png</code></li>
+                        <li><code>C:\Users\chaki\Documents\Projects Augment\NASDS\assets\images\nas_icon.png</code></li>
+                    </ul>
+                </li>
+                <li>Run this command in your project directory:
+                    <pre><code>cd "C:\Users\chaki\Documents\Projects Augment\NASDS"
+flutter pub run flutter_launcher_icons</code></pre>
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const backgroundColorInput = document.getElementById('backgroundColor');
+        const signalColorInput = document.getElementById('signalColor');
+        const logoStyleSelect = document.getElementById('logoStyle');
+        const regenerateBtn = document.getElementById('regenerateBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        // Draw the simple signal logo
+        function drawLogo() {
+            const backgroundColor = backgroundColorInput.value;
+            const signalColor = signalColorInput.value;
+            const logoStyle = logoStyleSelect.value;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const size = Math.min(canvas.width, canvas.height) * 0.8;
+            
+            // Draw background shape
+            ctx.fillStyle = backgroundColor;
+            
+            if (logoStyle === 'circle') {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, size/2, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (logoStyle === 'square') {
+                ctx.fillRect(centerX - size/2, centerY - size/2, size, size);
+            }
+            
+            // Draw signal waves
+            ctx.strokeStyle = signalColor;
+            ctx.lineWidth = size/20;
+            ctx.lineCap = 'round';
+            
+            // First wave (smallest)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, size/6, -Math.PI * 0.75, Math.PI * 0.75);
+            ctx.stroke();
+            
+            // Second wave
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, size/4, -Math.PI * 0.75, Math.PI * 0.75);
+            ctx.stroke();
+            
+            // Third wave
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, size/3, -Math.PI * 0.75, Math.PI * 0.75);
+            ctx.stroke();
+            
+            // Draw center dot
+            ctx.fillStyle = signalColor;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, size/15, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Create icon version (same as logo for simplicity)
+            createIcon(backgroundColor, signalColor, logoStyle);
+        }
+        
+        // Create a simplified icon version
+        function createIcon(backgroundColor, signalColor, logoStyle) {
+            // For this simple logo, we'll use the same design for both logo and icon
+            window.iconDataURL = canvas.toDataURL('image/png');
+        }
+        
+        // Set up download button
+        downloadBtn.addEventListener('click', function() {
+            // Download logo
+            const logoLink = document.createElement('a');
+            logoLink.download = 'nas_logo.png';
+            logoLink.href = canvas.toDataURL('image/png');
+            logoLink.click();
+            
+            // Wait a moment before downloading icon to avoid browser issues
+            setTimeout(function() {
+                // Download icon
+                const iconLink = document.createElement('a');
+                iconLink.download = 'nas_icon.png';
+                iconLink.href = window.iconDataURL;
+                iconLink.click();
+                
+                alert('Logo and icon downloaded! Please save them to your project\'s assets/images directory.');
+            }, 500);
+        });
+        
+        // Set up regenerate button
+        regenerateBtn.addEventListener('click', drawLogo);
+        
+        // Draw the logo when the page loads
+        window.onload = drawLogo;
+    </script>
+</body>
+</html>

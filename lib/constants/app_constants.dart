@@ -41,9 +41,13 @@ class AppConstants {
 
   // Reports Routes
   static const String transitSlipGeneratorRoute = '/reports/transit-slip';
+  static const String inFileSlipGeneratorRoute = '/reports/in-file-slip';
+  static const String outFileSlipGeneratorRoute = '/reports/out-file-slip';
 
   // Assets
   static const String logoPath =
-      'assets/images/nasds_logo.png'; // Will need to update logo
-  static const String backgroundPath = 'assets/images/background.png';
+      'assets/images/nas_logo.png'; // Nigerian Army Signals logo
+  static const String iconPath =
+      'assets/images/nas_logo.png'; // Same logo for icon
+  static const String backgroundPath = 'assets/images/background.svg';
 }

@@ -25,7 +25,7 @@ Future<void> _printDispatch() async {
     final pageFormat = result['pageFormat'] as pdf.PdfPageFormat;
 
     // Generate PDF
-    final pdfGenerator = (pdf.PdfPageFormat format) async {
+    pdfGenerator(pdf.PdfPageFormat format) async {
       final document = pw.Document();
 
       document.addPage(
@@ -242,7 +242,7 @@ Future<void> _printDispatch() async {
       );
 
       return document.save();
-    };
+    }
 
     switch (printAction) {
       case PrintAction.print:

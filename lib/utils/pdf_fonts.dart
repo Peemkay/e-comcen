@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 /// A utility class for loading and managing fonts for PDF generation

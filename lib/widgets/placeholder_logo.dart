@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../constants/app_theme.dart';
+import '../utils/logo_util.dart';
 
-/// A placeholder logo widget to use when the actual logo image is not available
+/// A logo widget that displays the Nigerian Army Signals logo
 class PlaceholderLogo extends StatelessWidget {
   final double size;
   final Color? color;
@@ -18,19 +18,10 @@ class PlaceholderLogo extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color ?? AppTheme.primaryColor,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Center(
-        child: Text(
-          'NASDS',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: size * 0.3,
-          ),
-        ),
-      ),
+      child: LogoUtil.getSquareLogo(size),
     );
   }
 }

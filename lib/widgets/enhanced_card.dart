@@ -10,13 +10,13 @@ class EnhancedCard extends StatelessWidget {
   final Color? backgroundColor;
 
   const EnhancedCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.icon,
     required this.child,
     this.headerColor,
     this.backgroundColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

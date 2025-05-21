@@ -61,7 +61,7 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
 
   // Attachments
   List<String> _attachments = [];
-  List<Map<String, dynamic>> _attachmentDetails = [];
+  final List<Map<String, dynamic>> _attachmentDetails = [];
 
   // Lists for dropdowns
   final List<String> _securityClassifications = [
@@ -311,7 +311,7 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
 
         if (success) {
           // Also add to UnitService for compatibility
-          await _unitService.addUnit(savedUnit!);
+          await _unitService.addUnit(savedUnit);
 
           // Update the unit in our state
           setState(() {

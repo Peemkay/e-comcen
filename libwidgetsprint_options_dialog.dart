@@ -7,10 +7,10 @@ class PrintOptionsDialog extends StatefulWidget {
   final String documentName;
 
   const PrintOptionsDialog({
-    Key? key,
+    super.key,
     required this.onLayout,
     required this.documentName,
-  }) : super(key: key);
+  });
 
   @override
   State<PrintOptionsDialog> createState() => _PrintOptionsDialogState();

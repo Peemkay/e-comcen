@@ -20,6 +20,8 @@ class _DispatchTrackingDialogState extends State<DispatchTrackingDialog> {
   Dispatch? _dispatch;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _showMultipleResults = false;
+  List<Dispatch> _searchResults = [];
 
   @override
   void dispose() {
@@ -28,10 +30,11 @@ class _DispatchTrackingDialogState extends State<DispatchTrackingDialog> {
   }
 
   Future<void> _trackDispatch() async {
-    final reference = _referenceController.text.trim();
-    if (reference.isEmpty) {
+    final searchNumber = _referenceController.text.trim();
+    if (searchNumber.isEmpty) {
       setState(() {
-        _errorMessage = 'Please enter a reference number';
+        _errorMessage =
+            'Please enter a reference number or originator\'s number';
       });
       return;
     }
@@ -39,22 +42,43 @@ class _DispatchTrackingDialogState extends State<DispatchTrackingDialog> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _showMultipleResults = false;
+      _searchResults = [];
     });
 
     try {
-      // Search for the dispatch in all types
+      // First try to find an exact match
       final dispatch =
-          await _dispatchService.findDispatchByReference(reference);
+          await _dispatchService.findDispatchByReference(searchNumber);
 
-      setState(() {
-        _dispatch = dispatch;
-        _isLoading = false;
-      });
-
-      if (dispatch == null) {
+      if (dispatch != null) {
+        // If we found an exact match, show it
         setState(() {
-          _errorMessage = 'No dispatch found with this reference number';
+          _dispatch = dispatch;
+          _isLoading = false;
+          _showMultipleResults = false;
         });
+      } else {
+        // If no exact match, try to find partial matches
+        final results =
+            await _dispatchService.findDispatchesByReference(searchNumber);
+
+        if (results.isNotEmpty) {
+          // If we found multiple matches, show them
+          setState(() {
+            _searchResults = results;
+            _isLoading = false;
+            _showMultipleResults = true;
+            _dispatch = null;
+          });
+        } else {
+          // If no matches at all, show error
+          setState(() {
+            _isLoading = false;
+            _errorMessage =
+                'No dispatch found with this reference number or originator\'s number';
+          });
+        }
       }
     } catch (e) {
       setState(() {
@@ -62,6 +86,13 @@ class _DispatchTrackingDialogState extends State<DispatchTrackingDialog> {
         _errorMessage = 'Error: ${e.toString()}';
       });
     }
+  }
+
+  void _selectDispatch(Dispatch dispatch) {
+    setState(() {
+      _dispatch = dispatch;
+      _showMultipleResults = false;
+    });
   }
 
   void _viewDetailedTracking(BuildContext context) {
@@ -448,7 +479,7 @@ class _DispatchTrackingDialogState extends State<DispatchTrackingDialog> {
                   child: TextField(
                     controller: _referenceController,
                     decoration: InputDecoration(
-                      hintText: 'Enter reference number',
+                      hintText: 'Enter reference or originator\'s number',
                       prefixIcon:
                           const Icon(FontAwesomeIcons.hashtag, size: 16),
                       border: OutlineInputBorder(
@@ -508,6 +539,40 @@ class _DispatchTrackingDialogState extends State<DispatchTrackingDialog> {
               _buildDispatchDetails(_dispatch!),
               const SizedBox(height: 16),
               _buildStatusTracker(_dispatch!),
+            ],
+
+            if (_showMultipleResults && _searchResults.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const Text(
+                'Multiple dispatches found:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...List.generate(_searchResults.length, (index) {
+                final dispatch = _searchResults[index];
+                return ListTile(
+                  title: Text(
+                    dispatch.referenceNumber,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    dispatch.subject,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Text(
+                    dispatch.status,
+                    style: TextStyle(
+                      color: dispatch.getStatusColor(),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onTap: () => _selectDispatch(dispatch),
+                );
+              }),
             ],
           ],
         ),

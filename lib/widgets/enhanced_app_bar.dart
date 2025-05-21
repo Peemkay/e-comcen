@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:provider/provider.dart';
 import '../constants/app_constants.dart';
 import '../constants/app_theme.dart';
 import '../models/user.dart';
-import '../providers/notification_provider.dart';
 import '../services/auth_service.dart';
 import 'notifications/notification_badge.dart';
 import 'dispatch_tracking_dialog.dart';
@@ -87,9 +85,9 @@ class EnhancedAppBar extends StatelessWidget implements PreferredSizeWidget {
                 () {
                   Navigator.pushNamed(context, '/notifications');
                 },
-            child: const FaIcon(FontAwesomeIcons.bell, size: 18),
             size: 20.0,
             badgeColor: AppTheme.accentColor,
+            child: const FaIcon(FontAwesomeIcons.bell, size: 18),
           ),
         ),
       );

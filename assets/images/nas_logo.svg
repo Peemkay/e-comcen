@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="95" fill="#000066" />
+  <circle cx="100" cy="100" r="85" fill="#FFFF00" stroke="#000066" stroke-width="2" />
+  
+  <!-- NAS Text -->
+  <text x="100" y="90" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#000066">NAS</text>
+  
+  <!-- Signal Waves -->
+  <path d="M 50,120 C 65,110 85,105 100,105 C 115,105 135,110 150,120" stroke="#000066" stroke-width="6" fill="none" />
+  <path d="M 60,135 C 72,125 88,120 100,120 C 112,120 128,125 140,135" stroke="#000066" stroke-width="4" fill="none" />
+  <path d="M 70,145 C 80,140 90,135 100,135 C 110,135 120,140 130,145" stroke="#000066" stroke-width="3" fill="none" />
+  
+  <!-- Nigerian Army Signal Text -->
+  <text x="100" y="170" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#000066">NIGERIAN ARMY SIGNAL</text>
+</svg>

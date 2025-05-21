@@ -1,0 +1,13 @@
+# Changes to be made to incoming_dispatch_form.dart
+
+## 1. Change "Sender Information" to "Delivery Information"
+Find the title "Sender Information" and change it to "Delivery Information".
+
+## 2. Move "Delivered By" field from Delivery Information section to Receiving Information section
+In the Receiving Information section, add the "Delivered By" field before the "Handled By" field.
+
+## 3. Keep only one "Add New Unit" button in the sender section
+The "Add New Unit" button should only appear once in the Delivery Information section.
+
+## 4. Fix the _showAddUnitDialog method to properly update the UI when a new unit is added
+Update the method to ensure that newly added units appear in the dropdowns.

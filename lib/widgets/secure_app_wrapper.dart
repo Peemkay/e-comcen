@@ -168,10 +168,6 @@ class _SecureAppWrapperState extends State<SecureAppWrapper>
 
   @override
   Widget build(BuildContext context) {
-    if (_isLocked) {
-      return const LockScreen();
-    }
-
     return Listener(
       onPointerDown: (_) => _onUserInteraction(),
       onPointerMove: (_) => _onUserInteraction(),
@@ -184,12 +180,25 @@ class _SecureAppWrapperState extends State<SecureAppWrapper>
           // Log screen dimensions for debugging
           debugPrint('Screen dimensions: $screenWidth x $screenHeight');
 
-          // Return the child widget wrapped in a container that fills the available space
+          // Use a Navigator to handle the lock screen properly
           return Container(
             width: screenWidth,
             height: screenHeight,
             color: Theme.of(context).scaffoldBackgroundColor,
-            child: widget.child,
+            child: _isLocked
+                ? MaterialApp(
+                    debugShowCheckedModeBanner: false,
+                    theme: Theme.of(context),
+                    home: LockScreen(
+                      onUnlock: () {
+                        setState(() {
+                          _isLocked = false;
+                        });
+                        _resetInactivityTimer();
+                      },
+                    ),
+                  )
+                : widget.child,
           );
         },
       ),

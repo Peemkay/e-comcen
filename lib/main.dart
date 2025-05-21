@@ -30,6 +30,8 @@ import 'screens/notification_center_screen.dart';
 import 'screens/profile/user_profile_screen.dart';
 import 'screens/help/help_menu_screen.dart';
 import 'screens/reports/transit_slip_generator.dart';
+import 'screens/reports/in_file_slip_generator.dart';
+import 'screens/reports/out_file_slip_generator.dart';
 import 'widgets/secure_app_wrapper.dart';
 import 'widgets/security_classification_banner.dart';
 import 'widgets/notifications/notification_manager.dart';
@@ -152,6 +154,10 @@ class MyApp extends StatelessWidget {
               '/privacy': (context) => const HelpMenuScreen(),
               AppConstants.transitSlipGeneratorRoute: (context) =>
                   const TransitSlipGenerator(),
+              AppConstants.inFileSlipGeneratorRoute: (context) =>
+                  const InFileSlipGenerator(),
+              AppConstants.outFileSlipGeneratorRoute: (context) =>
+                  const OutFileSlipGenerator(),
             },
 
             // Add localization support

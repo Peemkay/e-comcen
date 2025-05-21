@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Placeholder Logo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create Nigerian Army Signals Placeholder Logo</h1>
+    <p>This tool will create a simple placeholder logo that will work with Flutter launcher icons.</p>
+    
+    <div>
+        <h2>Preview:</h2>
+        <canvas id="canvas" width="512" height="512"></canvas>
+        <div>
+            <a id="downloadLink">
+                <button>Download Logo</button>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const downloadLink = document.getElementById('downloadLink');
+        
+        // Draw the Nigerian Army Signals logo
+        function drawLogo() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Background colors (Nigerian flag colors)
+            // Top blue
+            ctx.fillStyle = '#00205B';
+            ctx.fillRect(0, 0, canvas.width, canvas.height/2);
+            
+            // Bottom green
+            ctx.fillStyle = '#008751';
+            ctx.fillRect(0, canvas.height/2, canvas.width, canvas.height/2);
+            
+            // Draw yellow laurel wreath
+            ctx.strokeStyle = '#FFFF00';
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.arc(canvas.width/2, canvas.height/2, 200, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Draw text banner
+            ctx.fillStyle = '#FFFF00';
+            ctx.fillRect(canvas.width/2 - 180, canvas.height - 120, 360, 50);
+            
+            // Draw text
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('NIGERIAN ARMY SIGNALS', canvas.width/2, canvas.height - 85);
+            
+            // Draw center emblem (simplified)
+            ctx.fillStyle = '#FFFF00';
+            ctx.beginPath();
+            ctx.arc(canvas.width/2, canvas.height/2, 60, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Set download link
+            downloadLink.href = canvas.toDataURL('image/png');
+            downloadLink.download = 'nas_logo.png';
+        }
+        
+        // Draw the logo when the page loads
+        window.onload = drawLogo;
+    </script>
+</body>
+</html>

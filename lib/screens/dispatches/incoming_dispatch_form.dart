@@ -72,7 +72,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
   final AttachmentService _attachmentService = AttachmentService();
 
   // Lists for dropdowns
-  final List<String> _priorities = ['Normal', 'Urgent', 'Flash'];
+  final List<String> _priorities = ['IMM', 'Normal', 'Urgent', 'Flash'];
   final List<String> _securityClassifications = [
     'Unclassified',
     'Restricted',
@@ -139,14 +139,17 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
       // Set default values for new dispatch
       _referenceController.text =
           'IN-${DateTime.now().year}-${_generateReferenceNumber()}';
-      _handledByController.text = 'Admin'; // Default to current user
-      _receivedByController.text = 'Admin'; // Default to current user
+
+      // Clear the Received By and Handled By fields
+      _handledByController.text = '';
+      _receivedByController.text = '';
+
       _timeHandedIn = DateTime.now(); // Default to current time
       _timeCleared =
           null; // Default to null (will be set when dispatch is cleared)
 
-      // Set primary unit as default recipient unit
-      _setPrimaryUnitAsDefault();
+      // Don't set a default recipient unit - leave ADDR TO unselected
+      // _setPrimaryUnitAsDefault(); - Removed to leave ADDR TO unselected
     }
   }
 
@@ -215,26 +218,11 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
             }
           }
 
-          // If not editing, set primary unit as default recipient
+          // If not editing, don't set a default recipient unit
           if (!_isEditing) {
-            // Find primary unit if available
-            Unit? primaryUnit;
-            try {
-              primaryUnit = units.firstWhere(
-                (unit) => unit.isPrimary,
-              );
-            } catch (e) {
-              // No primary unit found, use first unit if available
-              if (units.isNotEmpty) {
-                primaryUnit = units.first;
-              }
-            }
-
-            // Set recipient unit if we found a primary unit
-            if (primaryUnit != null) {
-              _recipientUnit = primaryUnit;
-              _addrToController.text = primaryUnit.name;
-            }
+            // Leave _recipientUnit as null to make the dropdown unselected
+            _recipientUnit = null;
+            _addrToController.text = '';
           }
 
           _isLoadingUnits = false;
@@ -267,23 +255,6 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
           ),
         );
       }
-    }
-  }
-
-  // Set primary unit as default recipient
-  Future<void> _setPrimaryUnitAsDefault() async {
-    try {
-      await _unitService.initialize();
-      final primaryUnit = _unitService.primaryUnit;
-
-      if (primaryUnit != null) {
-        setState(() {
-          _recipientUnit = primaryUnit;
-          _addrToController.text = primaryUnit.name;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error setting primary unit: $e');
     }
   }
 
@@ -451,7 +422,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
           priority: _priority,
           securityClassification: _securityClassification,
           status: _status,
-          handledBy: _handledByController.text,
+          handledBy: 'System', // Default value since we removed the field
           sender: _senderController.text, // Delivered by
           senderUnit: _senderUnitController.text, // ADDR FROM
           addrTo: _addrToController.text, // ADDR TO
@@ -824,7 +795,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                               child: DropdownButtonFormField<String>(
                                 value: _status,
                                 decoration: const InputDecoration(
-                                  labelText: 'Status *',
+                                  labelText: 'P/ACTION *',
                                   border: OutlineInputBorder(),
                                   prefixIcon: Icon(FontAwesomeIcons.listCheck,
                                       size: 16),
@@ -874,7 +845,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                           DropdownButtonFormField<String>(
                             value: _status,
                             decoration: const InputDecoration(
-                              labelText: 'Status *',
+                              labelText: 'P/ACTION *',
                               border: OutlineInputBorder(),
                               prefixIcon:
                                   Icon(FontAwesomeIcons.listCheck, size: 16),
@@ -1501,24 +1472,6 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                         return null;
                       },
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // Handled By
-                    TextFormField(
-                      controller: _handledByController,
-                      decoration: const InputDecoration(
-                        labelText: 'Handled By *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(FontAwesomeIcons.userGear, size: 16),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter handler name';
-                        }
-                        return null;
-                      },
-                    ),
                   ],
                 ),
               ),
@@ -1591,30 +1544,126 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
     );
   }
 
-  // Show dialog to add a new unit
+  // Show dialog to add a new unit - USING THE SAME APPROACH AS TRANSIT FORM
   void _showAddUnitDialog() {
     showDialog(
       context: context,
-      builder: (dialogContext) => UnitFormDialog(
-        onUnitSaved: (unit, isNew) {
-          // Just reload all units after a unit is saved
-          setState(() {
-            _isLoadingUnits = true;
-          });
-
-          // Show a temporary success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Unit saved, refreshing unit list...'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
-            ),
-          );
-
-          // Reload units
-          _loadUnits();
-        },
+      builder: (context) => UnitFormDialog(
+        onUnitSaved: _handleUnitSaved,
       ),
     );
+  }
+
+  // Handle unit saved callback - same as in Transit Form
+  Future<void> _handleUnitSaved(Unit unit, bool isNew) async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoadingUnits = true;
+    });
+
+    try {
+      debugPrint(
+          'IncomingDispatchForm: Handling unit save: ${unit.name} (${unit.code}), isNew: $isNew');
+
+      bool success = false;
+      if (isNew) {
+        // Add the unit using UnitManager
+        final savedUnit = await _unitManager.addUnit(unit);
+        success = savedUnit != null;
+
+        if (success) {
+          // Also add to UnitService for compatibility
+          await _unitService.addUnit(savedUnit);
+
+          // Update the unit in our state
+          setState(() {
+            // Add to all units if not already there
+            if (!_allUnits.any((u) => u.id == savedUnit.id)) {
+              _allUnits.add(savedUnit);
+            }
+
+            // Set as sender or recipient if needed
+            if (_senderUnit == null) {
+              _senderUnit = savedUnit;
+              _senderUnitController.text = savedUnit.name;
+            } else if (_recipientUnit == null) {
+              _recipientUnit = savedUnit;
+              _addrToController.text = savedUnit.name;
+            }
+          });
+        }
+      } else {
+        // Update the unit using UnitManager
+        success = await _unitManager.updateUnit(unit);
+
+        if (success) {
+          // Also update in UnitService for compatibility
+          await _unitService.updateUnit(unit);
+
+          // Update the unit in our state
+          setState(() {
+            // Update in all units
+            final index = _allUnits.indexWhere((u) => u.id == unit.id);
+            if (index >= 0) {
+              _allUnits[index] = unit;
+            } else {
+              _allUnits.add(unit);
+            }
+
+            // Update sender/recipient if needed
+            if (_senderUnit?.id == unit.id) {
+              _senderUnit = unit;
+              _senderUnitController.text = unit.name;
+            }
+            if (_recipientUnit?.id == unit.id) {
+              _recipientUnit = unit;
+              _addrToController.text = unit.name;
+            }
+          });
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingUnits = false;
+      });
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isNew
+                ? 'Unit added successfully'
+                : 'Unit updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Force a reload of all units to ensure we have the latest data
+        _loadUnits();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text(isNew ? 'Failed to add unit' : 'Failed to update unit'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('IncomingDispatchForm: Error in _handleUnitSaved: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingUnits = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

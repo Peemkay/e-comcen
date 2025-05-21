@@ -15,13 +15,13 @@ class AttachmentPicker extends StatefulWidget {
   final bool readOnly;
 
   const AttachmentPicker({
-    Key? key,
+    super.key,
     required this.attachments,
     required this.onAttachmentsChanged,
     required this.referenceType,
     required this.referenceId,
     this.readOnly = false,
-  }) : super(key: key);
+  });
 
   @override
   State<AttachmentPicker> createState() => _AttachmentPickerState();
@@ -44,8 +44,9 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
             itemBuilder: (context, index) {
               final attachment = widget.attachments[index];
               final fileName = path.basename(attachment.path);
-              final fileExtension = path.extension(attachment.path).toLowerCase();
-              
+              final fileExtension =
+                  path.extension(attachment.path).toLowerCase();
+
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
@@ -83,7 +84,7 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
           ),
           const SizedBox(height: 16),
         ],
-        
+
         // Add attachment button
         if (!widget.readOnly)
           ElevatedButton.icon(
@@ -172,12 +173,12 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
 
       if (result != null && result.files.isNotEmpty) {
         final newAttachments = <FileAttachment>[];
-        
+
         for (final file in result.files) {
           if (file.path != null) {
             final fileObj = File(file.path!);
             final fileSize = await fileObj.length();
-            
+
             newAttachments.add(
               FileAttachment(
                 id: 'temp_${DateTime.now().millisecondsSinceEpoch}_${file.name}',
@@ -197,12 +198,14 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
         widget.onAttachmentsChanged(updatedAttachments);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking files: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking files: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isLoading = false;
@@ -211,21 +214,57 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
   }
 
   void _removeAttachment(int index) {
-    final updatedAttachments = List<FileAttachment>.from(widget.attachments);
-    updatedAttachments.removeAt(index);
-    widget.onAttachmentsChanged(updatedAttachments);
+    final attachment = widget.attachments[index];
+
+    // Show confirmation dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Attachment'),
+        content: Text(
+            'Are you sure you want to delete "${path.basename(attachment.path)}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Remove the attachment
+              final updatedAttachments =
+                  List<FileAttachment>.from(widget.attachments);
+              updatedAttachments.removeAt(index);
+              widget.onAttachmentsChanged(updatedAttachments);
+
+              // Show success message
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Attachment deleted successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _viewAttachment(FileAttachment attachment) async {
     try {
       await FileUtils.openFile(attachment.path);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error opening file: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

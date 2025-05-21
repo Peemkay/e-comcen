@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <!-- Background with three horizontal stripes -->
+  <rect x="0" y="0" width="800" height="266.67" fill="#6666FF" />
+  <rect x="0" y="266.67" width="800" height="266.67" fill="#000066" />
+  <rect x="0" y="533.34" width="800" height="266.66" fill="#006600" />
+  
+  <!-- Laurel Wreath (Left) -->
+  <path d="M200,400 C200,250 300,150 400,150 C300,250 300,350 300,400 C300,450 300,550 400,650 C300,650 200,550 200,400 Z" fill="#FFFF00" />
+  
+  <!-- Laurel Wreath (Right) -->
+  <path d="M600,400 C600,250 500,150 400,150 C500,250 500,350 500,400 C500,450 500,550 400,650 C500,650 600,550 600,400 Z" fill="#FFFF00" />
+  
+  <!-- Mercury/Hermes figure in gold -->
+  <g fill="#FFFF00">
+    <!-- Body -->
+    <path d="M400,300 C380,300 370,320 370,340 C370,360 380,380 400,380 C420,380 430,360 430,340 C430,320 420,300 400,300 Z" />
+    <!-- Head -->
+    <circle cx="400" cy="280" r="25" />
+    <!-- Arms -->
+    <path d="M370,340 L340,320 L330,330 L360,350 Z" />
+    <path d="M430,340 L460,300 L470,310 L440,350 Z" />
+    <!-- Legs -->
+    <path d="M390,380 L380,430 L390,440 L400,380 Z" />
+    <path d="M410,380 L420,430 L410,440 L400,380 Z" />
+    <!-- Caduceus (Staff) -->
+    <path d="M460,300 L470,250 C470,250 480,240 490,250 C500,260 490,270 490,270 L480,280 Z" />
+    <path d="M470,250 C470,250 460,240 450,250 C440,260 450,270 450,270 L460,280 Z" />
+    <rect x="465" y="250" width="5" height="50" />
+    <!-- Wings on head/helmet -->
+    <path d="M375,270 L350,260 L375,280 Z" />
+    <path d="M425,270 L450,260 L425,280 Z" />
+  </g>
+  
+  <!-- Globe -->
+  <circle cx="400" cy="450" r="40" fill="#000066" stroke="#FFFF00" stroke-width="3" />
+  <ellipse cx="400" cy="450" rx="40" ry="10" fill="none" stroke="#FFFF00" stroke-width="2" />
+  <line x1="360" y1="450" x2="440" y2="450" stroke="#FFFF00" stroke-width="2" />
+  <path d="M400,410 C400,410 400,490 400,490" stroke="#FFFF00" stroke-width="2" fill="none" />
+  
+  <!-- Ribbon with text -->
+  <path d="M250,600 L550,600 L570,620 L550,640 L250,640 L230,620 L250,600 Z" fill="#FFFF00" />
+  <path d="M250,600 L230,620 L250,640" fill="none" stroke="#000066" stroke-width="2" />
+  <path d="M550,600 L570,620 L550,640" fill="none" stroke="#000066" stroke-width="2" />
+  
+  <!-- Text on ribbon -->
+  <text x="400" y="627" font-family="Arial, sans-serif" font-size="32" font-weight="bold" text-anchor="middle" fill="#000066">NIGERIAN ARMY SIGNALS</text>
+  
+  <!-- Service and Security banners -->
+  <path d="M300,500 C300,500 350,480 400,500 C450,480 500,500 500,500" fill="none" stroke="#FFFF00" stroke-width="3" />
+  <text x="320" y="495" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#FFFF00">SERVICE</text>
+  <text x="450" y="495" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#FFFF00">SECURITY</text>
+  
+  <!-- Eagle at top -->
+  <g fill="#FFFF00" transform="translate(400, 220) scale(0.8)">
+    <path d="M0,-20 L-15,-5 L-10,0 L-20,10 L-10,15 L-5,10 L0,15 L5,10 L10,15 L20,10 L10,0 L15,-5 Z" />
+    <ellipse cx="0" cy="-10" rx="3" ry="2" fill="#000066" />
+  </g>
+</svg>

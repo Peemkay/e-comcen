@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-COMCEN Logo Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .logo-preview {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+        }
+        .controls {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .color-picker {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .color-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        button {
+            background-color: #00205B;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #003080;
+        }
+        h1, h2 {
+            color: #00205B;
+        }
+        .instructions {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>E-COMCEN Logo Generator</h1>
+    <p>This tool creates a professional logo for the Electronic Communications Center (E-COMCEN).</p>
+
+    <div class="container">
+        <div class="logo-preview">
+            <h2>Logo Preview</h2>
+            <canvas id="canvas" width="512" height="512"></canvas>
+        </div>
+
+        <div class="controls">
+            <h2>Customize Logo</h2>
+            <div class="color-picker">
+                <div class="color-option">
+                    <label for="primaryColor">Primary Color</label>
+                    <input type="color" id="primaryColor" value="#00205B">
+                </div>
+                <div class="color-option">
+                    <label for="secondaryColor">Secondary Color</label>
+                    <input type="color" id="secondaryColor" value="#FFFF00">
+                </div>
+                <div class="color-option">
+                    <label for="accentColor">Accent Color</label>
+                    <input type="color" id="accentColor" value="#008751">
+                </div>
+            </div>
+            <button id="regenerateBtn">Regenerate Logo</button>
+            <button id="downloadBtn">Download Logo</button>
+        </div>
+
+        <div class="instructions">
+            <h2>Instructions</h2>
+            <ol>
+                <li>Customize the logo colors if desired:
+                    <ul>
+                        <li><strong>Primary Color:</strong> Dark Blue</li>
+                        <li><strong>Secondary Color:</strong> Yellow</li>
+                        <li><strong>Accent Color:</strong> Green</li>
+                    </ul>
+                </li>
+                <li>Click "Regenerate Logo" to apply changes</li>
+                <li>Click "Download Logo" to save both the logo and icon files</li>
+                <li>Move the downloaded files to these exact locations:
+                    <ul>
+                        <li><code>C:\Users\chaki\Documents\Projects Augment\NASDS\assets\images\nas_logo.png</code></li>
+                        <li><code>C:\Users\chaki\Documents\Projects Augment\NASDS\assets\images\nas_icon.png</code></li>
+                    </ul>
+                </li>
+                <li>Run this command in your project directory to update app icons:
+                    <pre><code>cd "C:\Users\chaki\Documents\Projects Augment\NASDS"
+flutter pub run flutter_launcher_icons</code></pre>
+                </li>
+                <li>If you encounter the "NoDecoderForImageFormatException" error, try:
+                    <ul>
+                        <li>Opening the downloaded images in Paint or another image editor</li>
+                        <li>Saving them again as PNG files</li>
+                        <li>Then placing them in the assets/images directory</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const primaryColorInput = document.getElementById('primaryColor');
+        const secondaryColorInput = document.getElementById('secondaryColor');
+        const accentColorInput = document.getElementById('accentColor');
+        const regenerateBtn = document.getElementById('regenerateBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // Draw the E-COMCEN logo
+        function drawLogo() {
+            const primaryColor = primaryColorInput.value; // Dark Blue
+            const secondaryColor = secondaryColorInput.value; // Yellow
+            const accentColor = accentColorInput.value; // Green
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 220;
+
+            // Create gradient background (dark blue to green)
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, primaryColor);
+            gradient.addColorStop(1, accentColor);
+
+            // Draw background
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw shield shape
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 200);
+            ctx.lineTo(centerX + 180, centerY - 100);
+            ctx.lineTo(centerX + 180, centerY + 100);
+            ctx.lineTo(centerX, centerY + 200);
+            ctx.lineTo(centerX - 180, centerY + 100);
+            ctx.lineTo(centerX - 180, centerY - 100);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw outer border
+            ctx.strokeStyle = secondaryColor;
+            ctx.lineWidth = 15;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 200);
+            ctx.lineTo(centerX + 180, centerY - 100);
+            ctx.lineTo(centerX + 180, centerY + 100);
+            ctx.lineTo(centerX, centerY + 200);
+            ctx.lineTo(centerX - 180, centerY + 100);
+            ctx.lineTo(centerX - 180, centerY - 100);
+            ctx.closePath();
+            ctx.stroke();
+
+            // Draw signal waves (yellow)
+            ctx.strokeStyle = secondaryColor;
+            ctx.lineWidth = 12;
+
+            // First wave (smallest)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 80, -Math.PI * 0.7, Math.PI * 0.7);
+            ctx.stroke();
+
+            // Second wave
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 120, -Math.PI * 0.7, Math.PI * 0.7);
+            ctx.stroke();
+
+            // Third wave (largest)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 160, -Math.PI * 0.7, Math.PI * 0.7);
+            ctx.stroke();
+
+            // Draw center emblem
+            ctx.fillStyle = secondaryColor;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 40, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw globe lines in center emblem
+            ctx.strokeStyle = primaryColor;
+            ctx.lineWidth = 3;
+
+            // Horizontal line
+            ctx.beginPath();
+            ctx.moveTo(centerX - 30, centerY);
+            ctx.lineTo(centerX + 30, centerY);
+            ctx.stroke();
+
+            // Vertical line
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 30);
+            ctx.lineTo(centerX, centerY + 30);
+            ctx.stroke();
+
+            // Draw curved lines for globe
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Draw text banner at bottom
+            ctx.fillStyle = secondaryColor;
+            const bannerWidth = 300;
+            const bannerHeight = 50;
+            const bannerY = centerY + 140;
+
+            // Banner shape
+            ctx.beginPath();
+            ctx.moveTo(centerX - bannerWidth/2, bannerY);
+            ctx.lineTo(centerX - bannerWidth/2 + 20, bannerY - bannerHeight);
+            ctx.lineTo(centerX + bannerWidth/2 - 20, bannerY - bannerHeight);
+            ctx.lineTo(centerX + bannerWidth/2, bannerY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw text
+            ctx.fillStyle = primaryColor;
+            ctx.font = 'bold 36px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('E-COMCEN', centerX, bannerY - bannerHeight/2);
+
+            // Create icon version for download
+            createIcon(primaryColor, secondaryColor, accentColor);
+        }
+
+        // Create a simplified icon version
+        function createIcon(primaryColor, secondaryColor, accentColor) {
+            // Create a temporary canvas for the icon
+            const iconCanvas = document.createElement('canvas');
+            iconCanvas.width = 512;
+            iconCanvas.height = 512;
+            const iconCtx = iconCanvas.getContext('2d');
+
+            const centerX = iconCanvas.width / 2;
+            const centerY = iconCanvas.height / 2;
+
+            // Create gradient background
+            const gradient = iconCtx.createLinearGradient(0, 0, 0, iconCanvas.height);
+            gradient.addColorStop(0, primaryColor);
+            gradient.addColorStop(1, accentColor);
+
+            // Draw background
+            iconCtx.fillStyle = gradient;
+            iconCtx.fillRect(0, 0, iconCanvas.width, iconCanvas.height);
+
+            // Draw circular border
+            iconCtx.strokeStyle = secondaryColor;
+            iconCtx.lineWidth = 20;
+            iconCtx.beginPath();
+            iconCtx.arc(centerX, centerY, 220, 0, Math.PI * 2);
+            iconCtx.stroke();
+
+            // Draw signal waves
+            iconCtx.strokeStyle = secondaryColor;
+            iconCtx.lineWidth = 15;
+
+            // First wave
+            iconCtx.beginPath();
+            iconCtx.arc(centerX, centerY, 100, -Math.PI * 0.7, Math.PI * 0.7);
+            iconCtx.stroke();
+
+            // Second wave
+            iconCtx.beginPath();
+            iconCtx.arc(centerX, centerY, 150, -Math.PI * 0.7, Math.PI * 0.7);
+            iconCtx.stroke();
+
+            // Draw center emblem
+            iconCtx.fillStyle = secondaryColor;
+            iconCtx.beginPath();
+            iconCtx.arc(centerX, centerY, 50, 0, Math.PI * 2);
+            iconCtx.fill();
+
+            // Store the icon data URL for download
+            window.iconDataURL = iconCanvas.toDataURL('image/png');
+        }
+
+        // Set up download button
+        downloadBtn.addEventListener('click', function() {
+            // Download logo
+            const logoLink = document.createElement('a');
+            logoLink.download = 'nas_logo.png';
+            logoLink.href = canvas.toDataURL('image/png');
+            logoLink.click();
+
+            // Wait a moment before downloading icon to avoid browser issues
+            setTimeout(function() {
+                // Download icon
+                const iconLink = document.createElement('a');
+                iconLink.download = 'nas_icon.png';
+                iconLink.href = window.iconDataURL;
+                iconLink.click();
+
+                alert('Logo and icon downloaded! Please save them to your project\'s assets/images directory.');
+            }, 500);
+        });
+
+        // Set up regenerate button
+        regenerateBtn.addEventListener('click', drawLogo);
+
+        // Draw the logo when the page loads
+        window.onload = drawLogo;
+    </script>
+</body>
+</html>

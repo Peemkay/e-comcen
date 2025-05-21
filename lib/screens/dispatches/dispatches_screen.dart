@@ -5,13 +5,13 @@ import '../../constants/app_constants.dart';
 import '../../services/dispatch_service.dart';
 import '../../utils/responsive_util.dart';
 import '../../widgets/dispatch_tracking_dialog.dart';
-import 'incoming_dispatch_screen.dart';
 import 'outgoing_dispatch_screen.dart';
 import 'local_dispatch_screen.dart';
 import 'external_dispatch_screen.dart';
 import 'comcen_log_screen.dart';
 import 'trash_dispatch_screen.dart';
 import 'track_dispatch_screen.dart';
+import 'in_out_file_screen.dart';
 
 class DispatchesScreen extends StatefulWidget {
   const DispatchesScreen({super.key});
@@ -150,15 +150,14 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
                   ),
                   children: [
                     _buildDispatchCategoryCard(
-                      title: 'Incoming Dispatch',
-                      icon: FontAwesomeIcons.envelopeOpenText,
-                      color: Colors.blue,
-                      count: _dispatchService.getIncomingDispatches().length,
-                      description:
-                          'Transit incoming from other external units to the unit',
-                      onTap: () =>
-                          _navigateToScreen(const IncomingDispatchScreen()),
-                    ),
+                        title: 'IN & OUT FILE',
+                        icon: FontAwesomeIcons.fileCircleCheck,
+                        color: Colors.blue,
+                        count: _dispatchService.getIncomingDispatches().length,
+                        description:
+                            'Manage incoming and outgoing file dispatches',
+                        onTap: () =>
+                            _navigateToScreen(const InOutFileScreen())),
                     _buildDispatchCategoryCard(
                       title: 'TRANSIT',
                       icon: FontAwesomeIcons.paperPlane,

@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../constants/app_theme.dart';
-import '../constants/app_constants.dart';
-import '../services/auth_service.dart';
 import 'notifications/notification_badge.dart';
-import 'dispatch_tracking_dialog.dart';
 
 /// Enhanced custom app bar with modern design and comprehensive features
 /// including logo, responsive title, notification badge, user profile,

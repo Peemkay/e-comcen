@@ -3,7 +3,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../constants/app_theme.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
-import '../../widgets/custom_app_bar.dart';
 
 /// Screen that displays the user's profile information
 class UserProfileScreen extends StatefulWidget {
@@ -292,8 +291,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildActionButton(
-      String label, IconData icon, VoidCallback onPressed,
+  Widget _buildActionButton(String label, IconData icon, VoidCallback onPressed,
       {Color color = AppTheme.primaryColor}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -343,7 +341,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   String _getInitials(String name) {
     if (name.isEmpty) return '';
-    
+
     final nameParts = name.split(' ');
     if (nameParts.length > 1) {
       return '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase();

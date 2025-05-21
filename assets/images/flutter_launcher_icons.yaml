@@ -1,0 +1,15 @@
+# Flutter Launcher Icons configuration
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/nas_icon.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/images/nas_icon.png"
+    background_color: "#000066"
+    theme_color: "#FFFF00"
+  windows:
+    generate: true
+    image_path: "assets/images/nas_icon.png"
+    icon_size: 48
