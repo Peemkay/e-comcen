@@ -683,9 +683,10 @@ class DispatchService {
     final commLogs = filteredLogs
         .where((log) =>
             log.action.toLowerCase().contains('communication') ||
-            log.action.toLowerCase().contains('rear link') ||
+            log.action.toLowerCase().contains('communication link') ||
+            log.action.toLowerCase().contains('network status') ||
             log.notes.toLowerCase().contains('communication') ||
-            log.notes.toLowerCase().contains('rear link'))
+            log.notes.toLowerCase().contains('network'))
         .toList();
 
     // Get the latest status
@@ -753,10 +754,36 @@ class DispatchService {
   // Helper method to determine service type from a log
   String _determineServiceType(DispatchLog log) {
     final action = log.action.toLowerCase();
+    final notes = log.notes.toLowerCase();
 
-    if (action.contains('communication') || action.contains('rear link')) {
+    // Check action first
+    if (action.contains('communication link status')) {
+      return 'Communication Link Status';
+    } else if (action.contains('network status')) {
+      return 'Network Status';
+    } else if (action.contains('system maintenance')) {
+      return 'System Maintenance';
+    } else if (action.contains('security audit')) {
+      return 'Security Audit';
+    } else if (action.contains('communication')) {
       return 'Communication';
-    } else if (action.contains('add') || action.contains('creat')) {
+    }
+
+    // Then check notes for more context
+    else if (notes.contains('communication link') ||
+        notes.contains('link status')) {
+      return 'Communication Link Status';
+    } else if (notes.contains('network status') ||
+        notes.contains('network check')) {
+      return 'Network Status';
+    } else if (notes.contains('system maintenance')) {
+      return 'System Maintenance';
+    } else if (notes.contains('security audit')) {
+      return 'Security Audit';
+    }
+
+    // Then check more generic patterns
+    else if (action.contains('add') || action.contains('creat')) {
       return 'Creation';
     } else if (action.contains('updat') || action.contains('edit')) {
       return 'Update';
@@ -767,9 +794,9 @@ class DispatchService {
     } else if (action.contains('sent') || action.contains('send')) {
       return 'Transmission';
     } else if (action.contains('system') || action.contains('maintenance')) {
-      return 'System';
+      return 'System Maintenance';
     } else if (action.contains('security') || action.contains('audit')) {
-      return 'Security';
+      return 'Security Audit';
     } else {
       return 'Other';
     }

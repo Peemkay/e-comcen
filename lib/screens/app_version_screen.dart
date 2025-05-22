@@ -100,46 +100,16 @@ class _AppVersionScreenState extends State<AppVersionScreen> {
   List<VersionHistoryItem> _getDefaultVersionHistory() {
     return [
       VersionHistoryItem(
-        version: '2.5.0',
-        releaseDate: DateTime(2023, 6, 15),
-        changes: [
-          'Added comprehensive user role management',
-          'Implemented enhanced dispatch tracking features',
-          'Added support for Nigerian languages',
-          'Improved security features',
-          'Fixed various bugs and performance issues',
-        ],
-      ),
-      VersionHistoryItem(
-        version: '2.0.0',
-        releaseDate: DateTime(2023, 3, 10),
-        changes: [
-          'Complete UI redesign',
-          'Added dispatch management system',
-          'Implemented user authentication',
-          'Added reporting features',
-          'Improved performance and stability',
-        ],
-      ),
-      VersionHistoryItem(
-        version: '1.5.0',
-        releaseDate: DateTime(2022, 11, 25),
-        changes: [
-          'Added support for multiple dispatch types',
-          'Implemented basic tracking features',
-          'Improved user interface',
-          'Added basic reporting',
-          'Fixed various bugs',
-        ],
-      ),
-      VersionHistoryItem(
         version: '1.0.0',
-        releaseDate: DateTime(2022, 7, 5),
+        releaseDate: DateTime.now(),
         changes: [
           'Initial release',
-          'Basic dispatch functionality',
-          'User management',
-          'Simple reporting',
+          'Dispatch management system',
+          'User authentication and management',
+          'Transit slip generation',
+          'Communication link status tracking',
+          'Units management',
+          'Comprehensive reporting',
         ],
       ),
     ];

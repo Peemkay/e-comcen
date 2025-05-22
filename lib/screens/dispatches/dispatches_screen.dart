@@ -134,30 +134,31 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
                   color: Colors.grey,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-              // Dispatch Category Cards - reduced size
+              // Dispatch Category Cards
               Expanded(
                 child: GridView.count(
+                  physics: const ClampingScrollPhysics(),
                   crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 10, // Reduced spacing
-                  mainAxisSpacing: 10, // Reduced spacing
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
                   childAspectRatio: ResponsiveUtil.getValueForScreenType(
                     context: context,
-                    mobile: 0.9, // Increased for better fit
-                    tablet: 0.85, // Increased for better fit
-                    desktop: 0.95, // Increased for better fit
+                    mobile: 1.1,
+                    tablet: 1.2,
+                    desktop: 1.3,
                   ),
                   children: [
                     _buildDispatchCategoryCard(
-                        title: 'IN & OUT FILE',
-                        icon: FontAwesomeIcons.fileCircleCheck,
-                        color: Colors.blue,
-                        count: _dispatchService.getIncomingDispatches().length,
-                        description:
-                            'Manage incoming and outgoing file dispatches',
-                        onTap: () =>
-                            _navigateToScreen(const InOutFileScreen())),
+                      title: 'IN & OUT FILE',
+                      icon: FontAwesomeIcons.fileCircleCheck,
+                      color: Colors.blue,
+                      count: _dispatchService.getIncomingDispatches().length,
+                      description:
+                          'Manage incoming and outgoing file dispatches',
+                      onTap: () => _navigateToScreen(const InOutFileScreen()),
+                    ),
                     _buildDispatchCategoryCard(
                       title: 'TRANSIT',
                       icon: FontAwesomeIcons.paperPlane,
@@ -219,127 +220,62 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
                 ),
               ),
 
-              // Summary Section - reduced size
+              // Summary Section
               Card(
-                elevation: 1, // Reduced elevation
+                elevation: 1,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8), // Smaller radius
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                margin:
-                    const EdgeInsets.symmetric(vertical: 8), // Smaller margin
+                margin: const EdgeInsets.symmetric(vertical: 8),
                 child: Padding(
-                  padding: ResponsiveUtil.getValueForScreenType<EdgeInsets>(
-                    context: context,
-                    mobile: const EdgeInsets.all(8.0), // Reduced padding
-                    tablet: const EdgeInsets.all(10.0), // Reduced padding
-                    desktop: const EdgeInsets.all(12.0), // Reduced padding
-                  ),
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, // Prevent expansion
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'Dispatch Summary',
                         style: TextStyle(
-                          fontSize: ResponsiveUtil.getFontSize(
-                              context, 16), // Smaller font
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primaryColor,
                         ),
                       ),
-                      const SizedBox(height: 8), // Reduced spacing
-                      ResponsiveUtil.isMobile(context)
-                          // For mobile: use a grid with 2 columns - optimized layout
-                          ? GridView.count(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              crossAxisCount: 2,
-                              childAspectRatio: 1.8, // Increased for better fit
-                              mainAxisSpacing: 4, // Reduced spacing
-                              crossAxisSpacing: 4, // Reduced spacing
-                              padding: EdgeInsets.zero, // Remove padding
-                              children: [
-                                _buildSummaryItem(
-                                  'Total',
-                                  _dispatchService
-                                          .getIncomingDispatches()
-                                          .length +
-                                      _dispatchService
-                                          .getOutgoingDispatches()
-                                          .length +
-                                      _dispatchService
-                                          .getLocalDispatches()
-                                          .length +
-                                      _dispatchService
-                                          .getExternalDispatches()
-                                          .length,
-                                  FontAwesomeIcons.envelopesBulk,
-                                  AppTheme.primaryColor,
-                                ),
-                                _buildSummaryItem(
-                                  'Pending',
-                                  _countPendingDispatches(),
-                                  FontAwesomeIcons.clock,
-                                  Colors.orange,
-                                ),
-                                _buildSummaryItem(
-                                  'Completed',
-                                  _countCompletedDispatches(),
-                                  FontAwesomeIcons.checkDouble,
-                                  Colors.green,
-                                ),
-                                _buildSummaryItem(
-                                  'Urgent',
-                                  _countUrgentDispatches(),
-                                  FontAwesomeIcons.bolt,
-                                  Colors.red,
-                                ),
-                              ],
-                            )
-                          // For tablet/desktop: use a more compact row
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment
-                                  .spaceEvenly, // More even spacing
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start, // Align to top
-                              children: [
-                                _buildSummaryItem(
-                                  'Total',
-                                  _dispatchService
-                                          .getIncomingDispatches()
-                                          .length +
-                                      _dispatchService
-                                          .getOutgoingDispatches()
-                                          .length +
-                                      _dispatchService
-                                          .getLocalDispatches()
-                                          .length +
-                                      _dispatchService
-                                          .getExternalDispatches()
-                                          .length,
-                                  FontAwesomeIcons.envelopesBulk,
-                                  AppTheme.primaryColor,
-                                ),
-                                _buildSummaryItem(
-                                  'Pending',
-                                  _countPendingDispatches(),
-                                  FontAwesomeIcons.clock,
-                                  Colors.orange,
-                                ),
-                                _buildSummaryItem(
-                                  'Completed',
-                                  _countCompletedDispatches(),
-                                  FontAwesomeIcons.checkDouble,
-                                  Colors.green,
-                                ),
-                                _buildSummaryItem(
-                                  'Urgent',
-                                  _countUrgentDispatches(),
-                                  FontAwesomeIcons.bolt,
-                                  Colors.red,
-                                ),
-                              ],
-                            ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildSummaryItem(
+                            'Total',
+                            _dispatchService.getIncomingDispatches().length +
+                                _dispatchService
+                                    .getOutgoingDispatches()
+                                    .length +
+                                _dispatchService.getLocalDispatches().length +
+                                _dispatchService.getExternalDispatches().length,
+                            FontAwesomeIcons.envelopesBulk,
+                            AppTheme.primaryColor,
+                          ),
+                          _buildSummaryItem(
+                            'Pending',
+                            _countPendingDispatches(),
+                            FontAwesomeIcons.clock,
+                            Colors.orange,
+                          ),
+                          _buildSummaryItem(
+                            'Completed',
+                            _countCompletedDispatches(),
+                            FontAwesomeIcons.checkDouble,
+                            Colors.green,
+                          ),
+                          _buildSummaryItem(
+                            'Urgent',
+                            _countUrgentDispatches(),
+                            FontAwesomeIcons.bolt,
+                            Colors.red,
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -359,185 +295,109 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
     required VoidCallback onTap,
     String? description,
   }) {
-    return LayoutBuilder(builder: (context, constraints) {
-      // Adjust sizes based on available width
-      final isSmallCard = constraints.maxWidth < 180;
-      final isMediumCard = constraints.maxWidth < 250 && !isSmallCard;
-
-      // Responsive sizes - reduced overall
-      final iconSize = ResponsiveUtil.getValueForScreenType<double>(
-        context: context,
-        mobile: isSmallCard ? 24 : (isMediumCard ? 28 : 32),
-        tablet: isMediumCard ? 32 : 36,
-        desktop: 40,
-      );
-
-      final titleFontSize = ResponsiveUtil.getValueForScreenType<double>(
-        context: context,
-        mobile: isSmallCard ? 12 : (isMediumCard ? 13 : 14),
-        tablet: 14,
-        desktop: 16,
-      );
-
-      final descriptionFontSize = ResponsiveUtil.getValueForScreenType<double>(
-        context: context,
-        mobile: isSmallCard ? 9 : (isMediumCard ? 10 : 11),
-        tablet: 11,
-        desktop: 12,
-      );
-
-      final countFontSize = ResponsiveUtil.getValueForScreenType<double>(
-        context: context,
-        mobile: isSmallCard ? 10 : (isMediumCard ? 11 : 12),
-        tablet: 12,
-        desktop: 14,
-      );
-
-      // Responsive padding - reduced overall
-      final cardPadding = ResponsiveUtil.getValueForScreenType<EdgeInsets>(
-        context: context,
-        mobile: isSmallCard
-            ? const EdgeInsets.all(6.0)
-            : (isMediumCard
-                ? const EdgeInsets.all(8.0)
-                : const EdgeInsets.all(10.0)),
-        tablet: const EdgeInsets.all(12.0),
-        desktop: const EdgeInsets.all(16.0),
-      );
-
-      return Card(
-        elevation: 2, // Reduced elevation
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8), // Smaller radius
-        ),
-        margin: const EdgeInsets.all(4), // Smaller margin
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8), // Match card radius
-          child: Padding(
-            padding: cardPadding,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min, // Prevent expansion
-              children: [
-                Icon(
-                  icon,
-                  size: iconSize,
-                  color: color,
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      margin: const EdgeInsets.all(4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 28,
+                color: color,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
                 ),
-                SizedBox(height: isSmallCard ? 4 : 6), // Reduced spacing
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (description != null) ...[
+                const SizedBox(height: 4),
                 Text(
-                  title,
+                  description,
                   style: TextStyle(
-                    fontSize: titleFontSize,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    color: Colors.grey[600],
                   ),
                   textAlign: TextAlign.center,
-                  maxLines: 1, // Limit to one line
-                  overflow: TextOverflow.ellipsis, // Handle overflow
-                ),
-                if (description != null) ...[
-                  SizedBox(height: isSmallCard ? 2 : 4), // Reduced spacing
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: descriptionFontSize,
-                      color: Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: isSmallCard ? 2 : 2, // Limit lines
-                    overflow: TextOverflow.ellipsis, // Handle overflow
-                  ),
-                ],
-                SizedBox(height: isSmallCard ? 4 : 6), // Reduced spacing
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isSmallCard ? 6 : 8, // Reduced padding
-                    vertical: isSmallCard ? 1 : 2, // Reduced padding
-                  ),
-                  decoration: BoxDecoration(
-                    color: color.withAlpha(51), // 0.2 opacity
-                    borderRadius: BorderRadius.circular(
-                        isSmallCard ? 6 : 8), // Smaller radius
-                  ),
-                  child: Text(
-                    count.toString(),
-                    style: TextStyle(
-                      fontSize: countFontSize,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
-            ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withAlpha(51),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  count.toString(),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      );
-    });
+      ),
+    );
   }
 
   Widget _buildSummaryItem(
       String title, int count, IconData icon, Color color) {
-    return LayoutBuilder(builder: (context, constraints) {
-      // Determine if we're in a small container
-      final isSmallContainer = constraints.maxWidth < 100;
-      final isMediumContainer = constraints.maxWidth < 150 && !isSmallContainer;
-
-      // Responsive sizes - reduced overall
-      final iconSize = ResponsiveUtil.getValueForScreenType<double>(
-        context: context,
-        mobile: isSmallContainer ? 16 : (isMediumContainer ? 18 : 20),
-        tablet: 22,
-        desktop: 24,
-      );
-
-      final countFontSize = ResponsiveUtil.getValueForScreenType<double>(
-        context: context,
-        mobile: isSmallContainer ? 12 : (isMediumContainer ? 14 : 15),
-        tablet: 16,
-        desktop: 18,
-      );
-
-      final titleFontSize = ResponsiveUtil.getValueForScreenType<double>(
-        context: context,
-        mobile: isSmallContainer ? 9 : (isMediumContainer ? 10 : 11),
-        tablet: 11,
-        desktop: 12,
-      );
-
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min, // Prevent expansion
-        children: [
-          Icon(
-            icon,
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          color: color,
+          size: 20,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          count.toString(),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
             color: color,
-            size: iconSize,
           ),
-          SizedBox(height: isSmallContainer ? 2 : 4), // Reduced spacing
-          Text(
-            count.toString(),
-            style: TextStyle(
-              fontSize: countFontSize,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
           ),
-          SizedBox(height: isSmallContainer ? 1 : 2), // Reduced spacing
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: titleFontSize,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1, // Limit to one line
-            overflow: TextOverflow.ellipsis, // Handle overflow
-          ),
-        ],
-      );
-    });
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
   }
 
   void _navigateToScreen(Widget screen) {
@@ -545,48 +405,51 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
       context,
       MaterialPageRoute(builder: (context) => screen),
     ).then((_) {
-      // Refresh the state when returning from the screen
       setState(() {});
     });
   }
 
+  // Count pending dispatches (not completed or delivered)
   int _countPendingDispatches() {
     int count = 0;
 
+    // Count incoming dispatches
     count += _dispatchService
         .getIncomingDispatches()
         .where((d) =>
-            d.status.toLowerCase() == 'pending' ||
-            d.status.toLowerCase() == 'in progress')
+            d.status.toLowerCase() != 'completed' &&
+            d.status.toLowerCase() != 'delivered' &&
+            d.status.toLowerCase() != 'received')
         .length;
 
+    // Count outgoing dispatches
     count += _dispatchService
         .getOutgoingDispatches()
         .where((d) =>
-            d.status.toLowerCase() == 'pending' ||
-            d.status.toLowerCase() == 'in progress')
+            d.status.toLowerCase() != 'completed' &&
+            d.status.toLowerCase() != 'delivered')
         .length;
 
+    // Count local dispatches
     count += _dispatchService
         .getLocalDispatches()
-        .where((d) =>
-            d.status.toLowerCase() == 'pending' ||
-            d.status.toLowerCase() == 'in progress')
+        .where((d) => d.status.toLowerCase() != 'completed')
         .length;
 
+    // Count external dispatches
     count += _dispatchService
         .getExternalDispatches()
-        .where((d) =>
-            d.status.toLowerCase() == 'pending' ||
-            d.status.toLowerCase() == 'in progress')
+        .where((d) => d.status.toLowerCase() != 'completed')
         .length;
 
     return count;
   }
 
+  // Count completed dispatches
   int _countCompletedDispatches() {
     int count = 0;
 
+    // Count incoming dispatches
     count += _dispatchService
         .getIncomingDispatches()
         .where((d) =>
@@ -595,6 +458,7 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
             d.status.toLowerCase() == 'received')
         .length;
 
+    // Count outgoing dispatches
     count += _dispatchService
         .getOutgoingDispatches()
         .where((d) =>
@@ -602,11 +466,13 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
             d.status.toLowerCase() == 'delivered')
         .length;
 
+    // Count local dispatches
     count += _dispatchService
         .getLocalDispatches()
         .where((d) => d.status.toLowerCase() == 'completed')
         .length;
 
+    // Count external dispatches
     count += _dispatchService
         .getExternalDispatches()
         .where((d) => d.status.toLowerCase() == 'completed')
@@ -615,9 +481,11 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
     return count;
   }
 
+  // Count urgent dispatches
   int _countUrgentDispatches() {
     int count = 0;
 
+    // Count incoming dispatches
     count += _dispatchService
         .getIncomingDispatches()
         .where((d) =>
@@ -625,6 +493,7 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
             d.priority.toLowerCase() == 'flash')
         .length;
 
+    // Count outgoing dispatches
     count += _dispatchService
         .getOutgoingDispatches()
         .where((d) =>
@@ -632,6 +501,7 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
             d.priority.toLowerCase() == 'flash')
         .length;
 
+    // Count local dispatches
     count += _dispatchService
         .getLocalDispatches()
         .where((d) =>
@@ -639,6 +509,7 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
             d.priority.toLowerCase() == 'flash')
         .length;
 
+    // Count external dispatches
     count += _dispatchService
         .getExternalDispatches()
         .where((d) =>

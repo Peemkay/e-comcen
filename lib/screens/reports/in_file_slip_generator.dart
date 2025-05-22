@@ -47,8 +47,8 @@ class _InFileSlipGeneratorState extends State<InFileSlipGenerator> {
   String _orientation = 'Portrait';
   String _fontFamily = 'Courier';
   double _fontSize = 10.0;
-  double _headerFontSize = 16.0;
-  double _tableBorderWidth = 1.0;
+  final double _headerFontSize = 16.0;
+  final double _tableBorderWidth = 1.0;
 
   // Saved slips history
   List<Map<String, dynamic>> _savedSlips = [];

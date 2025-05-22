@@ -6,7 +6,7 @@ class AppConstants {
   static const String appPoweredBy = 'NAS';
   static const String appDescription =
       'Communications and Dispatch Management System for Signal Units';
-  static const String appVersion = '2.5.0';
+  static const String appVersion = '1.0.0';
 
   // Get current year dynamically
   static String get currentYear => DateTime.now().year.toString();

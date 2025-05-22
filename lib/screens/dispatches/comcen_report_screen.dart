@@ -34,13 +34,15 @@ class _ComcenReportScreenState extends State<ComcenReportScreen> {
   final List<String> _serviceTypes = [
     'All',
     'Communication',
+    'Communication Link Status',
+    'Network Status',
     'Creation',
     'Update',
     'Deletion',
     'Receipt',
     'Transmission',
-    'System',
-    'Security',
+    'System Maintenance',
+    'Security Audit',
     'Other'
   ];
   String _performedByFilter = '';
@@ -286,18 +288,7 @@ class _ComcenReportScreenState extends State<ComcenReportScreen> {
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     ),
-                    items: [
-                      'All',
-                      'Communication',
-                      'Creation',
-                      'Update',
-                      'Deletion',
-                      'Receipt',
-                      'Transmission',
-                      'System',
-                      'Security',
-                      'Other'
-                    ]
+                    items: _serviceTypes
                         .map((type) => DropdownMenuItem(
                               value: type,
                               child: Text(type),
@@ -449,7 +440,7 @@ class _ComcenReportScreenState extends State<ComcenReportScreen> {
                     color: AppTheme.primaryColor),
                 const SizedBox(width: 8),
                 const Text(
-                  'Current Status',
+                  'Communication Link Status',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

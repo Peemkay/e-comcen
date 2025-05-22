@@ -1,0 +1,10 @@
+* 8c0735f - Peemkay, 5 minutes ago : Fix TCL column time not updating on generated slips
+* 7c9c185 - Peemkay, 2 days ago : Update incoming dispatch form: Change 'Sender Information' to 'Delivery Information', move 'Delivered By' field to Receiving Information section, keep only one 'Add New Unit' button
+* b9adb12 - Peemkay, 2 days ago : Update incoming dispatch form to use unit dropdowns from units management with ADDR FROM and ADDR TO labels
+* 31caa1d - Peemkay, 2 days ago : Fix session timeout and transit slip generation: 1) Remove biometric authentication and allow unlock with login credentials only 2) Implement logout button to return to login screen 3) Implement transit slip generation to save exact A4 preview as PDF
+* ad320a0 - Peemkay, 3 days ago : Improved transit slip generator to match preview exactly
+* a152ed0 - Mubarak Abubakarbako, 3 days ago : Implement transit slip generator with save location prompt
+* e8c78e7 - Mubarak Abubakarbako, 3 days ago : Fix refresh units functionality on transit form and improve unit management
+* 472ec69 - Mubarak Abubakarbako, 3 days ago : Fix superadmin login issue
+* 637b072 - Mubarak Abubakarbako, 3 days ago : Add toggle to set unit as primary in unit form
+* 5303c4c - Mubarak Abubakarbako, 5 days ago : Remove PIN and biometric from lockscreen, log out users on session timeout

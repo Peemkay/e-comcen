@@ -3,7 +3,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
-import '../../models/dispatch_tracking.dart';
 import '../../services/dispatch_service.dart';
 
 import 'dispatch_detail_screen.dart';
@@ -49,10 +48,18 @@ class _InFileScreenState extends State<InFileScreen> {
         return dispatch.referenceNumber
                 .toLowerCase()
                 .contains(_searchQuery.toLowerCase()) ||
-            dispatch.subject.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            dispatch.content.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            dispatch.sender.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            dispatch.senderUnit.toLowerCase().contains(_searchQuery.toLowerCase());
+            dispatch.subject
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase()) ||
+            dispatch.content
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase()) ||
+            dispatch.sender
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase()) ||
+            dispatch.senderUnit
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase());
       }).toList();
     }
 
@@ -91,7 +98,8 @@ class _InFileScreenState extends State<InFileScreen> {
         _dispatches.sort((a, b) => a.dateTime.compareTo(b.dateTime));
         break;
       case 'Reference Number':
-        _dispatches.sort((a, b) => a.referenceNumber.compareTo(b.referenceNumber));
+        _dispatches
+            .sort((a, b) => a.referenceNumber.compareTo(b.referenceNumber));
         break;
       case 'Priority':
         _dispatches.sort((a, b) {
@@ -161,7 +169,8 @@ class _InFileScreenState extends State<InFileScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
                 children: [
-                  const Icon(FontAwesomeIcons.filter, size: 14, color: Colors.blue),
+                  const Icon(FontAwesomeIcons.filter,
+                      size: 14, color: Colors.blue),
                   const SizedBox(width: 8),
                   const Text(
                     'Filters applied',
@@ -232,7 +241,9 @@ class _InFileScreenState extends State<InFileScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: dispatch.getPriorityColor().withAlpha(51), // 0.2 opacity
+                      color: dispatch
+                          .getPriorityColor()
+                          .withAlpha(51), // 0.2 opacity
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -271,7 +282,9 @@ class _InFileScreenState extends State<InFileScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: dispatch.getStatusColor().withAlpha(51), // 0.2 opacity
+                      color: dispatch
+                          .getStatusColor()
+                          .withAlpha(51), // 0.2 opacity
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

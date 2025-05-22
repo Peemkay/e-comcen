@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.0.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.6.0
@@ -74,7 +74,7 @@ dependencies:
   url_launcher: ^6.3.1
   package_info_plus: ^8.3.0
   uuid: ^4.5.1
-  file_picker: ^6.1.1
+  file_picker: ^5.5.0
   mime: ^1.0.4
   path: ^1.8.3
   open_file: ^3.3.2
@@ -162,14 +162,14 @@ flutter:
 
 # MSIX Configuration for Windows installer
 msix_config:
-  display_name: NASDS
+  display_name: E-COMCEN
   publisher_display_name: Nigerian Army Signal
   identity_name: NigerianArmySignal.NASDS
   publisher: CN=Nigerian Army Signal
-  msix_version: 2.0.0.0
+  msix_version: 1.0.0.0
   logo_path: assets/images/nas_logo.png
   capabilities: internetClient
-  execution_alias: NASDS
+  execution_alias: E-COMCEN
   store: false
   languages: en-us
   architecture: x64
@@ -181,7 +181,8 @@ msix_config:
   app_installer: true
   create_desktop_shortcut: true
   create_start_menu_shortcut: true
-  build_windows: false
+  build_windows: true
   certificate_path:
   certificate_password:
   trim_logo: false
+  file_extension: .nasds

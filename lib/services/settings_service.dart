@@ -20,7 +20,7 @@ class SettingsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? settingsJson = prefs.getString(_systemSettingsKey);
-      
+
       if (settingsJson != null) {
         final Map<String, dynamic> settingsMap = json.decode(settingsJson);
         return SystemSettings.fromJson(settingsMap);
@@ -29,7 +29,7 @@ class SettingsService {
       // If there's an error, return default settings
       print('Error loading system settings: $e');
     }
-    
+
     // Return default settings
     return SystemSettings.defaults();
   }
@@ -62,7 +62,7 @@ class SettingsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? settingsJson = prefs.getString(_securitySettingsKey);
-      
+
       if (settingsJson != null) {
         final Map<String, dynamic> settingsMap = json.decode(settingsJson);
         return SecuritySettings.fromJson(settingsMap);
@@ -71,7 +71,7 @@ class SettingsService {
       // If there's an error, return default settings
       print('Error loading security settings: $e');
     }
-    
+
     // Return default settings
     return SecuritySettings.defaults();
   }
@@ -104,7 +104,7 @@ class SettingsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? settingsJson = prefs.getString(_notificationSettingsKey);
-      
+
       if (settingsJson != null) {
         final Map<String, dynamic> settingsMap = json.decode(settingsJson);
         return NotificationSettings.fromJson(settingsMap);
@@ -113,7 +113,7 @@ class SettingsService {
       // If there's an error, return default settings
       print('Error loading notification settings: $e');
     }
-    
+
     // Return default settings
     return NotificationSettings.defaults();
   }
@@ -146,16 +146,18 @@ class SettingsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? historyJson = prefs.getString(_versionHistoryKey);
-      
+
       if (historyJson != null) {
         final List<dynamic> historyList = json.decode(historyJson);
-        return historyList.map((item) => VersionHistoryItem.fromJson(item)).toList();
+        return historyList
+            .map((item) => VersionHistoryItem.fromJson(item))
+            .toList();
       }
     } catch (e) {
       // If there's an error, return default history
       print('Error loading version history: $e');
     }
-    
+
     // Return default history
     return _getDefaultVersionHistory();
   }
@@ -164,46 +166,16 @@ class SettingsService {
   List<VersionHistoryItem> _getDefaultVersionHistory() {
     return [
       VersionHistoryItem(
-        version: '2.5.0',
-        releaseDate: DateTime(2023, 6, 15),
-        changes: [
-          'Added comprehensive user role management',
-          'Implemented enhanced dispatch tracking features',
-          'Added support for Nigerian languages',
-          'Improved security features',
-          'Fixed various bugs and performance issues',
-        ],
-      ),
-      VersionHistoryItem(
-        version: '2.0.0',
-        releaseDate: DateTime(2023, 3, 10),
-        changes: [
-          'Complete UI redesign',
-          'Added dispatch management system',
-          'Implemented user authentication',
-          'Added reporting features',
-          'Improved performance and stability',
-        ],
-      ),
-      VersionHistoryItem(
-        version: '1.5.0',
-        releaseDate: DateTime(2022, 11, 25),
-        changes: [
-          'Added support for multiple dispatch types',
-          'Implemented basic tracking features',
-          'Improved user interface',
-          'Added basic reporting',
-          'Fixed various bugs',
-        ],
-      ),
-      VersionHistoryItem(
         version: '1.0.0',
-        releaseDate: DateTime(2022, 7, 5),
+        releaseDate: DateTime.now(),
         changes: [
           'Initial release',
-          'Basic dispatch functionality',
-          'User management',
-          'Simple reporting',
+          'Dispatch management system',
+          'User authentication and management',
+          'Transit slip generation',
+          'Communication link status tracking',
+          'Units management',
+          'Comprehensive reporting',
         ],
       ),
     ];
@@ -357,14 +329,14 @@ class NotificationSettings {
   final bool enableSoundAlerts;
   final bool enableVibration;
   final bool showNotificationPreview;
-  
+
   final bool notifyNewDispatch;
   final bool notifyDispatchUpdates;
   final bool notifyDispatchDelivered;
   final bool notifyDispatchDelayed;
   final bool notifySystemUpdates;
   final bool notifySecurityAlerts;
-  
+
   final bool enableDoNotDisturb;
   final TimeOfDay doNotDisturbStart;
   final TimeOfDay doNotDisturbEnd;
@@ -375,14 +347,12 @@ class NotificationSettings {
     required this.enableSoundAlerts,
     required this.enableVibration,
     required this.showNotificationPreview,
-    
     required this.notifyNewDispatch,
     required this.notifyDispatchUpdates,
     required this.notifyDispatchDelivered,
     required this.notifyDispatchDelayed,
     required this.notifySystemUpdates,
     required this.notifySecurityAlerts,
-    
     required this.enableDoNotDisturb,
     required this.doNotDisturbStart,
     required this.doNotDisturbEnd,
@@ -396,14 +366,12 @@ class NotificationSettings {
       enableSoundAlerts: true,
       enableVibration: true,
       showNotificationPreview: true,
-      
       notifyNewDispatch: true,
       notifyDispatchUpdates: true,
       notifyDispatchDelivered: true,
       notifyDispatchDelayed: true,
       notifySystemUpdates: false,
       notifySecurityAlerts: true,
-      
       enableDoNotDisturb: false,
       doNotDisturbStart: const TimeOfDay(hour: 22, minute: 0),
       doNotDisturbEnd: const TimeOfDay(hour: 7, minute: 0),
@@ -418,17 +386,17 @@ class NotificationSettings {
       enableSoundAlerts: json['enableSoundAlerts'] ?? true,
       enableVibration: json['enableVibration'] ?? true,
       showNotificationPreview: json['showNotificationPreview'] ?? true,
-      
       notifyNewDispatch: json['notifyNewDispatch'] ?? true,
       notifyDispatchUpdates: json['notifyDispatchUpdates'] ?? true,
       notifyDispatchDelivered: json['notifyDispatchDelivered'] ?? true,
       notifyDispatchDelayed: json['notifyDispatchDelayed'] ?? true,
       notifySystemUpdates: json['notifySystemUpdates'] ?? false,
       notifySecurityAlerts: json['notifySecurityAlerts'] ?? true,
-      
       enableDoNotDisturb: json['enableDoNotDisturb'] ?? false,
-      doNotDisturbStart: _timeOfDayFromJson(json['doNotDisturbStart']) ?? const TimeOfDay(hour: 22, minute: 0),
-      doNotDisturbEnd: _timeOfDayFromJson(json['doNotDisturbEnd']) ?? const TimeOfDay(hour: 7, minute: 0),
+      doNotDisturbStart: _timeOfDayFromJson(json['doNotDisturbStart']) ??
+          const TimeOfDay(hour: 22, minute: 0),
+      doNotDisturbEnd: _timeOfDayFromJson(json['doNotDisturbEnd']) ??
+          const TimeOfDay(hour: 7, minute: 0),
     );
   }
 
@@ -440,14 +408,12 @@ class NotificationSettings {
       'enableSoundAlerts': enableSoundAlerts,
       'enableVibration': enableVibration,
       'showNotificationPreview': showNotificationPreview,
-      
       'notifyNewDispatch': notifyNewDispatch,
       'notifyDispatchUpdates': notifyDispatchUpdates,
       'notifyDispatchDelivered': notifyDispatchDelivered,
       'notifyDispatchDelayed': notifyDispatchDelayed,
       'notifySystemUpdates': notifySystemUpdates,
       'notifySecurityAlerts': notifySecurityAlerts,
-      
       'enableDoNotDisturb': enableDoNotDisturb,
       'doNotDisturbStart': _timeOfDayToJson(doNotDisturbStart),
       'doNotDisturbEnd': _timeOfDayToJson(doNotDisturbEnd),
@@ -488,7 +454,8 @@ class VersionHistoryItem {
   factory VersionHistoryItem.fromJson(Map<String, dynamic> json) {
     return VersionHistoryItem(
       version: json['version'] ?? '',
-      releaseDate: DateTime.parse(json['releaseDate'] ?? DateTime.now().toIso8601String()),
+      releaseDate: DateTime.parse(
+          json['releaseDate'] ?? DateTime.now().toIso8601String()),
       changes: List<String>.from(json['changes'] ?? []),
     );
   }

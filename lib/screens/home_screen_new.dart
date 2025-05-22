@@ -8,6 +8,7 @@ import '../services/auth_service.dart';
 import '../services/dispatch_service.dart';
 import '../services/user_service.dart';
 import '../widgets/dispatch_tracking_dialog.dart';
+import '../widgets/lock_icon_button.dart';
 import '../widgets/notifications/notification_badge.dart';
 import '../widgets/responsive_layout.dart';
 import 'help/help_menu_screen.dart';
@@ -190,6 +191,9 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Help & Support',
             onPressed: () => _showHelpMenu(context),
           ),
+
+          // Lock screen button
+          const LockIconButton(),
 
           // User profile
           Padding(

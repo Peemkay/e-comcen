@@ -23,9 +23,6 @@ class _InOutFileScreenState extends State<InOutFileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Determine if we're on a mobile device
-    final isMobile = ResponsiveUtil.isMobile(context);
-
     // Determine grid columns based on screen size
     final crossAxisCount = ResponsiveUtil.getValueForScreenType<int>(
       context: context,
@@ -74,15 +71,16 @@ class _InOutFileScreenState extends State<InOutFileScreen> {
                   color: Colors.grey,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-              // File Type Cards
+              // File Type Cards - more compact
               Expanded(
                 child: GridView.count(
+                  physics: const ClampingScrollPhysics(), // More stable physics
                   crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 1.2,
+                  crossAxisSpacing: 10, // Reduced spacing
+                  mainAxisSpacing: 10, // Reduced spacing
+                  childAspectRatio: 1.4, // Increased for more compact height
                   children: [
                     _buildFileTypeCard(
                       title: 'IN FILE',
@@ -119,38 +117,39 @@ class _InOutFileScreenState extends State<InOutFileScreen> {
     String? description,
   }) {
     return Card(
-      elevation: 3,
+      elevation: 2, // Reduced elevation
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10), // Smaller radius
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10), // Smaller radius
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(12), // Reduced padding
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min, // Prevent expansion
             children: [
               Icon(
                 icon,
-                size: 48,
+                size: 36, // Smaller icon
                 color: color,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8), // Reduced spacing
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 16, // Smaller font
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
               ),
               if (description != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 4), // Reduced spacing
                 Text(
                   description,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 12, // Smaller font
                     color: Colors.grey[600],
                   ),
                   textAlign: TextAlign.center,
@@ -158,20 +157,20 @@ class _InOutFileScreenState extends State<InOutFileScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: 8), // Reduced spacing
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
+                  horizontal: 8, // Reduced padding
+                  vertical: 2, // Reduced padding
                 ),
                 decoration: BoxDecoration(
                   color: color.withAlpha(51),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8), // Smaller radius
                 ),
                 child: Text(
                   count.toString(),
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14, // Smaller font
                     fontWeight: FontWeight.bold,
                     color: color,
                   ),

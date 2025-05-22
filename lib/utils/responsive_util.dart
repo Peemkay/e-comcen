@@ -55,9 +55,9 @@ class ResponsiveUtil {
   static double getGridChildAspectRatio(BuildContext context) {
     return getValueForScreenType(
       context: context,
-      mobile: 0.8,
-      tablet: 0.85,
-      desktop: 0.9,
+      mobile: 1.1, // Increased for more compact height
+      tablet: 1.2, // Increased for more compact height
+      desktop: 1.3, // Increased for more compact height
     );
   }
 
@@ -97,6 +97,16 @@ class ResponsiveUtil {
     } else {
       return mobile;
     }
+  }
+
+  /// Wraps content in a scrollable container to prevent overflow
+  /// This implementation uses a more stable approach to avoid mouse tracker issues
+  static Widget makeScrollable(Widget child, {bool alwaysScrollable = false}) {
+    // We're not using any complex layout constraints that could cause issues
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      child: child,
+    );
   }
 }
 

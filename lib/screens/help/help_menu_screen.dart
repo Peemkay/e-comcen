@@ -341,7 +341,8 @@ class HelpMenuScreen extends StatelessWidget {
       path: 'support@nasignal.mil.ng',
       queryParameters: {
         'subject': 'E-COMCEN Support Request',
-        'body': 'App Version: ${AppConstants.appVersion}\n\nPlease describe your issue:\n\n',
+        'body':
+            'App Version: ${AppConstants.appVersion}\n\nPlease describe your issue:\n\n',
       },
     );
 
@@ -425,7 +426,7 @@ class HelpMenuScreen extends StatelessWidget {
           children: [
             Text('App Version: ${AppConstants.appVersion}'),
             const SizedBox(height: 8),
-            const Text('Build Date: 2023-07-15'),
+            Text('Build Date: ${DateTime.now().toString().split(' ')[0]}'),
             const SizedBox(height: 8),
             const Text('Platform: Windows'),
           ],

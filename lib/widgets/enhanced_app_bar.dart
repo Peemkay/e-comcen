@@ -6,6 +6,7 @@ import '../models/user.dart';
 import '../services/auth_service.dart';
 import 'notifications/notification_badge.dart';
 import 'dispatch_tracking_dialog.dart';
+import 'lock_icon_button.dart';
 
 /// An enhanced app bar with modern design and comprehensive features
 /// including logo, responsive title, notification badge, user profile,
@@ -106,6 +107,11 @@ class EnhancedAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       );
     }
+
+    // Add lock screen button
+    actionWidgets.add(
+      const LockIconButton(),
+    );
 
     // Add user profile if enabled
     if (showUserProfile && currentUser != null) {

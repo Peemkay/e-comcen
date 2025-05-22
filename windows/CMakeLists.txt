@@ -1,6 +1,6 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
-project(nasds LANGUAGES CXX)
+project(e-comcen LANGUAGES CXX)
 
 # Force specific pdfium version and architecture for the printing plugin
 # This prevents build errors with the printing plugin
@@ -9,7 +9,7 @@ set(PDFIUM_ARCH "x64" CACHE STRING "" FORCE)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "nasds")
+set(BINARY_NAME "e-comcen")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

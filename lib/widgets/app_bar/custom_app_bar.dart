@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_theme.dart';
+import '../lock_icon_button.dart';
 
 /// Custom app bar with consistent styling for the application
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -46,9 +47,24 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed: () => Navigator.of(context).pop(),
             )
           : leading,
-      actions: actions,
+      actions: _buildActions(context),
       bottom: bottom,
     );
+  }
+
+  // Build actions list with lock icon
+  List<Widget> _buildActions(BuildContext context) {
+    final List<Widget> actionWidgets = [];
+
+    // Add lock screen button
+    actionWidgets.add(const LockIconButton());
+
+    // Add other actions
+    if (actions != null) {
+      actionWidgets.addAll(actions!);
+    }
+
+    return actionWidgets;
   }
 
   @override

@@ -24,12 +24,6 @@ class FileSaveDialogService {
         lockParentWindow: true,
       );
 
-      // If the user cancelled the dialog, return null
-      if (outputPath == null) {
-        debugPrint('Save file dialog cancelled');
-        return null;
-      }
-
       // Ensure the file has a .pdf extension
       if (!outputPath.toLowerCase().endsWith('.pdf')) {
         outputPath = '$outputPath.pdf';
@@ -66,13 +60,13 @@ class FileSaveDialogService {
 
       // Open the file with the default application
       final result = await OpenFile.open(normalizedPath);
-      
+
       // Check if the file was opened successfully
       if (result.type != ResultType.done) {
         debugPrint('Error opening file: ${result.message}');
         return false;
       }
-      
+
       return true;
     } catch (e) {
       debugPrint('Error opening file: $e');
@@ -86,13 +80,13 @@ class FileSaveDialogService {
     try {
       // Get the directory containing the file
       final directory = path.dirname(filePath);
-      
+
       // Normalize directory path for Windows
       String normalizedPath = directory;
       if (Platform.isWindows) {
         normalizedPath = normalizedPath.replaceAll('/', '\\');
       }
-      
+
       // Open the directory
       if (Platform.isWindows) {
         await Process.run('explorer.exe', [normalizedPath]);

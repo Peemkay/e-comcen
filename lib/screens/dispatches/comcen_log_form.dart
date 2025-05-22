@@ -42,7 +42,8 @@ class _ComcenLogFormState extends State<ComcenLogForm> {
     'System Maintenance',
     'Security Audit',
     'Communication Check',
-    'Rear Link Status',
+    'Communication Link Status',
+    'Network Status',
     'Other'
   ];
 

@@ -6,8 +6,8 @@ class SecurityConstants {
   // Flag to control display of security classification banners - must be false
   static const bool showClassificationBanner = false;
 
-  // Session timeout in minutes
-  static const int sessionTimeoutMinutes = 15;
+  // Session timeout in minutes - set to 0 to disable
+  static const int sessionTimeoutMinutes = 0; // Disabled
 
   // Password requirements
   static const int minPasswordLength = 12;

@@ -3,7 +3,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_theme.dart';
 import '../../models/dispatch.dart';
-import '../../models/dispatch_tracking.dart';
 import '../../services/dispatch_service.dart';
 
 import 'dispatch_detail_screen.dart';

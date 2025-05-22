@@ -275,7 +275,7 @@ class _ComcenLogScreenState extends State<ComcenLogScreen> {
                     color: AppTheme.primaryColor),
                 const SizedBox(width: 8),
                 const Text(
-                  'Rear Link Communication Status',
+                  'Communication Link Status',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

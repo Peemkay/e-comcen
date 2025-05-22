@@ -157,23 +157,58 @@ class _InFileFormState extends State<InFileForm> {
     });
 
     try {
-      debugPrint('InFileForm: Loading units from UnitManager');
+      print('InFileForm: Loading units from UnitManager');
 
       // Initialize UnitManager if not already initialized
       if (!_unitManager.isInitialized) {
         await _unitManager.initialize();
       }
 
-      // Load all units directly from the database
+      // Force a refresh of all units directly from the database
       final units = await _unitManager.getAllUnits();
+      print('InFileForm: Loaded ${units.length} units from database');
+
+      // Print all units for debugging
+      if (units.isNotEmpty) {
+        print('InFileForm: Units loaded:');
+        for (var i = 0; i < units.length; i++) {
+          final unit = units[i];
+          print(
+              '  Unit ${i + 1}: ID=${unit.id}, Name=${unit.name}, Code=${unit.code}');
+        }
+      } else {
+        print('InFileForm: NO UNITS LOADED FROM DATABASE!');
+      }
 
       // Update state with new units
       if (mounted) {
         setState(() {
+          // Store the current selected units before updating the list
+          final currentSenderUnitId = _senderUnit?.id;
+          final currentRecipientUnitId = _recipientUnit?.id;
+
+          // Update the units list
           _allUnits = units;
 
-          // Find sender unit if editing
-          if (_isEditing && _senderUnitController.text.isNotEmpty) {
+          // Restore selected units if they exist in the new list
+          if (currentSenderUnitId != null) {
+            _senderUnit = _allUnits.firstWhere(
+              (u) => u.id == currentSenderUnitId,
+              orElse: () => _senderUnit!,
+            );
+          }
+
+          if (currentRecipientUnitId != null) {
+            _recipientUnit = _allUnits.firstWhere(
+              (u) => u.id == currentRecipientUnitId,
+              orElse: () => _recipientUnit!,
+            );
+          }
+
+          // Find sender unit if editing and not already set
+          if (_senderUnit == null &&
+              _isEditing &&
+              _senderUnitController.text.isNotEmpty) {
             for (final unit in units) {
               if (unit.name.toLowerCase() ==
                       _senderUnitController.text.toLowerCase() ||
@@ -185,8 +220,10 @@ class _InFileFormState extends State<InFileForm> {
             }
           }
 
-          // Find recipient unit if editing
-          if (_isEditing && _addrToController.text.isNotEmpty) {
+          // Find recipient unit if editing and not already set
+          if (_recipientUnit == null &&
+              _isEditing &&
+              _addrToController.text.isNotEmpty) {
             for (final unit in units) {
               if (unit.name.toLowerCase() ==
                       _addrToController.text.toLowerCase() ||
@@ -199,17 +236,18 @@ class _InFileFormState extends State<InFileForm> {
           }
 
           // If not editing, don't set a default recipient unit
-          if (!_isEditing) {
+          if (!_isEditing && _recipientUnit == null) {
             // Leave _recipientUnit as null to make the dropdown unselected
-            _recipientUnit = null;
             _addrToController.text = '';
           }
 
           _isLoadingUnits = false;
         });
+
+        print('InFileForm: Units loaded and state updated');
       }
     } catch (e) {
-      debugPrint('InFileForm: Error loading units: $e');
+      print('InFileForm: Error loading units: $e');
       if (mounted) {
         setState(() {
           _isLoadingUnits = false;
@@ -363,7 +401,7 @@ class _InFileFormState extends State<InFileForm> {
         return;
       }
 
-      debugPrint(
+      print(
           'InFileForm: Adding new unit: ${newUnit.name} (${newUnit.code}) with ID ${newUnit.id}');
 
       // Save the unit to both services
@@ -373,12 +411,12 @@ class _InFileFormState extends State<InFileForm> {
       try {
         // Try to save to UnitService first - this is important for compatibility
         final unitServiceResult = await _unitService.addUnit(newUnit);
-        debugPrint(
+        print(
             'InFileForm: UnitService result: ${unitServiceResult != null ? 'Success' : 'Failed'}');
 
         // Then save to UnitManager - this is the primary storage
         final unitManagerResult = await _unitManager.addUnit(newUnit);
-        debugPrint(
+        print(
             'InFileForm: UnitManager result: ${unitManagerResult != null ? 'Success' : 'Failed'}');
 
         // Use the result from UnitManager if available, otherwise use the one from UnitService
@@ -386,17 +424,8 @@ class _InFileFormState extends State<InFileForm> {
 
         // Consider it a success if either service worked
         success = unitServiceResult != null || unitManagerResult != null;
-
-        // Force a refresh of all units in the application
-        if (success) {
-          // This will trigger the unitChanges stream which will cause all listeners to reload
-          await _unitManager.getAllUnits();
-
-          // Manually trigger a notification to ensure all components are updated
-          _unitManager.notifyUnitChanges();
-        }
       } catch (e) {
-        debugPrint('InFileForm: Error saving unit to services: $e');
+        print('InFileForm: Error saving unit to services: $e');
         success = false;
         savedUnit = newUnit; // Use the original unit as fallback
       }
@@ -404,52 +433,66 @@ class _InFileFormState extends State<InFileForm> {
       // Check if still mounted before updating UI
       if (!mounted) return;
 
-      if (success) {
-        debugPrint('InFileForm: Unit saved successfully, refreshing units');
+      // Always force a refresh of all units regardless of success
+      try {
+        print('InFileForm: Refreshing units list');
 
         // Force a refresh of all units in the application
         final updatedUnits = await _unitManager.getAllUnits();
+        print('InFileForm: Loaded ${updatedUnits.length} units from database');
 
-        // Check if still mounted before updating UI
-        if (!mounted) return;
+        // Manually trigger a notification to ensure all components are updated
+        _unitManager.notifyUnitChanges();
 
-        // Now update the UI with the saved unit
+        // Now update the UI with the latest units
         setState(() {
           // Update the units list
           _allUnits = updatedUnits;
 
           // Auto-select the unit if appropriate
           if (savedUnit != null) {
+            // First check if the unit is in the updated list
+            final unitInList = savedUnit;
+
             if (_senderUnit == null) {
-              _senderUnit = savedUnit;
-              _senderUnitController.text = savedUnit.code;
+              _senderUnit = unitInList;
+              _senderUnitController.text = unitInList.code;
             } else if (_recipientUnit == null) {
-              _recipientUnit = savedUnit;
-              _addrToController.text = savedUnit.code;
+              _recipientUnit = unitInList;
+              _addrToController.text = unitInList.code;
             }
           }
+
+          _isLoadingUnits = false;
         });
 
-        if (mounted) {
+        // Show success message
+        if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Unit "${savedUnit.name}" added successfully'),
               backgroundColor: Colors.green,
             ),
           );
+        } else {
+          // Show partial success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Unit "${savedUnit.name}" partially saved but available for selection'),
+              backgroundColor: Colors.orange,
+            ),
+          );
         }
-      } else {
-        // Check if still mounted before updating UI
-        if (!mounted) return;
+      } catch (refreshError) {
+        print('InFileForm: Error refreshing units: $refreshError');
 
-        // Still add to local list as fallback
+        // Still try to add the unit to the local list as fallback
         setState(() {
-          // Only proceed if we have a valid unit
           if (savedUnit != null) {
-            final unitId = savedUnit.id;
-
             // Check if the unit already exists in the list
-            final existingIndex = _allUnits.indexWhere((u) => u.id == unitId);
+            final existingIndex =
+                _allUnits.indexWhere((u) => u.id == savedUnit!.id);
 
             if (existingIndex >= 0) {
               // Update existing unit
@@ -468,20 +511,20 @@ class _InFileFormState extends State<InFileForm> {
               _addrToController.text = savedUnit.code;
             }
           }
+
+          _isLoadingUnits = false;
         });
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'Unit partially saved - may not appear in all dropdowns'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error refreshing units: $refreshError'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
-      debugPrint('InFileForm: Error in _showAddUnitDialog: $e');
+      print('InFileForm: Error in _showAddUnitDialog: $e');
 
       if (mounted) {
         setState(() {
@@ -494,13 +537,6 @@ class _InFileFormState extends State<InFileForm> {
             backgroundColor: Colors.red,
           ),
         );
-      }
-    } finally {
-      // Always ensure we reset the loading state
-      if (mounted) {
-        setState(() {
-          _isLoadingUnits = false;
-        });
       }
     }
   }
@@ -852,9 +888,34 @@ class _InFileFormState extends State<InFileForm> {
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(Icons.refresh),
+                        icon: _isLoadingUnits
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.refresh),
                         tooltip: 'Refresh Units',
-                        onPressed: _loadUnits,
+                        onPressed: _isLoadingUnits
+                            ? null
+                            : () async {
+                                // Force a refresh of the units list
+                                await _unitManager.initialize();
+                                await _loadUnits();
+
+                                // Show a snackbar to confirm refresh
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Units list refreshed'),
+                                      backgroundColor: Colors.green,
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              },
                       ),
                     ],
                   ),

@@ -11,15 +11,16 @@ import 'providers/security_provider.dart';
 import 'providers/dispatcher_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/local_storage_provider.dart';
+import 'providers/lock_screen_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/loading_screen.dart';
 import 'screens/home_screen_new.dart' as home;
 import 'screens/login_screen.dart';
-import 'screens/lock_screen.dart';
 import 'screens/registration_screen.dart';
 import 'screens/dispatcher/dispatcher_login_screen.dart';
 import 'screens/dispatcher/dispatcher_home_screen.dart';
 import 'screens/settings_screen.dart';
+import 'widgets/lock_screen.dart';
 import 'screens/admin/user_management_screen.dart';
 import 'screens/admin/user_edit_screen.dart';
 import 'screens/admin/system_settings_screen.dart';
@@ -36,6 +37,7 @@ import 'widgets/secure_app_wrapper.dart';
 import 'widgets/security_classification_banner.dart';
 import 'widgets/notifications/notification_manager.dart';
 import 'widgets/responsive_container.dart';
+import 'utils/app_bar_utils.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -91,6 +93,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DispatcherProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => LocalStorageProvider()),
+        ChangeNotifierProvider(create: (_) => LockScreenProvider()),
       ],
       child: Consumer3<TranslationProvider, SecurityProvider,
           LocalStorageProvider>(
@@ -119,6 +122,7 @@ class MyApp extends StatelessWidget {
             title: AppConstants.appName,
             debugShowCheckedModeBanner: !isProduction,
             theme: AppTheme.lightTheme,
+            navigatorKey: AppBarUtils.navigatorKey,
             initialRoute: AppConstants.splashRoute,
 
             // Define routes with builder functions that create responsive layouts
@@ -129,7 +133,8 @@ class MyApp extends StatelessWidget {
               AppConstants.registrationRoute: (context) =>
                   const RegistrationScreen(),
               AppConstants.homeRoute: (context) => const home.HomeScreen(),
-              AppConstants.lockRoute: (context) => const LockScreen(),
+              // Redirect to home screen instead of old lock screen
+              AppConstants.lockRoute: (context) => const home.HomeScreen(),
               AppConstants.settingsRoute: (context) => const SettingsScreen(),
               AppConstants.userManagementRoute: (context) =>
                   const UserManagementScreen(),
@@ -226,21 +231,23 @@ class MyApp extends StatelessWidget {
                     child: NotificationManager(
                       // Apply responsive container to limit width on large screens
                       // This prevents UI elements from stretching too much on wide screens
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return Container(
-                            width: constraints.maxWidth,
-                            height: constraints.maxHeight,
-                            color: Theme.of(context).scaffoldBackgroundColor,
-                            child: ResponsiveContainer(
-                              // Use different max widths based on screen size
-                              maxWidth: width > 1200 ? 1200 : null,
-                              // Center content on larger screens
-                              centerContent: width > 900,
-                              child: child!,
-                            ),
-                          );
-                        },
+                      child: LockScreen(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Container(
+                              width: constraints.maxWidth,
+                              height: constraints.maxHeight,
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                              child: ResponsiveContainer(
+                                // Use different max widths based on screen size
+                                maxWidth: width > 1200 ? 1200 : null,
+                                // Center content on larger screens
+                                centerContent: width > 900,
+                                child: child!,
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
