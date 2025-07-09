@@ -17,13 +17,10 @@ class TrackDispatchScreen extends StatefulWidget {
 class _TrackDispatchScreenState extends State<TrackDispatchScreen> {
   final DispatchService _dispatchService = DispatchService();
   final TextEditingController _referenceController = TextEditingController();
-  final TextEditingController _internalReferenceController =
-      TextEditingController();
 
   Dispatch? _dispatch;
   String? _errorMessage;
   bool _isLoading = false;
-  bool _showInternalReference = false;
   List<Dispatch> _recentlyTrackedDispatches = [];
 
   @override
@@ -35,7 +32,6 @@ class _TrackDispatchScreenState extends State<TrackDispatchScreen> {
   @override
   void dispose() {
     _referenceController.dispose();
-    _internalReferenceController.dispose();
     super.dispose();
   }
 
@@ -50,9 +46,7 @@ class _TrackDispatchScreenState extends State<TrackDispatchScreen> {
 
   // Track dispatch by reference number
   Future<void> _trackDispatch() async {
-    final reference = _showInternalReference
-        ? _internalReferenceController.text.trim()
-        : _referenceController.text.trim();
+    final reference = _referenceController.text.trim();
 
     if (reference.isEmpty) {
       setState(() {
@@ -185,132 +179,51 @@ class _TrackDispatchScreenState extends State<TrackDispatchScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Toggle between reference types
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ChoiceChip(
-                            label: const Text('Reference Number'),
-                            selected: !_showInternalReference,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() {
-                                  _showInternalReference = false;
-                                });
-                              }
-                            },
-                            backgroundColor: Colors.grey[200],
-                            selectedColor: AppTheme.primaryColor.withAlpha(50),
-                            labelStyle: TextStyle(
-                              color: !_showInternalReference
-                                  ? AppTheme.primaryColor
-                                  : Colors.black87,
-                              fontWeight: !_showInternalReference
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ChoiceChip(
-                            label: const Text('Internal Reference'),
-                            selected: _showInternalReference,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() {
-                                  _showInternalReference = true;
-                                });
-                              }
-                            },
-                            backgroundColor: Colors.grey[200],
-                            selectedColor: AppTheme.primaryColor.withAlpha(50),
-                            labelStyle: TextStyle(
-                              color: _showInternalReference
-                                  ? AppTheme.primaryColor
-                                  : Colors.black87,
-                              fontWeight: _showInternalReference
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      ],
+                    // Track by reference or originator's number
+                    const Text(
+                      'Track Dispatch',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 16),
 
                     // Search field
-                    if (!_showInternalReference)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _referenceController,
-                              decoration: InputDecoration(
-                                hintText:
-                                    'Enter reference number (e.g., IN-2023-001)',
-                                prefixIcon: const Icon(FontAwesomeIcons.hashtag,
-                                    size: 16),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 0),
-                              ),
-                              onSubmitted: (_) => _trackDispatch(),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: _trackDispatch,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryColor,
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 12, horizontal: 16),
-                              shape: RoundedRectangleBorder(
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _referenceController,
+                            decoration: InputDecoration(
+                              hintText:
+                                  'Enter reference or originator\'s number',
+                              prefixIcon: const Icon(FontAwesomeIcons.hashtag,
+                                  size: 16),
+                              border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 0),
                             ),
-                            child: const Text('Track'),
+                            onSubmitted: (_) => _trackDispatch(),
                           ),
-                        ],
-                      )
-                    else
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _internalReferenceController,
-                              decoration: InputDecoration(
-                                hintText:
-                                    'Enter internal reference (e.g., IR-2023-001)',
-                                prefixIcon: const Icon(
-                                    FontAwesomeIcons.fileLines,
-                                    size: 16),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 0),
-                              ),
-                              onSubmitted: (_) => _trackDispatch(),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: _trackDispatch,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryColor,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: _trackDispatch,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryColor,
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 12, horizontal: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text('Track'),
-                          ),
-                        ],
-                      ),
+                          child: const Text('Track'),
+                        ),
+                      ],
+                    ),
 
                     if (_errorMessage != null) ...[
                       const SizedBox(height: 16),

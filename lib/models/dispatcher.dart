@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'user.dart';
 
 /// Dispatcher model extending the base User model
@@ -23,6 +24,10 @@ class Dispatcher extends User {
     super.registrationDate,
     super.approvalDate,
     super.approvedBy,
+    super.customPermissions,
+    super.lastLogin,
+    super.deviceInfo,
+    super.lastLoginIp,
     this.assignedDispatches = const [],
     this.completedDispatches = const [],
     required this.dispatcherCode,
@@ -48,6 +53,10 @@ class Dispatcher extends User {
     DateTime? registrationDate,
     DateTime? approvalDate,
     String? approvedBy,
+    Map<Permission, bool>? customPermissions,
+    DateTime? lastLogin,
+    String? deviceInfo,
+    String? lastLoginIp,
     List<String>? assignedDispatches,
     List<String>? completedDispatches,
     String? dispatcherCode,
@@ -69,6 +78,10 @@ class Dispatcher extends User {
       registrationDate: registrationDate ?? this.registrationDate,
       approvalDate: approvalDate ?? this.approvalDate,
       approvedBy: approvedBy ?? this.approvedBy,
+      customPermissions: customPermissions ?? this.customPermissions,
+      lastLogin: lastLogin ?? this.lastLogin,
+      deviceInfo: deviceInfo ?? this.deviceInfo,
+      lastLoginIp: lastLoginIp ?? this.lastLoginIp,
       assignedDispatches: assignedDispatches ?? this.assignedDispatches,
       completedDispatches: completedDispatches ?? this.completedDispatches,
       dispatcherCode: dispatcherCode ?? this.dispatcherCode,
@@ -89,6 +102,25 @@ class Dispatcher extends User {
 
   // Create from map
   factory Dispatcher.fromMap(Map<String, dynamic> map) {
+    // Parse custom permissions if they exist
+    Map<Permission, bool>? customPermissions;
+    if (map['customPermissions'] != null) {
+      customPermissions = {};
+      final permissionsMap = map['customPermissions'] as Map<String, dynamic>;
+      permissionsMap.forEach((key, value) {
+        try {
+          final permission = Permission.values.firstWhere(
+            (p) => p.name == key,
+            orElse: () => throw Exception('Unknown permission: $key'),
+          );
+          customPermissions![permission] = value == 1 || value == true;
+        } catch (e) {
+          // Skip invalid permissions
+          debugPrint('Error parsing permission: $key - $e');
+        }
+      });
+    }
+
     return Dispatcher(
       id: map['id'],
       name: map['name'],
@@ -116,6 +148,12 @@ class Dispatcher extends User {
           ? DateTime.fromMillisecondsSinceEpoch(map['approvalDate'])
           : null,
       approvedBy: map['approvedBy'],
+      customPermissions: customPermissions,
+      lastLogin: map['lastLogin'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['lastLogin'])
+          : null,
+      deviceInfo: map['deviceInfo'] as String?,
+      lastLoginIp: map['lastLoginIp'] as String?,
       assignedDispatches: List<String>.from(map['assignedDispatches'] ?? []),
       completedDispatches: List<String>.from(map['completedDispatches'] ?? []),
       dispatcherCode: map['dispatcherCode'],
@@ -146,6 +184,10 @@ class Dispatcher extends User {
       registrationDate: user.registrationDate,
       approvalDate: user.approvalDate,
       approvedBy: user.approvedBy,
+      customPermissions: user.customPermissions,
+      lastLogin: user.lastLogin,
+      deviceInfo: user.deviceInfo,
+      lastLoginIp: user.lastLoginIp,
       assignedDispatches: assignedDispatches,
       completedDispatches: completedDispatches,
       dispatcherCode: dispatcherCode,

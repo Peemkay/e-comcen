@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../constants/app_theme.dart';
@@ -291,6 +290,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return '#2196F3'; // Blue
       case UserRole.dispatcher:
         return '#4CAF50'; // Green
+      case UserRole.operator:
+        return '#9C27B0'; // Purple
+      case UserRole.viewer:
+        return '#607D8B'; // Blue Grey
     }
   }
 

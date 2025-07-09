@@ -165,13 +165,13 @@ class UnitService {
 
       final rearUnit = Unit(
         id: 'unit_rear_default',
-        name: '522 Signal Regiment',
-        code: '522SR',
-        location: 'Port Harcourt',
+        name: '521 Brigade Signal',
+        code: '521BS',
+        location: 'Benin City',
         parentUnitId: hqUnit.id,
         unitType: UnitType.rearLink,
-        isPrimary: false,
-        description: 'Rear link signal regiment',
+        isPrimary: true,
+        description: 'Current Unit',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -406,9 +406,8 @@ class UnitService {
       // Get all units first
       final units = await getAllUnits();
 
-      // Filter by type
-      final filteredUnits =
-          units.where((unit) => unit.unitType == type).toList();
+      // Filter units based on the requested type
+      final filteredUnits = units.where((unit) => unit.unitType == type).toList();
       debugPrint('Found ${filteredUnits.length} units of type ${type.name}');
 
       // If no units of this type, create some default units of this type
@@ -423,9 +422,6 @@ class UnitService {
         for (final unit in defaultUnits) {
           await addUnit(unit);
         }
-
-        // Return the newly created units
-        return defaultUnits;
       }
 
       return filteredUnits;

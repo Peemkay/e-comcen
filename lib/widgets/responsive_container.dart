@@ -39,10 +39,10 @@ class ResponsiveContainer extends StatelessWidget {
         // Calculate the width based on screen size
         final screenWidth = MediaQuery.of(context).size.width;
         final screenHeight = MediaQuery.of(context).size.height;
-        
+
         double width = screenWidth * widthFactor;
         double? height = heightFactor > 0 ? screenHeight * heightFactor : null;
-        
+
         // Apply min/max constraints
         if (maxWidth != null && width > maxWidth!) {
           width = maxWidth!;
@@ -50,23 +50,21 @@ class ResponsiveContainer extends StatelessWidget {
         if (minWidth != null && width < minWidth!) {
           width = minWidth!;
         }
-        
-        if (height != null) {
-          if (maxHeight != null && height > maxHeight!) {
-            height = maxHeight!;
-          }
-          if (minHeight != null && height < minHeight!) {
-            height = minHeight!;
-          }
+
+        if (maxHeight != null && height != null && height > maxHeight!) {
+          height = maxHeight!;
         }
-        
+        if (minHeight != null && height != null && height < minHeight!) {
+          height = minHeight!;
+        }
+
         Widget content = child;
-        
+
         // Center the content if requested
         if (centerContent) {
           content = Center(child: child);
         }
-        
+
         return Container(
           width: width,
           height: height,
@@ -87,7 +85,7 @@ class ResponsivePadding extends StatelessWidget {
   final double small;
   final double medium;
   final double large;
-  
+
   const ResponsivePadding({
     super.key,
     required this.child,
@@ -95,11 +93,11 @@ class ResponsivePadding extends StatelessWidget {
     this.medium = 16.0,
     this.large = 24.0,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    
+
     // Determine padding based on screen width
     double padding;
     if (width < 600) {
@@ -109,7 +107,7 @@ class ResponsivePadding extends StatelessWidget {
     } else {
       padding = large;
     }
-    
+
     return Padding(
       padding: EdgeInsets.all(padding),
       child: child,
@@ -124,7 +122,7 @@ class ResponsiveGrid extends StatelessWidget {
   final double spacing;
   final double aspectRatio;
   final EdgeInsetsGeometry? padding;
-  
+
   const ResponsiveGrid({
     super.key,
     required this.children,
@@ -133,14 +131,14 @@ class ResponsiveGrid extends StatelessWidget {
     this.aspectRatio = 1.0,
     this.padding,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Calculate the number of columns based on screen width
         final width = constraints.maxWidth;
-        
+
         int count;
         if (columnCount != null) {
           count = columnCount!;
@@ -153,7 +151,7 @@ class ResponsiveGrid extends StatelessWidget {
         } else {
           count = 4; // Large desktop
         }
-        
+
         return GridView.builder(
           padding: padding,
           shrinkWrap: true,

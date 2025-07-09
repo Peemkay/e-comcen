@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -104,7 +105,10 @@ class LocalStorageService {
               registrationDate INTEGER,
               approvalDate INTEGER,
               approvedBy TEXT,
-              lastLogin TEXT,
+              lastLogin INTEGER,
+              deviceInfo TEXT,
+              lastLoginIp TEXT,
+              customPermissions TEXT,
               createdAt TEXT,
               updatedAt TEXT
             )
@@ -368,6 +372,33 @@ class LocalStorageService {
                 userData['username'] != null &&
                 userData['password'] != null &&
                 userData['rank'] != null) {
+              // Parse custom permissions if they exist
+              Map<Permission, bool>? customPermissions;
+              if (userData['customPermissions'] != null) {
+                try {
+                  customPermissions = {};
+                  final permissionsMap =
+                      jsonDecode(userData['customPermissions'] as String)
+                          as Map<String, dynamic>;
+                  permissionsMap.forEach((key, value) {
+                    try {
+                      final permission = Permission.values.firstWhere(
+                        (p) => p.name == key,
+                        orElse: () =>
+                            throw Exception('Unknown permission: $key'),
+                      );
+                      customPermissions![permission] =
+                          value == 1 || value == true;
+                    } catch (e) {
+                      // Skip invalid permissions
+                      debugPrint('Error parsing permission: $key - $e');
+                    }
+                  });
+                } catch (e) {
+                  debugPrint('Error parsing custom permissions: $e');
+                }
+              }
+
               // Handle missing fields with defaults
               final user = User(
                 id: userData['id'] as String,
@@ -410,6 +441,13 @@ class LocalStorageService {
                         userData['approvalDate'] as int)
                     : null,
                 approvedBy: userData['approvedBy'] as String?,
+                customPermissions: customPermissions,
+                lastLogin: userData['lastLogin'] != null
+                    ? DateTime.fromMillisecondsSinceEpoch(
+                        userData['lastLogin'] as int)
+                    : null,
+                deviceInfo: userData['deviceInfo'] as String?,
+                lastLoginIp: userData['lastLoginIp'] as String?,
               );
               users.add(user);
             }
@@ -444,6 +482,9 @@ class LocalStorageService {
               registrationDate: DateTime.now(),
               approvalDate: DateTime.now(),
               approvedBy: 'System',
+              lastLogin: userData['lastLogin'] != null
+                  ? DateTime.parse(userData['lastLogin'] as String)
+                  : DateTime.now(),
             );
             users.add(user);
           } else {
@@ -633,6 +674,28 @@ class LocalStorageService {
       'updatedAt': DateTime.now().toIso8601String(),
       'createdAt': DateTime.now().toIso8601String(),
     };
+
+    // Add new fields for enhanced user model
+    if (user.lastLogin != null) {
+      map['lastLogin'] = user.lastLogin!.millisecondsSinceEpoch;
+    }
+
+    if (user.deviceInfo != null) {
+      map['deviceInfo'] = user.deviceInfo;
+    }
+
+    if (user.lastLoginIp != null) {
+      map['lastLoginIp'] = user.lastLoginIp;
+    }
+
+    // Add custom permissions if they exist
+    if (user.customPermissions != null && user.customPermissions!.isNotEmpty) {
+      final Map<String, int> permissionsMap = {};
+      user.customPermissions!.forEach((permission, value) {
+        permissionsMap[permission.name] = value ? 1 : 0;
+      });
+      map['customPermissions'] = jsonEncode(permissionsMap);
+    }
 
     // Add optional fields only if they're not null
     if (user.registrationDate != null) {
@@ -917,9 +980,6 @@ class LocalStorageService {
             'LocalStorageService: Error during direct insert operation: $insertError');
         return false;
       }
-
-      // This code is unreachable, but we'll keep a return statement for safety
-      return false;
     } catch (e) {
       debugPrint('Error adding unit: $e');
       return false;

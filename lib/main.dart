@@ -12,7 +12,7 @@ import 'providers/dispatcher_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/local_storage_provider.dart';
 import 'providers/lock_screen_provider.dart';
-import 'screens/splash_screen.dart';
+// import 'screens/splash_screen.dart';
 import 'screens/loading_screen.dart';
 import 'screens/home_screen_new.dart' as home;
 import 'screens/login_screen.dart';
@@ -123,11 +123,11 @@ class MyApp extends StatelessWidget {
             debugShowCheckedModeBanner: !isProduction,
             theme: AppTheme.lightTheme,
             navigatorKey: AppBarUtils.navigatorKey,
-            initialRoute: AppConstants.splashRoute,
+            initialRoute: AppConstants.loginRoute,
 
             // Define routes with builder functions that create responsive layouts
             routes: {
-              AppConstants.splashRoute: (context) => const SplashScreen(),
+              // AppConstants.splashRoute: (context) => const SplashScreen(),
               AppConstants.loadingRoute: (context) => const LoadingScreen(),
               AppConstants.loginRoute: (context) => const LoginScreen(),
               AppConstants.registrationRoute: (context) =>

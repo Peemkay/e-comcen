@@ -207,7 +207,6 @@ class DispatchService {
           senderDepartment: localDispatch.senderDepartment,
           recipient: localDispatch.recipient,
           recipientDepartment: localDispatch.recipientDepartment,
-          internalReference: localDispatch.internalReference,
           attachments: localDispatch.attachments,
           logs: localDispatch.logs,
           trackingStatus: newStatus, // Update tracking status too
@@ -238,7 +237,6 @@ class DispatchService {
           contactPerson: externalDispatch.contactPerson,
           contactDetails: externalDispatch.contactDetails,
           isIncoming: externalDispatch.isIncoming,
-          externalReference: externalDispatch.externalReference,
           attachments: externalDispatch.attachments,
           logs: externalDispatch.logs,
           trackingStatus: newStatus, // Update tracking status too
@@ -808,7 +806,7 @@ class DispatchService {
         Random().nextInt(10000).toString();
   }
 
-  // Find a dispatch by its reference number or originator's number
+  // Find a dispatch by its reference number (now contains both reference and originator's number)
   Future<Dispatch?> findDispatchByReference(String searchNumber) async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 800));
@@ -846,48 +844,21 @@ class DispatchService {
       return externalDispatch;
     } catch (_) {}
 
-    // If not found by reference number, search by originator's number
-    try {
-      // Check incoming dispatches by originator's number
-      final incomingDispatch = _incomingDispatches.firstWhere(
-        (d) =>
-            d.originatorsNumber.toLowerCase() == searchNumber.toLowerCase() &&
-            d.originatorsNumber.isNotEmpty,
-      );
-      return incomingDispatch;
-    } catch (_) {}
-
-    try {
-      // Check outgoing dispatches by originator's number (if applicable)
-      final outgoingDispatch = _outgoingDispatches.firstWhere(
-        (d) =>
-            d is IncomingDispatch &&
-            (d as IncomingDispatch).originatorsNumber.toLowerCase() ==
-                searchNumber.toLowerCase() &&
-            (d as IncomingDispatch).originatorsNumber.isNotEmpty,
-      );
-      return outgoingDispatch;
-    } catch (_) {}
-
     // If no dispatch found, return null
     return null;
   }
 
-  // Find dispatches by reference number or originator's number (returns multiple matches)
+  // Find dispatches by reference number (now contains both reference and originator's number)
   Future<List<Dispatch>> findDispatchesByReference(String searchNumber) async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 800));
 
     List<Dispatch> results = [];
 
-    // Search in all dispatch types
+    // Search in all dispatch types by reference number
     // Add incoming dispatches that match
     results.addAll(_incomingDispatches.where((d) =>
-        d.referenceNumber.toLowerCase().contains(searchNumber.toLowerCase()) ||
-        (d.originatorsNumber.isNotEmpty &&
-            d.originatorsNumber
-                .toLowerCase()
-                .contains(searchNumber.toLowerCase()))));
+        d.referenceNumber.toLowerCase().contains(searchNumber.toLowerCase())));
 
     // Add outgoing dispatches that match
     results.addAll(_outgoingDispatches.where((d) =>

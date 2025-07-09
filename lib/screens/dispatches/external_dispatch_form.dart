@@ -26,7 +26,6 @@ class _ExternalDispatchFormState extends State<ExternalDispatchForm> {
   final _organizationController = TextEditingController();
   final _contactPersonController = TextEditingController();
   final _contactDetailsController = TextEditingController();
-  final _externalReferenceController = TextEditingController();
   final _handledByController = TextEditingController();
 
   // Form values
@@ -66,7 +65,6 @@ class _ExternalDispatchFormState extends State<ExternalDispatchForm> {
       _organizationController.text = widget.dispatch!.organization;
       _contactPersonController.text = widget.dispatch!.contactPerson;
       _contactDetailsController.text = widget.dispatch!.contactDetails;
-      _externalReferenceController.text = widget.dispatch!.externalReference;
       _handledByController.text = widget.dispatch!.handledBy;
 
       _dispatchDate = widget.dispatch!.dateTime;
@@ -76,12 +74,9 @@ class _ExternalDispatchFormState extends State<ExternalDispatchForm> {
       _isIncoming = widget.dispatch!.isIncoming;
       _attachments = List.from(widget.dispatch!.attachments);
     } else {
-      // Set default values for new dispatch
-      _referenceController.text =
-          'EXT-${DateTime.now().year}-${_generateReferenceNumber()}';
-      _handledByController.text = 'Admin'; // Default to current user
-      _externalReferenceController.text =
-          'ORG-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}';
+      // Set default values for new dispatch - no auto-generation
+      _referenceController.text = ''; // User must enter manually
+      _handledByController.text = ''; // User must enter manually
     }
   }
 
@@ -93,17 +88,11 @@ class _ExternalDispatchFormState extends State<ExternalDispatchForm> {
     _organizationController.dispose();
     _contactPersonController.dispose();
     _contactDetailsController.dispose();
-    _externalReferenceController.dispose();
     _handledByController.dispose();
     super.dispose();
   }
 
-  String _generateReferenceNumber() {
-    // Generate a 3-digit reference number
-    return (100 + _dispatchService.getExternalDispatches().length + 1)
-        .toString()
-        .padLeft(3, '0');
-  }
+  // Removed auto-generation method - users now enter reference numbers manually
 
   Future<void> _selectDispatchDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -143,7 +132,6 @@ class _ExternalDispatchFormState extends State<ExternalDispatchForm> {
         contactPerson: _contactPersonController.text,
         contactDetails: _contactDetailsController.text,
         isIncoming: _isIncoming,
-        externalReference: _externalReferenceController.text,
         attachments: _attachments,
         logs: _isEditing
             ? [
@@ -260,30 +248,14 @@ class _ExternalDispatchFormState extends State<ExternalDispatchForm> {
               TextFormField(
                 controller: _referenceController,
                 decoration: const InputDecoration(
-                  labelText: 'Reference Number',
+                  labelText: 'Reference or Originator\'s Number *',
+                  hintText: 'Enter Reference or Originator\'s Number',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(FontAwesomeIcons.hashtag, size: 16),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a reference number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // External Reference
-              TextFormField(
-                controller: _externalReferenceController,
-                decoration: const InputDecoration(
-                  labelText: 'External Reference',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(FontAwesomeIcons.fileSignature, size: 16),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter an external reference';
                   }
                   return null;
                 },

@@ -192,11 +192,31 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 600;
+    final isVerySmallScreen = screenSize.height < 600;
 
-    // Responsive sizes
-    final logoSize = isSmallScreen ? 150.0 : 180.0;
-    final titleFontSize = isSmallScreen ? 36.0 : 42.0;
-    final subtitleFontSize = isSmallScreen ? 18.0 : 22.0;
+    // More responsive sizes based on screen dimensions
+    final logoSize = isVerySmallScreen
+        ? 100.0
+        : isSmallScreen
+            ? 120.0
+            : 150.0;
+    final titleFontSize = isVerySmallScreen
+        ? 24.0
+        : isSmallScreen
+            ? 28.0
+            : 36.0;
+    final subtitleFontSize = isVerySmallScreen
+        ? 14.0
+        : isSmallScreen
+            ? 16.0
+            : 18.0;
+
+    // Adaptive spacing based on screen height
+    final baseSpacing = isVerySmallScreen
+        ? 10.0
+        : isSmallScreen
+            ? 15.0
+            : 20.0;
 
     return Scaffold(
       backgroundColor: AppTheme.primaryColor,
@@ -214,262 +234,195 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ),
         child: SafeArea(
-          child: Stack(
-            children: [
-              // Background pattern (subtle grid)
-              Opacity(
-                opacity: 0.05,
-                child: CustomPaint(
-                  painter: GridPatternPainter(
-                    lineColor: Colors.white.withAlpha(77), // 0.3 opacity
-                    lineWidth: 1.0,
-                    gridSize: 20.0,
-                  ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: double.infinity,
-                  ),
-                ),
-              ),
-
-              // Main content
-              Center(
-                child: AnimatedBuilder(
-                  animation: Listenable.merge([
-                    _mainAnimationController,
-                    _logoAnimationController,
-                    _textAnimationController,
-                  ]),
-                  builder: (context, child) {
-                    return FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: ScaleTransition(
-                        scale: _scaleAnimation,
+          child: SingleChildScrollView(
+            child: SizedBox(
+              height: screenSize.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+              child: AnimatedBuilder(
+                animation: Listenable.merge([
+                  _mainAnimationController,
+                  _logoAnimationController,
+                  _textAnimationController,
+                ]),
+                builder: (context, child) {
+                  return FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: ScaleTransition(
+                      scale: _scaleAnimation,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24.0,
+                          vertical: baseSpacing,
+                        ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Logo with animations
-                            Transform.rotate(
-                              angle: _logoRotateAnimation.value,
-                              child: Transform.scale(
-                                scale: _logoScaleAnimation.value,
-                                child: Container(
-                                  width: logoSize,
-                                  height: logoSize,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppTheme.accentColor.withAlpha(
-                                          (51 + (_logoGlowAnimation.value * 77))
-                                              .toInt(), // 0.2-0.5 opacity
-                                        ),
-                                        blurRadius: 20 +
-                                            (_logoGlowAnimation.value * 15),
-                                        spreadRadius:
-                                            4 + (_logoGlowAnimation.value * 4),
+                                // Logo with animations
+                                Transform.rotate(
+                                  angle: _logoRotateAnimation.value,
+                                  child: Transform.scale(
+                                    scale: _logoScaleAnimation.value,
+                                    child: Container(
+                                      width: logoSize,
+                                      height: logoSize,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppTheme.accentColor.withAlpha(
+                                              (51 + (_logoGlowAnimation.value * 77))
+                                                  .toInt(), // 0.2-0.5 opacity
+                                            ),
+                                            blurRadius: 20 +
+                                                (_logoGlowAnimation.value * 15),
+                                            spreadRadius:
+                                                4 + (_logoGlowAnimation.value * 4),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  child: PlaceholderLogo(
-                                    size: logoSize,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 40),
-
-                            // App name with slide animation
-                            Transform.translate(
-                              offset: Offset(0, _textSlideAnimation.value),
-                              child: ShaderMask(
-                                shaderCallback: (bounds) => LinearGradient(
-                                  colors: [
-                                    Colors.white,
-                                    AppTheme.accentColor,
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ).createShader(bounds),
-                                child: Text(
-                                  AppConstants.appName,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: titleFontSize,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 3,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black
-                                            .withAlpha(77), // 0.3 opacity
-                                        blurRadius: 5,
-                                        offset: const Offset(0, 2),
+                                      child: PlaceholderLogo(
+                                        size: logoSize,
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
+                                SizedBox(height: baseSpacing * 2),
 
-                            // Full app name with slide animation
-                            Transform.translate(
-                              offset:
-                                  Offset(0, _textSlideAnimation.value * 1.2),
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 24),
-                                child: Text(
-                                  AppConstants.appFullName,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white
-                                        .withAlpha(230), // 0.9 opacity
-                                    fontSize: subtitleFontSize,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Powered by text with slide animation
-                            Transform.translate(
-                              offset:
-                                  Offset(0, _textSlideAnimation.value * 1.4),
-                              child: Text(
-                                'Powered by ${AppConstants.appPoweredBy}',
-                                style: TextStyle(
-                                  color: Colors.white
-                                      .withAlpha(179), // 0.7 opacity
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-
-                            // Version and platform info with slide animation
-                            Transform.translate(
-                              offset:
-                                  Offset(0, _textSlideAnimation.value * 1.6),
-                              child: Text(
-                                'v${AppConstants.appVersion} | ${AppConstants.appPlatform} | ${AppConstants.appDeviceName}',
-                                style: TextStyle(
-                                  color: Colors.white
-                                      .withAlpha(153), // 0.6 opacity
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 40),
-
-                            // Animated progress indicator
-                            AnimatedBuilder(
-                              animation: _progressController,
-                              builder: (context, child) {
-                                return SizedBox(
-                                  width: 70,
-                                  height: 70,
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      // Outer circle
-                                      CircularProgressIndicator(
-                                        value: _progressAnimation.value,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          AppTheme.accentColor,
-                                        ),
-                                        strokeWidth: 4,
+                                // App name with slide animation
+                                Transform.translate(
+                                  offset: Offset(0, _textSlideAnimation.value),
+                                  child: ShaderMask(
+                                    shaderCallback: (bounds) => LinearGradient(
+                                      colors: [
+                                        Colors.white,
+                                        AppTheme.accentColor,
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ).createShader(bounds),
+                                    child: Text(
+                                      AppConstants.appName,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: titleFontSize,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: isVerySmallScreen ? 1.5 : 3,
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black
+                                                .withAlpha(77), // 0.3 opacity
+                                            blurRadius: 5,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
                                       ),
-                                      // Inner circle
-                                      CircularProgressIndicator(
-                                        value: _progressAnimation.value * 0.8,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          Colors.white
-                                              .withAlpha(179), // 0.7 opacity
-                                        ),
-                                        strokeWidth: 2,
-                                      ),
-                                    ],
+                                      textAlign: TextAlign.center,
+                                    ),
                                   ),
-                                );
-                              },
+                                ),
+                                SizedBox(height: baseSpacing * 0.8),
+
+                                // Full app name with slide animation
+                                Transform.translate(
+                                  offset:
+                                      Offset(0, _textSlideAnimation.value * 1.2),
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(horizontal: 16),
+                                    child: Text(
+                                      AppConstants.appFullName,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.white
+                                            .withAlpha(230), // 0.9 opacity
+                                        fontSize: subtitleFontSize,
+                                        fontWeight: FontWeight.w500,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: baseSpacing),
+
+                                // Powered by text with slide animation
+                                Transform.translate(
+                                  offset:
+                                      Offset(0, _textSlideAnimation.value * 1.4),
+                                  child: Text(
+                                    'Powered by ${AppConstants.appPoweredBy}',
+                                    style: TextStyle(
+                                      color: Colors.white
+                                          .withAlpha(179), // 0.7 opacity
+                                      fontSize: isVerySmallScreen ? 12 : 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                SizedBox(height: baseSpacing * 0.5),
+
+                                // Version and platform info with slide animation
+                                Transform.translate(
+                                  offset:
+                                      Offset(0, _textSlideAnimation.value * 1.6),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    child: Text(
+                                      'v${AppConstants.appVersion} | ${AppConstants.appPlatform} | ${AppConstants.appDeviceName}',
+                                      style: TextStyle(
+                                        color: Colors.white
+                                            .withAlpha(153), // 0.6 opacity
+                                        fontSize: isVerySmallScreen ? 10 : 14,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: baseSpacing * 2),
+
+                                // Animated progress indicator
+                                AnimatedBuilder(
+                                  animation: _progressController,
+                                  builder: (context, child) {
+                                    return SizedBox(
+                                      width: isVerySmallScreen ? 50 : 70,
+                                      height: isVerySmallScreen ? 50 : 70,
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          // Outer circle
+                                          CircularProgressIndicator(
+                                            value: _progressAnimation.value,
+                                            valueColor:
+                                                const AlwaysStoppedAnimation<Color>(
+                                              AppTheme.accentColor,
+                                            ),
+                                            strokeWidth: isVerySmallScreen ? 3 : 4,
+                                          ),
+                                          // Inner circle
+                                          CircularProgressIndicator(
+                                            value: _progressAnimation.value * 0.8,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                              Colors.white
+                                                  .withAlpha(179), // 0.7 opacity
+                                            ),
+                                            strokeWidth: 2,
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
-
-              // Security classification banner
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: AnimatedBuilder(
-                  animation: _securityBannerController,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _securityBannerAnimation.value),
-                      child: Container(
-                        color: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.security,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              SecurityConstants.securityClassification,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              // Organization name at bottom
-              Positioned(
-                bottom: 16,
-                left: 0,
-                right: 0,
-                child: AnimatedBuilder(
-                  animation: _textAnimationController,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _textAnimationController.value,
-                      child: Text(
-                        AppConstants.appOrganization,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withAlpha(179), // 0.7 opacity
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

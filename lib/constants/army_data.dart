@@ -59,7 +59,7 @@ bool isOfficerRank(String rank) {
 bool isValidArmyNumber(String armyNumber) {
   // Accept any non-empty army number format
   // This is an extremely permissive validation to accommodate all possible formats
-  // including N/12345, NA/12345, 20NA/23/123456, or any other format
+  // including N/12345, 20NA/23/123456, or any other format
 
   // Only check that it's not empty and contains at least one alphanumeric character
   final bool isNotEmpty = armyNumber.trim().isNotEmpty;

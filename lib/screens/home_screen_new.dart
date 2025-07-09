@@ -685,6 +685,10 @@ class _HomeScreenState extends State<HomeScreen> {
         return 'Super Administrator';
       case UserRole.dispatcher:
         return 'Dispatcher';
+      case UserRole.operator:
+        return 'Operator';
+      case UserRole.viewer:
+        return 'Viewer';
     }
   }
 

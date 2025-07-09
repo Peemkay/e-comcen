@@ -66,8 +66,8 @@ class _ComcenLogFormState extends State<ComcenLogForm> {
       // Check if action is in the predefined list
       _isCustomAction = !_actionTypes.contains(widget.log!.action);
     } else {
-      // Set default values for new log
-      _performedByController.text = 'Admin'; // Default to current user
+      // Set default values for new log - no defaults
+      _performedByController.text = ''; // User must enter manually
     }
   }
 

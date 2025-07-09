@@ -30,16 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String? _getRoleName(UserRole? role) {
     if (role == null) return null;
-    switch (role) {
-      case UserRole.admin:
-        return 'Administrator';
-      case UserRole.dispatcher:
-        return 'Dispatcher';
-      case UserRole.viewer:
-        return 'Viewer';
-      default:
-        return 'User';
-    }
+    return role.displayName;
   }
 
   @override

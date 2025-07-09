@@ -336,6 +336,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         return 'Super Administrator';
       case UserRole.dispatcher:
         return 'Dispatcher';
+      case UserRole.operator:
+        return 'Operator';
+      case UserRole.viewer:
+        return 'Viewer';
     }
   }
 

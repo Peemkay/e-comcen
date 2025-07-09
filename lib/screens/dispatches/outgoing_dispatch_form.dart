@@ -225,21 +225,14 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
         );
       }
     } else {
-      // Set default values for new dispatch
-      _referenceController.text =
-          'OUT-${DateTime.now().year}-${_generateReferenceNumber()}';
+      // Set default values for new dispatch - no auto-generation
+      _referenceController.text = ''; // User must enter manually
 
-      // Initialize empty fields
+      // Initialize empty fields - no defaults
       _handledByController.text = '';
       _recipientController.text = '';
-
-      // Default sender unit to "Nigerian Army School of Signals"
-      _sentByController.text = 'Nigerian Army School of Signals';
-      _senderUnit = Unit(
-        id: 'temp_sender_${DateTime.now().millisecondsSinceEpoch}',
-        name: 'Nigerian Army School of Signals',
-        code: 'NAS',
-      );
+      _sentByController.text = ''; // User must select sender unit manually
+      _senderUnit = null; // No default sender unit
     }
   }
 
@@ -259,12 +252,7 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
     super.dispose();
   }
 
-  String _generateReferenceNumber() {
-    // Generate a 3-digit reference number
-    return (100 + _dispatchService.getOutgoingDispatches().length + 1)
-        .toString()
-        .padLeft(3, '0');
-  }
+  // Removed auto-generation method - users now enter reference numbers manually
 
   Future<void> _selectDispatchDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -684,8 +672,8 @@ class _OutgoingDispatchFormState extends State<OutgoingDispatchForm> {
                         TextFormField(
                           controller: _referenceController,
                           decoration: InputDecoration(
-                            labelText: 'Reference Number',
-                            hintText: 'Enter reference number',
+                            labelText: 'Reference or Originator\'s Number *',
+                            hintText: 'Enter Reference or Originator\'s Number',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),

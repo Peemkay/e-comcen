@@ -492,6 +492,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return Colors.blue;
       case UserRole.dispatcher:
         return Colors.green;
+      case UserRole.operator:
+        return Colors.purple;
+      case UserRole.viewer:
+        return Colors.blueGrey;
     }
   }
 

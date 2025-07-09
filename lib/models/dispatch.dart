@@ -169,8 +169,7 @@ class IncomingDispatch extends Dispatch {
   final String receivedBy;
   final DateTime receivedDate;
 
-  // New fields
-  final String originatorsNumber; // Originator's Number
+  // New fields (removed originatorsNumber - now merged with referenceNumber)
   final String addrTo; // ADDR TO
   final DateTime? timeHandedIn; // THI (Time Handed In)
   final DateTime? timeCleared; // TCL (Time Cleared)
@@ -180,7 +179,7 @@ class IncomingDispatch extends Dispatch {
 
   IncomingDispatch({
     required super.id,
-    required super.referenceNumber,
+    required super.referenceNumber, // Now contains both reference and originator's number
     required super.subject,
     required super.content,
     required super.dateTime,
@@ -192,7 +191,6 @@ class IncomingDispatch extends Dispatch {
     required this.senderUnit,
     required this.receivedBy,
     required this.receivedDate,
-    this.originatorsNumber = '',
     this.addrTo = '',
     this.timeHandedIn,
     this.timeCleared,
@@ -214,8 +212,8 @@ class IncomingDispatch extends Dispatch {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'referenceNumber': referenceNumber,
-      'originatorsNumber': originatorsNumber,
+      'referenceNumber':
+          referenceNumber, // Now contains both reference and originator's number
       'subject': subject,
       'content': content,
       'dateTime': dateTime.toIso8601String(),
@@ -252,8 +250,8 @@ class IncomingDispatch extends Dispatch {
   factory IncomingDispatch.fromMap(Map<String, dynamic> map) {
     return IncomingDispatch(
       id: map['id'],
-      referenceNumber: map['referenceNumber'],
-      originatorsNumber: map['originatorsNumber'] ?? '',
+      referenceNumber: map[
+          'referenceNumber'], // Now contains both reference and originator's number
       subject: map['subject'],
       content: map['content'],
       dateTime: DateTime.parse(map['dateTime']),
@@ -437,7 +435,6 @@ class LocalDispatch extends Dispatch {
   @override
   final String recipient;
   final String recipientDepartment;
-  final String internalReference;
 
   LocalDispatch({
     required super.id,
@@ -453,7 +450,6 @@ class LocalDispatch extends Dispatch {
     required this.senderDepartment,
     required this.recipient,
     required this.recipientDepartment,
-    required this.internalReference,
     super.attachments,
     super.fileAttachments,
     super.logs,
@@ -484,7 +480,6 @@ class LocalDispatch extends Dispatch {
       'senderDepartment': senderDepartment,
       'recipient': recipient,
       'recipientDepartment': recipientDepartment,
-      'internalReference': internalReference,
       'attachments': attachments,
       'fileAttachments':
           fileAttachments?.map((attachment) => attachment.toMap()).toList(),
@@ -519,7 +514,6 @@ class LocalDispatch extends Dispatch {
       senderDepartment: map['senderDepartment'],
       recipient: map['recipient'],
       recipientDepartment: map['recipientDepartment'],
-      internalReference: map['internalReference'],
       attachments: List<String>.from(map['attachments'] ?? []),
       fileAttachments: (map['fileAttachments'] as List?)
           ?.map((attachment) => FileAttachment.fromMap(attachment))
@@ -559,7 +553,6 @@ class ExternalDispatch extends Dispatch {
   final String contactDetails;
   final bool
       isIncoming; // true if received from external org, false if sent to external org
-  final String externalReference;
 
   @override
   String get sender => isIncoming ? organization : 'Nigerian Army Signal';
@@ -581,7 +574,6 @@ class ExternalDispatch extends Dispatch {
     required this.contactPerson,
     required this.contactDetails,
     required this.isIncoming,
-    required this.externalReference,
     super.attachments,
     super.fileAttachments,
     super.logs,
@@ -612,7 +604,6 @@ class ExternalDispatch extends Dispatch {
       'contactPerson': contactPerson,
       'contactDetails': contactDetails,
       'isIncoming': isIncoming,
-      'externalReference': externalReference,
       'attachments': attachments,
       'fileAttachments':
           fileAttachments?.map((attachment) => attachment.toMap()).toList(),
@@ -647,7 +638,6 @@ class ExternalDispatch extends Dispatch {
       contactPerson: map['contactPerson'],
       contactDetails: map['contactDetails'],
       isIncoming: map['isIncoming'],
-      externalReference: map['externalReference'],
       attachments: List<String>.from(map['attachments'] ?? []),
       fileAttachments: (map['fileAttachments'] as List?)
           ?.map((attachment) => FileAttachment.fromMap(attachment))

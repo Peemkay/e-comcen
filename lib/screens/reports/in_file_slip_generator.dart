@@ -262,8 +262,8 @@ class _InFileSlipGeneratorState extends State<InFileSlipGenerator> {
         'date': _selectedDate,
         'dispatches': _filteredDispatches
             .map((dispatch) => {
-                  'referenceNumber': dispatch.referenceNumber,
-                  'originatorsNumber': dispatch.originatorsNumber,
+                  'referenceNumber': dispatch
+                      .referenceNumber, // Now contains both reference and originator's number
                   'priority': dispatch.priority,
                   'addrFrom': dispatch.senderUnit,
                   'addrTo': dispatch.addrTo,
@@ -1160,7 +1160,8 @@ class _InFileSlipGeneratorState extends State<InFileSlipGenerator> {
           children: [
             _buildTableCellPreview('${i + 1}'),
             _buildTableCellPreview(dispatch.priority),
-            _buildTableCellPreview(dispatch.originatorsNumber),
+            _buildTableCellPreview(dispatch
+                .referenceNumber), // Now contains both reference and originator's number
             _buildTableCellPreview(dispatch.senderUnit),
             _buildTableCellPreview(dispatch.addrTo),
             _buildTableCellPreview(dispatch.timeHandedIn != null

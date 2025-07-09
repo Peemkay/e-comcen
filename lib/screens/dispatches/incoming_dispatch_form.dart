@@ -43,8 +43,8 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
   Unit? _recipientUnit;
 
   // Form controllers
-  final _referenceController = TextEditingController();
-  final _originatorsNumberController = TextEditingController();
+  final _referenceController =
+      TextEditingController(); // Now handles both reference and originator's number
   final _subjectController = TextEditingController();
   final _contentController = TextEditingController();
   final _senderController = TextEditingController(); // Delivered by
@@ -109,8 +109,8 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
 
     if (_isEditing) {
       // Populate form with existing dispatch data
-      _referenceController.text = widget.dispatch!.referenceNumber;
-      _originatorsNumberController.text = widget.dispatch!.originatorsNumber;
+      _referenceController.text = widget.dispatch!
+          .referenceNumber; // Now contains both reference and originator's number
       _subjectController.text = widget.dispatch!.subject;
       _contentController.text = widget.dispatch!.content;
       _senderController.text = widget.dispatch!.sender; // Delivered by
@@ -136,9 +136,8 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
         _loadAttachmentsFromPaths();
       }
     } else {
-      // Set default values for new dispatch
-      _referenceController.text =
-          'IN-${DateTime.now().year}-${_generateReferenceNumber()}';
+      // Set default values for new dispatch - no auto-generation
+      _referenceController.text = ''; // User must enter manually
 
       // Clear the Received By and Handled By fields
       _handledByController.text = '';
@@ -274,7 +273,6 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
 
     // Dispose controllers
     _referenceController.dispose();
-    _originatorsNumberController.dispose();
     _subjectController.dispose();
     _contentController.dispose();
     _senderController.dispose();
@@ -285,12 +283,7 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
     super.dispose();
   }
 
-  String _generateReferenceNumber() {
-    // Generate a 3-digit reference number
-    return (100 + _dispatchService.getIncomingDispatches().length + 1)
-        .toString()
-        .padLeft(3, '0');
-  }
+  // Removed auto-generation method - users now enter reference numbers manually
 
   Future<void> _selectDispatchDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -414,8 +407,8 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
           id: _isEditing
               ? widget.dispatch!.id
               : DateTime.now().millisecondsSinceEpoch.toString(),
-          referenceNumber: _referenceController.text,
-          originatorsNumber: _originatorsNumberController.text,
+          referenceNumber: _referenceController
+              .text, // Now contains both reference and originator's number
           subject: _subjectController.text,
           content: _contentController.text,
           dateTime: _dispatchDate,
@@ -537,80 +530,22 @@ class _IncomingDispatchFormState extends State<IncomingDispatchForm> {
                 icon: FontAwesomeIcons.fileLines,
                 child: Column(
                   children: [
-                    // Use responsive layout for form fields
-                    if (!isMobile) // Two-column layout for tablet and desktop
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Reference Number
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: TextFormField(
-                                controller: _referenceController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Reference Number *',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon:
-                                      Icon(FontAwesomeIcons.hashtag, size: 16),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter a reference number';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ),
-                          // Originator's Number
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 8.0),
-                              child: TextFormField(
-                                controller: _originatorsNumberController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Originator\'s Number',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(
-                                      FontAwesomeIcons.fileSignature,
-                                      size: 16),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    else // Single column for mobile
-                      Column(
-                        children: [
-                          TextFormField(
-                            controller: _referenceController,
-                            decoration: const InputDecoration(
-                              labelText: 'Reference Number *',
-                              border: OutlineInputBorder(),
-                              prefixIcon:
-                                  Icon(FontAwesomeIcons.hashtag, size: 16),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a reference number';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _originatorsNumberController,
-                            decoration: const InputDecoration(
-                              labelText: 'Originator\'s Number',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(FontAwesomeIcons.fileSignature,
-                                  size: 16),
-                            ),
-                          ),
-                        ],
+                    // Single reference field for all screen sizes
+                    TextFormField(
+                      controller: _referenceController,
+                      decoration: const InputDecoration(
+                        labelText: 'Reference or Originator\'s Number *',
+                        hintText: 'Enter Reference or Originator\'s Number',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(FontAwesomeIcons.hashtag, size: 16),
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a reference or originator\'s number';
+                        }
+                        return null;
+                      },
+                    ),
 
                     const SizedBox(height: 16),
 

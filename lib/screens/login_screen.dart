@@ -29,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
   int _loginAttempts = 0;
   bool _isLocked = false;
   DateTime? _lockoutEndTime;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -233,15 +234,23 @@ class _LoginScreenState extends State<LoginScreen> {
             );
           }
 
-          // Navigate based on user role
+          // Navigate based on user role and permissions
           if (mounted) {
-            if (user.role == UserRole.superadmin ||
-                user.role == UserRole.admin) {
+            if (user.hasPermission(Permission.viewAdmin)) {
+              // Users with admin view permission go to admin home
               Navigator.pushReplacementNamed(context, '/home');
-            } else if (user.role == UserRole.dispatcher) {
-              // Dispatchers should use the dispatcher login screen, but just in case
+            } else if (user.hasPermission(Permission.viewDispatch)) {
+              // Users with dispatch view permission but no admin permission go to dispatcher home
               Navigator.pushReplacementNamed(
                   context, AppConstants.dispatcherHomeRoute);
+            } else {
+              // Users with no permissions show error
+              setState(() {
+                _errorMessage =
+                    'Your account does not have sufficient permissions. Please contact your administrator.';
+                _isLoading = false;
+              });
+              return;
             }
           }
         } else {
@@ -342,16 +351,48 @@ class _LoginScreenState extends State<LoginScreen> {
     // Get screen size
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 600;
+    final isVerySmallScreen = screenSize.height < 600;
+    final isExtraSmallScreen = screenSize.height < 500;
 
-    // Calculate responsive sizes
-    final logoSize = isSmallScreen ? 120.0 : 150.0;
-    final titleFontSize = isSmallScreen ? 22.0 : 28.0;
-    final subtitleFontSize = isSmallScreen ? 16.0 : 18.0;
-    final poweredByFontSize = isSmallScreen ? 12.0 : 14.0;
+    // Calculate responsive sizes with better scaling
+    final logoSize = isExtraSmallScreen
+        ? 80.0
+        : isVerySmallScreen
+            ? 100.0
+            : isSmallScreen
+                ? 120.0
+                : 150.0;
+    final titleFontSize = isExtraSmallScreen
+        ? 18.0
+        : isVerySmallScreen
+            ? 20.0
+            : isSmallScreen
+                ? 22.0
+                : 28.0;
+    final subtitleFontSize = isExtraSmallScreen
+        ? 14.0
+        : isVerySmallScreen
+            ? 15.0
+            : isSmallScreen
+                ? 16.0
+                : 18.0;
+    final poweredByFontSize = isExtraSmallScreen
+        ? 10.0
+        : isVerySmallScreen
+            ? 11.0
+            : isSmallScreen
+                ? 12.0
+                : 14.0;
 
-    // Calculate responsive spacing
-    final double verticalSpacing = isSmallScreen ? 20.0 : 30.0;
-    final double horizontalPadding = isSmallScreen ? 20.0 : 30.0;
+    // Calculate responsive spacing with better scaling
+    final double verticalSpacing = isExtraSmallScreen
+        ? 8.0
+        : isVerySmallScreen
+            ? 12.0
+            : isSmallScreen
+                ? 16.0
+                : 24.0;
+    final double horizontalPadding = isSmallScreen ? 16.0 : 24.0;
 
     // Calculate form width based on screen size
     final formWidth = screenSize.width > 1200
@@ -375,8 +416,14 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: screenSize.height -
+                    MediaQuery.of(context).padding.top -
+                    MediaQuery.of(context).padding.bottom,
+              ),
               child: Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: horizontalPadding,
@@ -435,7 +482,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   textAlign: TextAlign.center,
                                 ),
                               ),
-                              SizedBox(height: verticalSpacing * 0.3),
+                              SizedBox(height: verticalSpacing * 0.4),
 
                               // Subtitle with responsive font size
                               Text(
@@ -447,7 +494,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              SizedBox(height: verticalSpacing * 0.2),
+                              SizedBox(height: verticalSpacing * 0.3),
 
                               // Powered by text with responsive font size
                               Text(
@@ -462,10 +509,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
                         ),
-                        SizedBox(height: verticalSpacing * 1.5),
-
-                        // Removed security classification banner
-                        SizedBox(height: verticalSpacing * 0.5),
+                        SizedBox(height: verticalSpacing * 1.2),
 
                         // Login Form
                         Card(
@@ -475,7 +519,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: Padding(
-                            padding: EdgeInsets.all(isSmallScreen ? 20 : 30),
+                            padding: EdgeInsets.all(isExtraSmallScreen
+                                ? 16
+                                : isVerySmallScreen
+                                    ? 18
+                                    : isSmallScreen
+                                        ? 20
+                                        : 30),
                             child: Form(
                               key: _formKey,
                               child: Column(
@@ -485,13 +535,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Text(
                                     'Secure Login',
                                     style: TextStyle(
-                                      fontSize: isSmallScreen ? 18 : 22,
+                                      fontSize: isExtraSmallScreen
+                                          ? 16
+                                          : isVerySmallScreen
+                                              ? 17
+                                              : isSmallScreen
+                                                  ? 18
+                                                  : 22,
                                       fontWeight: FontWeight.bold,
                                       color: AppTheme.primaryColor,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
-                                  SizedBox(height: verticalSpacing * 0.4),
+                                  SizedBox(height: verticalSpacing * 0.6),
 
                                   // Username Field
                                   TextFormField(
@@ -541,7 +597,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     },
                                     textInputAction: TextInputAction.next,
                                   ),
-                                  SizedBox(height: verticalSpacing * 0.7),
+                                  SizedBox(height: verticalSpacing * 0.8),
 
                                   // Password Field
                                   TextFormField(
@@ -603,11 +659,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                     textInputAction: TextInputAction.done,
                                     onFieldSubmitted: (_) => _login(),
                                   ),
-                                  SizedBox(height: verticalSpacing * 0.7),
+                                  SizedBox(height: verticalSpacing * 0.8),
 
                                   // Login Button
                                   SizedBox(
-                                    height: isSmallScreen ? 50 : 56,
+                                    height: isExtraSmallScreen
+                                        ? 44
+                                        : isVerySmallScreen
+                                            ? 48
+                                            : isSmallScreen
+                                                ? 50
+                                                : 56,
                                     child: ElevatedButton(
                                       onPressed: _isLoading ? null : _login,
                                       style: ElevatedButton.styleFrom(
@@ -623,8 +685,20 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ),
                                       child: _isLoading
                                           ? SizedBox(
-                                              height: isSmallScreen ? 20 : 24,
-                                              width: isSmallScreen ? 20 : 24,
+                                              height: isExtraSmallScreen
+                                                  ? 16
+                                                  : isVerySmallScreen
+                                                      ? 18
+                                                      : isSmallScreen
+                                                          ? 20
+                                                          : 24,
+                                              width: isExtraSmallScreen
+                                                  ? 16
+                                                  : isVerySmallScreen
+                                                      ? 18
+                                                      : isSmallScreen
+                                                          ? 20
+                                                          : 24,
                                               child:
                                                   const CircularProgressIndicator(
                                                 color: Colors.white,
@@ -635,16 +709,26 @@ class _LoginScreenState extends State<LoginScreen> {
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
                                               children: [
-                                                const Icon(
+                                                Icon(
                                                     FontAwesomeIcons
                                                         .rightToBracket,
-                                                    size: 16),
-                                                const SizedBox(width: 10),
+                                                    size: isExtraSmallScreen
+                                                        ? 14
+                                                        : 16),
+                                                SizedBox(
+                                                    width: isExtraSmallScreen
+                                                        ? 8
+                                                        : 10),
                                                 Text(
                                                   'LOGIN',
                                                   style: TextStyle(
-                                                    fontSize:
-                                                        isSmallScreen ? 16 : 18,
+                                                    fontSize: isExtraSmallScreen
+                                                        ? 14
+                                                        : isVerySmallScreen
+                                                            ? 15
+                                                            : isSmallScreen
+                                                                ? 16
+                                                                : 18,
                                                     fontWeight: FontWeight.bold,
                                                     letterSpacing: 1.2,
                                                   ),
@@ -653,7 +737,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                             ),
                                     ),
                                   ),
-                                  SizedBox(height: verticalSpacing * 0.5),
+                                  SizedBox(height: verticalSpacing * 0.6),
 
                                   // Forgot Password
                                   Center(
@@ -687,7 +771,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
 
                         // Dispatcher Login Button
-                        SizedBox(height: verticalSpacing),
+                        SizedBox(height: verticalSpacing * 0.8),
                         OutlinedButton.icon(
                           onPressed: () {
                             Navigator.pushNamed(
@@ -695,14 +779,32 @@ class _LoginScreenState extends State<LoginScreen> {
                               AppConstants.dispatcherLoginRoute,
                             );
                           },
-                          icon: const Icon(FontAwesomeIcons.truckFast),
-                          label: const Text('Dispatcher Login'),
+                          icon: Icon(
+                            FontAwesomeIcons.truckFast,
+                            size: isExtraSmallScreen ? 14 : 16,
+                          ),
+                          label: Text(
+                            'Dispatcher Login',
+                            style: TextStyle(
+                              fontSize: isExtraSmallScreen
+                                  ? 14
+                                  : isVerySmallScreen
+                                      ? 15
+                                      : 16,
+                            ),
+                          ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppTheme.primaryColor,
                             side: BorderSide(
                                 color: AppTheme.primaryColor, width: 2),
                             padding: EdgeInsets.symmetric(
-                              vertical: isSmallScreen ? 14 : 18,
+                              vertical: isExtraSmallScreen
+                                  ? 10
+                                  : isVerySmallScreen
+                                      ? 12
+                                      : isSmallScreen
+                                          ? 14
+                                          : 18,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -711,33 +813,54 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
 
                         // Version information at the bottom
-                        SizedBox(height: verticalSpacing),
+                        SizedBox(height: verticalSpacing * 0.8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               FontAwesomeIcons.circleInfo,
-                              size: isSmallScreen ? 12 : 14,
+                              size: isExtraSmallScreen
+                                  ? 10
+                                  : isVerySmallScreen
+                                      ? 11
+                                      : isSmallScreen
+                                          ? 12
+                                          : 14,
                               color: Colors.grey[500],
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'v${AppConstants.appVersion} | ${AppConstants.appPlatform}',
-                              style: TextStyle(
-                                fontSize: isSmallScreen ? 12 : 14,
-                                color: Colors.grey[500],
-                                fontWeight: FontWeight.w500,
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                'v${AppConstants.appVersion} | ${AppConstants.appPlatform}',
+                                style: TextStyle(
+                                  fontSize: isExtraSmallScreen
+                                      ? 10
+                                      : isVerySmallScreen
+                                          ? 11
+                                          : isSmallScreen
+                                              ? 12
+                                              : 14,
+                                  color: Colors.grey[500],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ),
                           ],
                         ),
 
                         // Copyright information
-                        SizedBox(height: verticalSpacing * 0.5),
+                        SizedBox(height: verticalSpacing * 0.4),
                         Text(
                           '© ${DateTime.now().year} Nigerian Army Signal. All rights reserved.',
                           style: TextStyle(
-                            fontSize: isSmallScreen ? 10 : 12,
+                            fontSize: isExtraSmallScreen
+                                ? 8
+                                : isVerySmallScreen
+                                    ? 9
+                                    : isSmallScreen
+                                        ? 10
+                                        : 12,
                             color: Colors.grey[500],
                           ),
                           textAlign: TextAlign.center,

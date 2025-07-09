@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.1+1
 
 environment:
   sdk: ^3.6.0
@@ -48,10 +48,10 @@ dependencies:
 
   # Utils
   shared_preferences: ^2.2.2
-  intl: ^0.19.0
+  intl: ^0.20.2
 
   # Translation and localization
-  flutter_translate: ^4.0.4
+  flutter_translate: ^3.1.0
   translator: ^1.0.3+1
   connectivity_plus: ^4.0.2
   http: ^1.1.0
@@ -74,7 +74,7 @@ dependencies:
   url_launcher: ^6.3.1
   package_info_plus: ^8.3.0
   uuid: ^4.5.1
-  file_picker: ^5.5.0
+  file_picker: ^8.1.2
   mime: ^1.0.4
   path: ^1.8.3
   open_file: ^3.3.2
@@ -166,7 +166,7 @@ msix_config:
   publisher_display_name: Nigerian Army Signal
   identity_name: NigerianArmySignal.NASDS
   publisher: CN=Nigerian Army Signal
-  msix_version: 1.0.0.0
+  msix_version: 1.0.1.0
   logo_path: assets/images/nas_logo.png
   capabilities: internetClient
   execution_alias: E-COMCEN

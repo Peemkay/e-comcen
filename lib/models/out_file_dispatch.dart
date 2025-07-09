@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class OutFileDispatch {
   final String id;
-  final String referenceNumber;
-  final String originatorsNumber;
+  final String
+      referenceNumber; // Now contains both reference and originator's number
   final String subject;
   final String? content;
   final DateTime dispatchDate;
@@ -27,8 +27,7 @@ class OutFileDispatch {
 
   OutFileDispatch({
     required this.id,
-    required this.referenceNumber,
-    required this.originatorsNumber,
+    required this.referenceNumber, // Now contains both reference and originator's number
     required this.subject,
     this.content,
     required this.dispatchDate,
@@ -57,8 +56,8 @@ class OutFileDispatch {
 
     return OutFileDispatch(
       id: doc.id,
-      referenceNumber: data['referenceNumber'] ?? '',
-      originatorsNumber: data['originatorsNumber'] ?? '',
+      referenceNumber: data['referenceNumber'] ??
+          '', // Now contains both reference and originator's number
       subject: data['subject'] ?? '',
       content: data['content'],
       dispatchDate: (data['dispatchDate'] as Timestamp).toDate(),
@@ -91,8 +90,8 @@ class OutFileDispatch {
   // Convert to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
-      'referenceNumber': referenceNumber,
-      'originatorsNumber': originatorsNumber,
+      'referenceNumber':
+          referenceNumber, // Now contains both reference and originator's number
       'subject': subject,
       'content': content,
       'dispatchDate': Timestamp.fromDate(dispatchDate),
@@ -121,8 +120,8 @@ class OutFileDispatch {
   // Create a copy with updated fields
   OutFileDispatch copyWith({
     String? id,
-    String? referenceNumber,
-    String? originatorsNumber,
+    String?
+        referenceNumber, // Now contains both reference and originator's number
     String? subject,
     String? content,
     DateTime? dispatchDate,
@@ -147,7 +146,6 @@ class OutFileDispatch {
     return OutFileDispatch(
       id: id ?? this.id,
       referenceNumber: referenceNumber ?? this.referenceNumber,
-      originatorsNumber: originatorsNumber ?? this.originatorsNumber,
       subject: subject ?? this.subject,
       content: content ?? this.content,
       dispatchDate: dispatchDate ?? this.dispatchDate,

@@ -4,6 +4,7 @@ import '../../constants/app_theme.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
 import '../../services/user_service.dart';
+import 'user_permissions_screen.dart';
 
 class UserEditScreen extends StatefulWidget {
   final User? user;
@@ -202,18 +203,57 @@ class _UserEditScreenState extends State<UserEditScreen> {
       return;
     }
 
-    // If only has dispatch permissions, set role to dispatcher
-    bool hasOnlyDispatchPermissions =
+    // If has dispatch management permissions, set role to dispatcher
+    bool hasDispatchManagementPermissions =
         _permissions[Permission.viewDispatch] == true &&
             _permissions[Permission.manageDispatch] == true &&
+            _permissions[Permission.viewReports] == true &&
             _permissions[Permission.viewAdmin] != true &&
             _permissions[Permission.manageAdmin] != true &&
             _permissions[Permission.manageUsers] != true &&
             _permissions[Permission.manageUserPrivileges] != true;
 
-    if (hasOnlyDispatchPermissions) {
+    if (hasDispatchManagementPermissions) {
       setState(() {
         _selectedRole = UserRole.dispatcher;
+      });
+      return;
+    }
+
+    // If has dispatch creation but not management permissions, set role to operator
+    bool hasDispatchCreationPermissions =
+        _permissions[Permission.viewDispatch] == true &&
+            _permissions[Permission.createDispatch] == true &&
+            _permissions[Permission.viewReports] == true &&
+            _permissions[Permission.manageDispatch] != true &&
+            _permissions[Permission.viewAdmin] != true &&
+            _permissions[Permission.manageAdmin] != true &&
+            _permissions[Permission.manageUsers] != true &&
+            _permissions[Permission.manageUserPrivileges] != true;
+
+    if (hasDispatchCreationPermissions) {
+      setState(() {
+        _selectedRole = UserRole.operator;
+      });
+      return;
+    }
+
+    // If has only view permissions, set role to viewer
+    bool hasViewOnlyPermissions =
+        _permissions[Permission.viewDispatch] == true &&
+            _permissions[Permission.viewReports] == true &&
+            _permissions[Permission.createDispatch] != true &&
+            _permissions[Permission.editDispatch] != true &&
+            _permissions[Permission.deleteDispatch] != true &&
+            _permissions[Permission.manageDispatch] != true &&
+            _permissions[Permission.viewAdmin] != true &&
+            _permissions[Permission.manageAdmin] != true &&
+            _permissions[Permission.manageUsers] != true &&
+            _permissions[Permission.manageUserPrivileges] != true;
+
+    if (hasViewOnlyPermissions) {
+      setState(() {
+        _selectedRole = UserRole.viewer;
       });
       return;
     }
@@ -226,6 +266,14 @@ class _UserEditScreenState extends State<UserEditScreen> {
     for (var permission in Permission.values) {
       _permissions[permission] = role.hasPermission(permission);
     }
+
+    // Show a snackbar to inform the user
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Permissions updated to match ${role.displayName} role'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   // Helper method to get role description
@@ -236,7 +284,10 @@ class _UserEditScreenState extends State<UserEditScreen> {
       UserRole.admin =>
         'Administrative access to manage dispatches and users, but cannot modify user privileges.',
       UserRole.dispatcher =>
-        'Can create and manage dispatches, but has limited administrative access.',
+        'Can create, manage, and track dispatches, with access to reports.',
+      UserRole.operator =>
+        'Can view and create dispatches, but cannot modify system settings.',
+      UserRole.viewer => 'Read-only access to view dispatches and reports.',
     };
   }
 
@@ -311,6 +362,57 @@ class _UserEditScreenState extends State<UserEditScreen> {
         title: Text(_isCreating ? 'Create User' : 'Edit User'),
         backgroundColor: AppTheme.primaryColor,
         actions: [
+          // Advanced permissions button (only for existing users and users with permission)
+          if (!_isCreating &&
+              _authService.hasPermission(Permission.manageUserPrivileges))
+            IconButton(
+              icon: const Icon(Icons.security),
+              onPressed: _isLoading
+                  ? null
+                  : () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              UserPermissionsScreen(user: widget.user!),
+                        ),
+                      );
+
+                      if (result == true) {
+                        // Refresh user data if permissions were updated
+                        setState(() {
+                          _isLoading = true;
+                        });
+
+                        try {
+                          final updatedUser =
+                              await _userService.getUserById(widget.user!.id);
+                          if (updatedUser != null && mounted) {
+                            setState(() {
+                              // Update role and permissions
+                              _selectedRole = updatedUser.role;
+
+                              // Update permissions based on user's current permissions
+                              for (var permission in Permission.values) {
+                                _permissions[permission] =
+                                    updatedUser.hasPermission(permission);
+                              }
+
+                              _isLoading = false;
+                            });
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            setState(() {
+                              _errorMessage = 'Error refreshing user data: $e';
+                              _isLoading = false;
+                            });
+                          }
+                        }
+                      }
+                    },
+              tooltip: 'Advanced Permissions',
+            ),
           IconButton(
             icon: const Icon(Icons.save),
             onPressed: _isLoading ? null : _saveUser,

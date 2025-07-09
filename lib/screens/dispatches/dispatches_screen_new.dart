@@ -212,7 +212,7 @@ class _DispatchesScreenState extends State<DispatchesScreen> {
                       color: Colors.teal,
                       count: 0,
                       description:
-                          'Track dispatches by reference number or internal reference',
+                          'Track dispatches by reference or originator\'s number',
                       onTap: () =>
                           _navigateToScreen(const TrackDispatchScreen()),
                     ),

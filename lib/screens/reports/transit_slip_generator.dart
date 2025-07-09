@@ -50,8 +50,11 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
   // Filter options
   DateTime? _startDate;
   DateTime? _endDate;
-  String? _fromUnitFilter;
   String? _toUnitFilter;
+
+  // Unit selection for slip generation
+  List<String> _selectedUnitsForSlip = [];
+  bool _selectAllUnits = true;
 
   // Sort options
   String _sortBy = 'date';
@@ -121,6 +124,8 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
           _allDispatches = dispatches;
           _filteredDispatches = List.from(dispatches);
           _savedSlips = savedSlips;
+          // Initialize unit selection - start with all units selected
+          _selectedUnitsForSlip = units.map((unit) => unit.code).toList();
           _isLoading = false;
         });
       }
@@ -150,11 +155,13 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
                     dispatch.dateTime
                         .isBefore(_endDate!.add(const Duration(days: 1))));
 
-        // From unit filter
-        final fromMatches = _fromUnitFilter == null ||
-            dispatch.sentBy
-                .toLowerCase()
-                .contains(_fromUnitFilter!.toLowerCase());
+        // Units filter - check if dispatch is from any selected unit
+        bool fromMatches = true;
+        if (!_selectAllUnits && _selectedUnitsForSlip.isNotEmpty) {
+          // Get the unit code for this dispatch
+          final dispatchUnitCode = _getSenderUnitCode(dispatch);
+          fromMatches = _selectedUnitsForSlip.contains(dispatchUnitCode);
+        }
 
         // To unit filter
         final toMatches = _toUnitFilter == null ||
@@ -196,6 +203,107 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
     });
   }
 
+  // Toggle select all units
+  void _toggleSelectAllUnits(bool? value) {
+    setState(() {
+      _selectAllUnits = value ?? false;
+      if (_selectAllUnits) {
+        _selectedUnitsForSlip = _allUnits.map((unit) => unit.code).toList();
+      } else {
+        _selectedUnitsForSlip.clear();
+      }
+    });
+  }
+
+  // Toggle individual unit selection
+  void _toggleUnitSelection(String unitCode, bool? value) {
+    setState(() {
+      if (value == true) {
+        if (!_selectedUnitsForSlip.contains(unitCode)) {
+          _selectedUnitsForSlip.add(unitCode);
+        }
+      } else {
+        _selectedUnitsForSlip.remove(unitCode);
+      }
+
+      // Update select all state
+      _selectAllUnits = _selectedUnitsForSlip.length == _allUnits.length;
+    });
+  }
+
+  // Show multi-select unit dialog
+  Future<void> _showUnitSelectionDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Select Units for Slip Generation'),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 400,
+                child: Column(
+                  children: [
+                    // Select All checkbox
+                    CheckboxListTile(
+                      title: const Text(
+                        'Select All Units',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      value: _selectAllUnits,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          _toggleSelectAllUnits(value);
+                        });
+                      },
+                    ),
+                    const Divider(),
+                    // Individual unit checkboxes
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _allUnits.length,
+                        itemBuilder: (context, index) {
+                          final unit = _allUnits[index];
+                          return CheckboxListTile(
+                            title: Text('${unit.code} - ${unit.name}'),
+                            subtitle: unit.isPrimary
+                                ? const Text('Primary Unit',
+                                    style: TextStyle(color: Colors.blue))
+                                : null,
+                            value: _selectedUnitsForSlip.contains(unit.code),
+                            onChanged: (value) {
+                              setDialogState(() {
+                                _toggleUnitSelection(unit.code, value);
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _applyFilters(); // Apply filters with new unit selection
+                  },
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   // New implementation to capture and save the A4 display as PDF
   Future<void> _generateTransitSlip() async {
     if (_primaryUnit == null || _selectedToUnit == null) {
@@ -228,7 +336,7 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
           await image.toByteData(format: ui.ImageByteFormat.png);
 
       if (byteData == null) {
-        throw Exception('Failed to convert the preview to image data');
+        throw Exception('Failed to convert image to byte data');
       }
 
       Uint8List pngBytes = byteData.buffer.asUint8List();
@@ -850,35 +958,37 @@ class _TransitSlipGeneratorState extends State<TransitSlipGenerator> {
 
           const SizedBox(width: 12),
 
-          // From Unit Filter
+          // Units for Slip Generation
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  hint: const Text('From Unit'),
-                  value: _fromUnitFilter,
-                  isExpanded: true,
-                  items: [
-                    const DropdownMenuItem<String>(
-                      value: null,
-                      child: Text('All Units'),
+            child: InkWell(
+              onTap: _showUnitSelectionDialog,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.group, size: 16, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _selectAllUnits
+                            ? 'All Units (${_allUnits.length})'
+                            : _selectedUnitsForSlip.isEmpty
+                                ? 'Select Units'
+                                : '${_selectedUnitsForSlip.length} Units Selected',
+                        style: TextStyle(
+                          color: _selectedUnitsForSlip.isEmpty
+                              ? Colors.grey
+                              : Colors.black,
+                        ),
+                      ),
                     ),
-                    ..._allUnits.map((unit) => DropdownMenuItem<String>(
-                          value: unit.code,
-                          child: Text(unit.code),
-                        )),
+                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
                   ],
-                  onChanged: (value) {
-                    setState(() {
-                      _fromUnitFilter = value;
-                    });
-                    _applyFilters();
-                  },
                 ),
               ),
             ),

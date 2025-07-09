@@ -408,6 +408,7 @@ class UserService {
       registrationDate: now,
       approvalDate: now,
       approvedBy: 'System',
+      lastLogin: now,
     );
 
     try {
@@ -456,6 +457,7 @@ class UserService {
       registrationDate: now,
       approvalDate: now,
       approvedBy: 'System',
+      lastLogin: now,
     );
 
     // Add to in-memory cache

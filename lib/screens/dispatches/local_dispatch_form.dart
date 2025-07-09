@@ -32,7 +32,6 @@ class _LocalDispatchFormState extends State<LocalDispatchForm> {
   final _senderDepartmentController = TextEditingController();
   final _recipientController = TextEditingController();
   final _recipientDepartmentController = TextEditingController();
-  final _internalReferenceController = TextEditingController();
   final _handledByController = TextEditingController();
 
   // Form values
@@ -74,7 +73,6 @@ class _LocalDispatchFormState extends State<LocalDispatchForm> {
       _recipientController.text = widget.dispatch!.recipient;
       _recipientDepartmentController.text =
           widget.dispatch!.recipientDepartment;
-      _internalReferenceController.text = widget.dispatch!.internalReference;
       _handledByController.text = widget.dispatch!.handledBy;
 
       _dispatchDate = widget.dispatch!.dateTime;
@@ -91,13 +89,10 @@ class _LocalDispatchFormState extends State<LocalDispatchForm> {
         _loadAttachmentsFromPaths();
       }
     } else {
-      // Set default values for new dispatch
-      _referenceController.text =
-          'LOC-${DateTime.now().year}-${_generateReferenceNumber()}';
-      _handledByController.text = 'Admin'; // Default to current user
-      _senderController.text = 'Admin'; // Default to current user
-      _internalReferenceController.text =
-          'INT-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}';
+      // Set default values for new dispatch - no auto-generation
+      _referenceController.text = ''; // User must enter manually
+      _handledByController.text = ''; // User must enter manually
+      _senderController.text = ''; // User must enter manually
     }
   }
 
@@ -118,17 +113,11 @@ class _LocalDispatchFormState extends State<LocalDispatchForm> {
     _senderDepartmentController.dispose();
     _recipientController.dispose();
     _recipientDepartmentController.dispose();
-    _internalReferenceController.dispose();
     _handledByController.dispose();
     super.dispose();
   }
 
-  String _generateReferenceNumber() {
-    // Generate a 3-digit reference number
-    return (100 + _dispatchService.getLocalDispatches().length + 1)
-        .toString()
-        .padLeft(3, '0');
-  }
+  // Removed auto-generation method - users now enter reference numbers manually
 
   Future<void> _selectDispatchDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -168,7 +157,6 @@ class _LocalDispatchFormState extends State<LocalDispatchForm> {
         senderDepartment: _senderDepartmentController.text,
         recipient: _recipientController.text,
         recipientDepartment: _recipientDepartmentController.text,
-        internalReference: _internalReferenceController.text,
         attachments: _attachments,
         fileAttachments: _fileAttachments,
         logs: _isEditing
@@ -264,88 +252,22 @@ class _LocalDispatchFormState extends State<LocalDispatchForm> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Use responsive layout for form fields
-                      if (!isMobile) // For tablet and desktop: use a row layout for reference numbers
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Reference Number
-                            Expanded(
-                              child: TextFormField(
-                                controller: _referenceController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Reference Number',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon:
-                                      Icon(FontAwesomeIcons.hashtag, size: 16),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter a reference number';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                            SizedBox(width: spacing),
-                            // Internal Reference
-                            Expanded(
-                              child: TextFormField(
-                                controller: _internalReferenceController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Internal Reference',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(
-                                      FontAwesomeIcons.fileSignature,
-                                      size: 16),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter an internal reference';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ],
-                        )
-                      else // For mobile: use a column layout
-                        Column(
-                          children: [
-                            // Reference Number
-                            TextFormField(
-                              controller: _referenceController,
-                              decoration: const InputDecoration(
-                                labelText: 'Reference Number',
-                                border: OutlineInputBorder(),
-                                prefixIcon:
-                                    Icon(FontAwesomeIcons.hashtag, size: 16),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter a reference number';
-                                }
-                                return null;
-                              },
-                            ),
-                            SizedBox(height: spacing),
-                            // Internal Reference
-                            TextFormField(
-                              controller: _internalReferenceController,
-                              decoration: const InputDecoration(
-                                labelText: 'Internal Reference',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(FontAwesomeIcons.fileSignature,
-                                    size: 16),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter an internal reference';
-                                }
-                                return null;
-                              },
-                            ),
-                          ],
+                      // Single reference field for all screen sizes
+                      TextFormField(
+                        controller: _referenceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Reference or Originator\'s Number *',
+                          hintText: 'Enter Reference or Originator\'s Number',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(FontAwesomeIcons.hashtag, size: 16),
                         ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a reference or originator\'s number';
+                          }
+                          return null;
+                        },
+                      ),
                       const SizedBox(height: 16),
 
                       // Subject

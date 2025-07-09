@@ -363,14 +363,6 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Originator\'s No: ${incomingDispatch.originatorsNumber}',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
                                       'ADDR FROM: ${incomingDispatch.senderUnit}',
                                       style: const TextStyle(
                                         fontSize: 14,
@@ -665,9 +657,8 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
   List<Widget> _buildIncomingDetails() {
     final incomingDispatch = _dispatch as IncomingDispatch;
     return [
-      _buildDetailRow('Reference Number', incomingDispatch.referenceNumber),
       _buildDetailRow(
-          'Originator\'s Number', incomingDispatch.originatorsNumber),
+          'Reference/Originator\'s Number', incomingDispatch.referenceNumber),
       _buildDetailRow('P/ACTION', incomingDispatch.priority),
       _buildDetailRow('ADDR FROM', incomingDispatch.senderUnit),
       _buildDetailRow('ADDR TO', incomingDispatch.addrTo),
@@ -713,7 +704,6 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
       _buildDetailRow('Recipient', localDispatch.recipient),
       _buildDetailRow(
           'Recipient Department', localDispatch.recipientDepartment),
-      _buildDetailRow('Internal Reference', localDispatch.internalReference),
     ];
   }
 
@@ -727,7 +717,6 @@ class _DispatchDetailScreenState extends State<DispatchDetailScreen> {
         'Direction',
         externalDispatch.isIncoming ? 'Incoming' : 'Outgoing',
       ),
-      _buildDetailRow('External Reference', externalDispatch.externalReference),
     ];
   }
 }

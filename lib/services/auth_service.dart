@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import 'user_service.dart';
 
@@ -30,7 +31,19 @@ class AuthService {
   // Check if current user has a specific permission
   bool hasPermission(Permission permission) {
     if (_currentUser == null) return false;
-    return _currentUser!.role.hasPermission(permission);
+    return _currentUser!.hasPermission(permission);
+  }
+
+  // Get all permissions for the current user
+  Map<Permission, bool> getAllPermissions() {
+    if (_currentUser == null) return {};
+    return _currentUser!.getAllPermissions();
+  }
+
+  // Check if user has custom permissions
+  bool hasCustomPermissions() {
+    return _currentUser?.customPermissions != null &&
+        _currentUser!.customPermissions!.isNotEmpty;
   }
 
   // Initialize the service
@@ -129,6 +142,49 @@ class AuthService {
       _currentUser = updatedUser;
       return true;
     } catch (e) {
+      return false;
+    }
+  }
+
+  // Update user permissions (only super admin can do this)
+  Future<bool> updateUserPermissions(
+      String userId, Map<Permission, bool> permissions) async {
+    if (!isSuperAdmin) return false;
+
+    try {
+      // Get the user
+      final user = await _userService.getUserById(userId);
+      if (user == null) return false;
+
+      // Update user with new permissions
+      final updatedUser = user.copyWith(customPermissions: permissions);
+
+      // Save the updated user
+      await _userService.updateUser(updatedUser);
+      return true;
+    } catch (e) {
+      debugPrint('Error updating user permissions: $e');
+      return false;
+    }
+  }
+
+  // Reset user permissions to role defaults (only super admin can do this)
+  Future<bool> resetUserPermissions(String userId) async {
+    if (!isSuperAdmin) return false;
+
+    try {
+      // Get the user
+      final user = await _userService.getUserById(userId);
+      if (user == null) return false;
+
+      // Update user with null custom permissions to use role defaults
+      final updatedUser = user.copyWith(customPermissions: null);
+
+      // Save the updated user
+      await _userService.updateUser(updatedUser);
+      return true;
+    } catch (e) {
+      debugPrint('Error resetting user permissions: $e');
       return false;
     }
   }
